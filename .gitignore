@@ -54,6 +54,8 @@ wheels/
 
 # Environment variables
 .env
+.env.test
+.env.key
 
 output_data/
 input_sources/
