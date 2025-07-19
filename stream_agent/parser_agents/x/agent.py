@@ -2,7 +2,7 @@ from stream_agent.common.partials import DOCUMENT_CATEGORY_PARTIAL
 from stream_agent.common.schemas import Document
 from stream_agent.common.utils import auth_tools
 from stream_agent.common.llm_provider_setup import get_llm
-from stream_agent.parser_agents.x.schemas import InputSchema, OutputSchema
+from stream_agent.parser_agents.x.schemas import InputSchema, OutputSchema, SearchType
 from stream_agent.parser_agents.x.tools import search_tweets
 import os
 from typing import List
@@ -20,7 +20,7 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
     await auth_tools(
         client=client,
         user_id=os.getenv("USER_ID"),
-        tool_names=["X.SearchRecentTweetsByKeywords"],
+        tool_names=["X.SearchRecentTweetsByKeywords@0.1.2", "X.SearchRecentTweetsByUsername@0.1.2"],
         provider="x"
     )
 
@@ -34,15 +34,33 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         target_number=parser_agent_config.target_number
     )
 
-    pprint(tweets)
-    print(f"Number of tweets: {len(tweets)}")
-    exit(1)
-
     subreddit = parser_agent_config.subreddit
     subreddit_description = parser_agent_config.subreddit_description
+    search_type_entity = parser_agent_config.search_type.value
+
+    match parser_agent_config.search_type:
+        case SearchType.KEYWORDS:
+            search_type_instructions = """
+            You will be given a topic and a list of tweets from the topic.
+
+            The topic is "{topic}".
+
+            Here are 10 tweets from the topic.
+            """
+
+        case SearchType.USER:
+            search_type_instructions = """
+            You will be given a user and a list of tweets from the user.
+
+            The user is "{user}".
+
+            Here are 10 tweets from this user.
+            """
+        case _:
+            raise ValueError(f"Unsupported search type: {parser_agent_config.search_type}")
 
     system_prompt_template = """
-    You are a helpful assistant that is an expert in identifying the BEST tweets from any topic.
+    You are a helpful assistant that is an expert in identifying the BEST tweets from any {search_type_entity}.
     Your job is to rank the tweets from best to worst.
     The best tweet is the one that you think will get the most engagement (comments, upvotes, etc.).
     {audience_specification}
@@ -50,17 +68,7 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
 
     {partials}
 
-    You will be given a topic and a list of tweets from the topic.
-
-    The topic is "{topic}".
-
-    A detailed description of the topic is provided below.
-
-    <topic_description>
-    {topic_description}
-    </topic_description>
-
-    Here are 10 tweets from the topic.
+    {search_type_instructions}
 
     <tweets>
     {tweets}
@@ -95,11 +103,11 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
     partials = DOCUMENT_CATEGORY_PARTIAL
 
     system_prompt = system_prompt_template.format(
-        subreddit=subreddit,
+        search_type_entity=search_type_entity,
         audience_specification=parser_agent_config.audience_specification,
         partials=partials,
-        subreddit_description=subreddit_description,
-        posts=few_shot_examples)
+        search_type_instructions=search_type_instructions,
+        tweets=few_shot_examples)
 
     agent = get_llm(
         provider=os.getenv("LLM_PROVIDER", "openai"),

@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 from typing import List
 from common.schemas import Document, DocumentType, DocumentCategory, ContentType
-from parser_agents.x.schemas import SearchType
+from stream_agent.parser_agents.x.schemas import SearchType
 from pprint import pprint
 from time import sleep
 
@@ -16,7 +16,7 @@ async def search_tweets(
     target_number: int = 300,
 ) -> List[dict]:
 
-    async def get_tweets(next_token: str = None) -> dict:
+    async def get_tweets_by_keywords(next_token: str = None) -> dict:
         print(f"Getting tweets for {search_query} with next_token {next_token}")
         tool_input = {
             "keywords": [search_query],
@@ -27,13 +27,39 @@ async def search_tweets(
             tool_input["next_token"] = next_token
 
         return await client.tools.execute(
-            tool_name="X.SearchRecentTweetsByKeywords",
+            tool_name="X.SearchRecentTweetsByKeywords@0.1.2",
+            input=tool_input,
+            user_id=os.getenv("USER_ID"),
+        )
+
+    async def get_tweets_by_user(next_token: str = None) -> dict:
+        print(f"Getting tweets for {search_query} with next_token {next_token}")
+        tool_input = {
+            "username": search_query,
+            "max_results": limit,
+        }
+        if next_token is not None:
+            tool_input["next_token"] = next_token
+
+        return await client.tools.execute(
+            tool_name="X.SearchRecentTweetsByUsername@0.1.2",
             input=tool_input,
             user_id=os.getenv("USER_ID"),
         )
 
     tweets = []
+    print(f"Getting tweets for {search_type} {search_query}")
 
+    if search_type == SearchType.KEYWORDS:
+        print("Getting tweets by keywords")
+        get_tweets = get_tweets_by_keywords
+    elif search_type == SearchType.USER:
+        print("Getting tweets by user")
+        get_tweets = get_tweets_by_user
+    else:
+        raise ValueError(f"Unsupported search type: {search_type}")
+
+    # TODO(Mateo): Add handlers for other search types
     response = await get_tweets()
     try:
         tweets.extend(response.output.value["data"])
