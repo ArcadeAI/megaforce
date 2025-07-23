@@ -3,14 +3,13 @@ from megaforce.common.schemas import Document
 from megaforce.common.utils import auth_tools
 from megaforce.common.llm_provider_setup import get_llm
 from megaforce.parser_agents.x.schemas import (InputSchema, create_scoring_schema,
-                                                  SearchType, extract_results_from_dynamic_response)
+                                               SearchType, extract_results_from_dynamic_response)
 from megaforce.parser_agents.x.tools import search_tweets, translate_items, get_sorted_tweets
 import os
 from typing import List
 from arcadepy import AsyncArcade
 from dotenv import load_dotenv
 import logging
-from pprint import pprint
 
 logger = logging.getLogger(__name__)
 

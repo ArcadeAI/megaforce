@@ -3,7 +3,7 @@
 from typing import Any
 
 from megaforce.style_agent.llm_provider_setup import get_llm
-from megaforce.style_agent.schemas import StyleTransferRequest, StyleTransferResponse
+from megaforce.common.schemas import StyleTransferRequest, StyleTransferResponse
 from megaforce.style_agent.utils.content_extractor import extract_content
 
 

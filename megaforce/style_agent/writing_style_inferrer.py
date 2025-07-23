@@ -1,7 +1,7 @@
 """Writing style inference utilities for extracting style rules and examples from documents."""
 
 from megaforce.style_agent.llm_provider_setup import get_llm
-from megaforce.style_agent.schemas import Document, FewShotExample
+from megaforce.common.schemas import Document, FewShotExample
 
 
 def infer_style_rules(

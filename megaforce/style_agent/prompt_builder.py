@@ -1,6 +1,6 @@
 """Prompt building utilities for style transfer."""
 
-from megaforce.style_agent.schemas import (
+from megaforce.common.schemas import (
     Document,
     OutputSchema,
     ReferenceStyle,
@@ -40,7 +40,7 @@ def build_related_content_prompt(
                 enhanced_style.style_definition.few_shot_examples = few_shot_examples
             else:
                 # Create basic style definition if none exists
-                from megaforce.style_agent.schemas import WritingStyle
+                from megaforce.common.schemas import WritingStyle
 
                 enhanced_style.style_definition = WritingStyle(
                     tone="neutral",
@@ -128,7 +128,7 @@ def build_generation_prompt(
                 enhanced_style.style_definition.few_shot_examples = few_shot_examples
             else:
                 # Create basic style definition if none exists
-                from megaforce.style_agent.schemas import WritingStyle
+                from megaforce.common.schemas import WritingStyle
 
                 enhanced_style.style_definition = WritingStyle(
                     tone="neutral",

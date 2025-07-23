@@ -1,6 +1,5 @@
-from megaforce.style_agent.schemas import StyleTransferRequest, StyleTransferResponse, Document, OutputSchema, OutputType
-from megaforce.style_agent.agent import transfer_style, generate_related_content
-from megaforce.style_agent.evaluation import evaluate
+from megaforce.common.schemas import StyleTransferRequest, Document, OutputSchema, OutputType
+from megaforce.style_agent.agent import generate_related_content
 import json
 from pathlib import Path
 from typing import List
