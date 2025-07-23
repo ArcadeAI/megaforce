@@ -3,14 +3,13 @@ from megaforce.common.schemas import Document
 from megaforce.common.utils import auth_tools
 from megaforce.common.llm_provider_setup import get_llm
 from megaforce.parser_agents.x.schemas import (InputSchema, create_scoring_schema,
-                                                  SearchType, extract_results_from_dynamic_response)
+                                               SearchType, extract_results_from_dynamic_response)
 from megaforce.parser_agents.x.tools import search_tweets, translate_items, get_sorted_tweets
 import os
 from typing import List
 from arcadepy import AsyncArcade
 from dotenv import load_dotenv
 import logging
-from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +32,11 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         audience_specification=parser_agent_config.audience_specification,
         limit=parser_agent_config.limit,
     )
+
+    if not parser_agent_config.rank_tweets:
+        return await translate_items(
+            tweets=tweets,
+        )
 
     search_type_entity = parser_agent_config.search_type.value
 
@@ -58,28 +62,27 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
             raise ValueError(f"Unsupported search type: {parser_agent_config.search_type}")
 
     system_prompt_template = """
-    You are a helpful assistant that is an expert in identifying the BEST tweets from any {search_type_entity}.
-    Your job is to rank the tweets from best to worst.
-    The best tweet is the one that you think will get the most engagement (comments, upvotes, etc.).
-    {audience_specification}
-    Deprioritize tweets that are obviously spam.
+You are a helpful assistant that is an expert in identifying the BEST tweets from any {search_type_entity}.
+Your job is to rank the tweets from best to worst.
+The best tweet is the one that you think will get the most engagement (comments, upvotes, etc.).
+{audience_specification}
+Deprioritize tweets that are obviously spam.
 
-    {partials}
+{partials}
 
-    {search_type_instructions}
+{search_type_instructions}
 
-    <tweets>
-    {tweets}
-    </tweets>
-
+<tweets>
+{tweets}
+</tweets>
     """
 
     few_shot_template = """
-    <tweet>
-    <id>{id}</id>
-    <author>{author}</author>
-    <text>{text}</text>
-    </tweet>
+<tweet>
+<id>{id}</id>
+<author>{author}</author>
+<text>{text}</text>
+</tweet>
     """
 
     few_shot_examples = []

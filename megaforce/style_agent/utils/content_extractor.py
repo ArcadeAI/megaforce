@@ -2,7 +2,7 @@
 
 import json
 
-from megaforce.style_agent.schemas import OutputSchema
+from megaforce.common.schemas import OutputSchema
 from megaforce.style_agent.utils.pydantic_utils import get_text_fields
 
 

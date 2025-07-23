@@ -6,7 +6,7 @@ from megaforce.style_agent.evals import (
     evaluate_quality,
     evaluate_style_fidelity,
 )
-from megaforce.style_agent.schemas import StyleTransferRequest, StyleTransferResponse
+from megaforce.common.schemas import StyleTransferRequest, StyleTransferResponse
 
 # Type aliases for cleaner annotations
 EvaluationResult = dict[str, Any]

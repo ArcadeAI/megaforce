@@ -1,6 +1,6 @@
 """Prompt building utilities for style transfer."""
 
-from megaforce.style_agent.schemas import (
+from megaforce.common.schemas import (
     Document,
     OutputSchema,
     ReferenceStyle,
@@ -40,7 +40,7 @@ def build_related_content_prompt(
                 enhanced_style.style_definition.few_shot_examples = few_shot_examples
             else:
                 # Create basic style definition if none exists
-                from megaforce.style_agent.schemas import WritingStyle
+                from megaforce.common.schemas import WritingStyle
 
                 enhanced_style.style_definition = WritingStyle(
                     tone="neutral",
@@ -62,18 +62,20 @@ def build_related_content_prompt(
     writing_guidance = get_writing_guidance(output_schema.output_type)
 
     prompt = f"""
-You are tasked with creating content that is related to the target content.
+You are tasked with creating content that is related to the target documents provided in the <target_content> tag.
 It is important to NOT repeat the target content in the generated content, but to use only as a reference.
 
 ## Reference Style Information:
 {style_info}
 
-## Target Content Information:
+<target_content>
 {target_info}
+</target_content>
 
 ## Intent and Focus:
 - Intent: {intent or "Not specified"}
 - Focus: {focus}
+- Output Description: {output_schema.description}
 
 ## Writing Style Guidance:
 {writing_guidance}
@@ -126,7 +128,7 @@ def build_generation_prompt(
                 enhanced_style.style_definition.few_shot_examples = few_shot_examples
             else:
                 # Create basic style definition if none exists
-                from megaforce.style_agent.schemas import WritingStyle
+                from megaforce.common.schemas import WritingStyle
 
                 enhanced_style.style_definition = WritingStyle(
                     tone="neutral",

@@ -1,10 +1,8 @@
 from arcadepy import AsyncArcade
-from datetime import datetime
 import os
 from typing import List
 from megaforce.common.schemas import Document, DocumentType, DocumentCategory, ContentType
 from megaforce.parser_agents.x.schemas import SearchType
-from pprint import pprint
 from time import sleep
 
 
@@ -160,8 +158,8 @@ def get_sorted_tweets(
     return sorted_tweets
 
 async def translate_items(
-    tweets: List[dict],  # filtered tweets (top 10 or something)
-    tweet_inferred_metadata: dict,
+    tweets: List[dict],  # filtered/sorted tweets (top 10 or something)
+    tweet_inferred_metadata: dict | None = None,
 ) -> List[Document]:
     """
     Translate posts to documents.

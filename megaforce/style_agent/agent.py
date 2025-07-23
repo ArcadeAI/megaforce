@@ -8,7 +8,7 @@ from langchain.schema import HumanMessage, SystemMessage
 
 from megaforce.style_agent.llm_provider_setup import get_llm
 from megaforce.style_agent.prompt_builder import build_generation_prompt, build_related_content_prompt
-from megaforce.style_agent.schemas import (
+from megaforce.common.schemas import (
     StyleTransferRequest,
     StyleTransferResponse,
     ContentGenerationResponse,
