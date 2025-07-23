@@ -1,9 +1,10 @@
-from stream_agent.common.partials import DOCUMENT_CATEGORY_PARTIAL
-from stream_agent.common.schemas import Document
-from stream_agent.common.utils import auth_tools
-from stream_agent.common.llm_provider_setup import get_llm
-from stream_agent.parser_agents.x.schemas import InputSchema, OutputSchema, SearchType
-from stream_agent.parser_agents.x.tools import search_tweets
+from megaforce.common.partials import DOCUMENT_CATEGORY_PARTIAL
+from megaforce.common.schemas import Document
+from megaforce.common.utils import auth_tools
+from megaforce.common.llm_provider_setup import get_llm
+from megaforce.parser_agents.x.schemas import (InputSchema, create_scoring_schema,
+                                                  SearchType, extract_results_from_dynamic_response)
+from megaforce.parser_agents.x.tools import search_tweets, translate_items, get_sorted_tweets
 import os
 from typing import List
 from arcadepy import AsyncArcade
@@ -20,7 +21,7 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
     await auth_tools(
         client=client,
         user_id=os.getenv("USER_ID"),
-        tool_names=["X.SearchRecentTweetsByKeywords@0.1.2", "X.SearchRecentTweetsByUsername@0.1.2"],
+        tool_names=["X.SearchRecentTweetsByKeywords", "X.SearchRecentTweetsByUsername"],
         provider="x"
     )
 
@@ -31,11 +32,8 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         search_query=parser_agent_config.search_query,
         audience_specification=parser_agent_config.audience_specification,
         limit=parser_agent_config.limit,
-        target_number=parser_agent_config.target_number
     )
 
-    subreddit = parser_agent_config.subreddit
-    subreddit_description = parser_agent_config.subreddit_description
     search_type_entity = parser_agent_config.search_type.value
 
     match parser_agent_config.search_type:
@@ -78,15 +76,9 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
 
     few_shot_template = """
     <tweet>
-    <id>
-    {id}
-    </id>
-    <title>
-    {title}
-    </title>
-    <body>
-    {body}
-    </body>
+    <id>{id}</id>
+    <author>{author}</author>
+    <text>{text}</text>
     </tweet>
     """
 
@@ -95,8 +87,8 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         few_shot_examples.append(
             few_shot_template.format(
                 id=tweet['id'],
-                title=tweet['title'],
-                body=tweet['body']))
+                author=tweet['author_name'],
+                text=tweet['text']))
 
     few_shot_examples = "\n".join(few_shot_examples)
 
@@ -113,24 +105,21 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         provider=os.getenv("LLM_PROVIDER", "openai"),
         model=os.getenv("LLM_MODEL", "gpt-4o-2024-08-06"),
     )
-    agent = agent.with_structured_output(OutputSchema)
+
+    scoring_schema = create_scoring_schema(tweets)
+
+    agent = agent.with_structured_output(scoring_schema)
 
     logger.info("Invoking agent...")
-    ids_before = [post["id"] for post in posts]
+    ids_before = [tweet["id"] for tweet in tweets]
     logger.info(f"IDs before: {ids_before}")
     response = agent.invoke([{"role": "system", "content": system_prompt}])
 
-    logger.info(f"IDs after: {response.post_ids}")
-    if set(ids_before) != set(response.post_ids):
-        logger.warning("IDs before and after are different, this is not expected")
-        logger.warning(f"IDs before: {ids_before}")
-        logger.warning(f"IDs after: {response.post_ids}")
-        logger.warning("This is not expected, please investigate")
-        raise RuntimeError("IDs before and after are different, this is not expected")
+    tweet_inferred_metadata = extract_results_from_dynamic_response(response, tweets)
+    sorted_tweets = get_sorted_tweets(tweets, tweet_inferred_metadata, parser_agent_config.target_number)
 
     logger.info("Translating posts...")
     return await translate_items(
-        posts=posts,
-        ordered_ids=response.post_ids,
-        document_categories=response.document_category
+        tweets=sorted_tweets,
+        tweet_inferred_metadata=tweet_inferred_metadata
     )

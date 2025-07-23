@@ -7,9 +7,9 @@ import asyncio
 import json
 from pathlib import Path
 
-from agent_style_transfer.agent import transfer_style
-from agent_style_transfer.evaluation import evaluate
-from agent_style_transfer.schemas import StyleTransferRequest, StyleTransferResponse
+from megaforce.agent_style_transfer.agent import transfer_style
+from megaforce.agent_style_transfer.evaluation import evaluate
+from megaforce.agent_style_transfer.schemas import StyleTransferRequest, StyleTransferResponse
 
 
 def get_operation_choice():

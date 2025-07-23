@@ -1,4 +1,4 @@
-from common.schemas import Document
+from megaforce.common.schemas import Document
 from pathlib import Path
 import json
 

@@ -2,7 +2,7 @@ from arcadepy import AsyncArcade
 from datetime import datetime
 import os
 from typing import List
-from stream_agent.common.schemas import Document, DocumentType, DocumentCategory, ContentType
+from megaforce.common.schemas import Document, DocumentType, DocumentCategory, ContentType
 
 
 async def get_top_posts_metadata_in_subreddit(

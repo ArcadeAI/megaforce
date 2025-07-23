@@ -1,13 +1,13 @@
-from stream_agent.common.partials import DOCUMENT_CATEGORY_PARTIAL
-from stream_agent.common.schemas import Document, DocumentCategory
-from stream_agent.common.utils import auth_tools
-from stream_agent.common.llm_provider_setup import get_llm
-from stream_agent.parser_agents.reddit.tools import (
+from megaforce.common.partials import DOCUMENT_CATEGORY_PARTIAL
+from megaforce.common.schemas import Document, DocumentCategory
+from megaforce.common.utils import auth_tools
+from megaforce.common.llm_provider_setup import get_llm
+from megaforce.parser_agents.reddit.tools import (
     get_top_posts_metadata_in_subreddit,
     filter_posts, expand_posts, translate_items)
 import os
-from pydantic import BaseModel, Field, field_validator, model_validator, create_model
-from typing import List, Dict, Any
+from pydantic import BaseModel, Field, model_validator, create_model
+from typing import List, Any
 from arcadepy import AsyncArcade
 from dotenv import load_dotenv
 import logging
@@ -46,9 +46,6 @@ def create_ranking_schema(post_ids: List[str]) -> type:
                 le=len(post_ids)
             )
         )
-
-    # Add document category field for each post ID
-    for post_id in post_ids:
         fields[f'category_{post_id}'] = (
             DocumentCategory,
             Field(description=f"The document category for post {post_id}")

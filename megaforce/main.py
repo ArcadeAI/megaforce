@@ -1,9 +1,9 @@
 import asyncio
 from datetime import datetime
-import stream_agent.parser_agents.reddit.agent as reddit_agent
-import stream_agent.parser_agents.x.agent as x_agent
-import stream_agent.parser_agents.x.schemas as x_schemas
-from stream_agent.common.writers import write_documents_to_json
+import megaforce.parser_agents.reddit.agent as reddit_agent
+import megaforce.parser_agents.x.agent as x_agent
+import megaforce.parser_agents.x.schemas as x_schemas
+from megaforce.common.writers import write_documents_to_json
 import logging
 
 # Configure logging
@@ -65,8 +65,8 @@ async def main_x():
 
     today = datetime.now().strftime("%Y-%m-%d")
     topics_to_process = [
-        x_schemas.InputSchema(search_type=x_schemas.SearchType.KEYWORDS, search_query="mcp", limit=100, target_number=300, audience_specification="Deprioritize tweets that are obviously marketing oriented, everyone is trying to sell something, we want developer-oriented content instead.",),
-        x_schemas.InputSchema(search_type=x_schemas.SearchType.USER, search_query="torresmateo", limit=100, target_number=300, audience_specification="Deprioritize tweets that are obviously marketing oriented, everyone is trying to sell something, we want developer-oriented content instead.",),
+        x_schemas.InputSchema(search_type=x_schemas.SearchType.KEYWORDS, search_query="mcp", limit=100, target_number=30, audience_specification="Deprioritize tweets that are obviously marketing oriented, everyone is trying to sell something, we want developer-oriented content instead.",),
+        x_schemas.InputSchema(search_type=x_schemas.SearchType.USER, search_query="torresmateo", limit=100, target_number=30, audience_specification="Deprioritize tweets that are obviously marketing oriented, everyone is trying to sell something, we want developer-oriented content instead.",),
     ]
     for topic in topics_to_process:
         try:
