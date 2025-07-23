@@ -1,6 +1,10 @@
 from typing import List
+from pydantic import TypeAdapter
 from arcadepy import AsyncArcade
 import asyncio
+import json
+from pathlib import Path
+from megaforce.common.schemas import Document
 
 
 async def auth_tools(
@@ -40,3 +44,9 @@ async def auth_tools(
             print(f"Please click here to authorize: {auth_response.url}")
             # Wait for the authorization to complete
             await client.auth.wait_for_completion(auth_response)
+
+
+def load_documents_from_json(file_path: Path) -> List[Document]:
+    with file_path.open("r") as f:
+        data = json.load(f)
+        return TypeAdapter(List[Document]).validate_python(data)

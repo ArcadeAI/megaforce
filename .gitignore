@@ -1,5 +1,9 @@
 . DS_Store
-  
+
+
+# Playground script
+pg.py
+
 # Created by https://www.toptal.com/developers/gitignore/api/nextjs
 # Edit at https://www.toptal.com/developers/gitignore?templates=nextjs
 
