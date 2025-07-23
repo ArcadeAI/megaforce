@@ -60,8 +60,9 @@ async def main():
 
     documents_file = Path(__file__).parent / "output_data" / "2025-07-22" / "x-mcp_content.json"
     tweets = load_documents(documents_file)
-    for tweet in tweets:
+    for tweet in tweets[:5]:
         r = StyleTransferRequest(**request)
+        print(r.focus)
         r.target_schemas.extend(output_schemas)
         r.target_content = [tweet]
         await generate_and_print_single(r)
