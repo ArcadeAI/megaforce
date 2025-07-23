@@ -1,6 +1,6 @@
 """Style rule usefulness evaluation."""
 
-from megaforce.style_agent.schemas import StyleTransferRequest, StyleTransferResponse
+from megaforce.common.schemas import StyleTransferRequest, StyleTransferResponse
 from megaforce.style_agent.utils.evaluation import (
     create_llm_evaluator,
     format_result,

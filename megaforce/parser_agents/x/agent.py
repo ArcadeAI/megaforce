@@ -33,6 +33,11 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         limit=parser_agent_config.limit,
     )
 
+    if not parser_agent_config.rank_tweets:
+        return await translate_items(
+            tweets=tweets,
+        )
+
     search_type_entity = parser_agent_config.search_type.value
 
     match parser_agent_config.search_type:
@@ -57,28 +62,27 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
             raise ValueError(f"Unsupported search type: {parser_agent_config.search_type}")
 
     system_prompt_template = """
-    You are a helpful assistant that is an expert in identifying the BEST tweets from any {search_type_entity}.
-    Your job is to rank the tweets from best to worst.
-    The best tweet is the one that you think will get the most engagement (comments, upvotes, etc.).
-    {audience_specification}
-    Deprioritize tweets that are obviously spam.
+You are a helpful assistant that is an expert in identifying the BEST tweets from any {search_type_entity}.
+Your job is to rank the tweets from best to worst.
+The best tweet is the one that you think will get the most engagement (comments, upvotes, etc.).
+{audience_specification}
+Deprioritize tweets that are obviously spam.
 
-    {partials}
+{partials}
 
-    {search_type_instructions}
+{search_type_instructions}
 
-    <tweets>
-    {tweets}
-    </tweets>
-
+<tweets>
+{tweets}
+</tweets>
     """
 
     few_shot_template = """
-    <tweet>
-    <id>{id}</id>
-    <author>{author}</author>
-    <text>{text}</text>
-    </tweet>
+<tweet>
+<id>{id}</id>
+<author>{author}</author>
+<text>{text}</text>
+</tweet>
     """
 
     few_shot_examples = []

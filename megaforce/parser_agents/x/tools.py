@@ -158,8 +158,8 @@ def get_sorted_tweets(
     return sorted_tweets
 
 async def translate_items(
-    tweets: List[dict],  # filtered tweets (top 10 or something)
-    tweet_inferred_metadata: dict,
+    tweets: List[dict],  # filtered/sorted tweets (top 10 or something)
+    tweet_inferred_metadata: dict | None = None,
 ) -> List[Document]:
     """
     Translate posts to documents.

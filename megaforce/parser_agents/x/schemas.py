@@ -16,7 +16,12 @@ class InputSchema(BaseModel):
     search_query: str = Field(description="The search query to perform")
     limit: int = Field(description="The number of tweets to get")
     target_number: int = Field(description="The number of tweets to rank")
-    audience_specification: str = Field(description="The audience specification")
+    audience_specification: str = Field(
+        default="All audiences",
+        description="The audience specification")
+    rank_tweets: bool = Field(
+        default=True,
+        description="Whether to rank the tweets using an LLM or not, defaults to True")
 
 
 def create_scoring_schema(
