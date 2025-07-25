@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from api.database import get_db
 from api.auth import (
     authenticate_user, create_access_token, create_user, get_current_active_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    verify_password, get_password_hash, ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from api.schemas import UserCreate, UserLogin, User, Token
+from api.schemas import UserCreate, UserLogin, User, Token, PasswordUpdate
 
 router = APIRouter()
 
@@ -55,6 +55,30 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information."""
     return current_user
+
+
+@router.put("/update-password")
+async def update_password(
+    password_data: PasswordUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update user password."""
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=400,
+            detail="Current password is incorrect"
+        )
+    
+    # Update password
+    new_hashed_password = get_password_hash(password_data.new_password)
+    current_user.hashed_password = new_hashed_password
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return {"message": "Password updated successfully"}
 
 
 @router.delete("/delete-user/{username}")

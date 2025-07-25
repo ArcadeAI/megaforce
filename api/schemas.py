@@ -36,6 +36,11 @@ class Token(BaseModel):
     token_type: str
 
 
+class PasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, description="New password must be at least 8 characters")
+
+
 # Persona schemas
 class PersonaBase(BaseModel):
     name: str
