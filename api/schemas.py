@@ -221,6 +221,11 @@ class TwitterSearchRequest(BaseModel):
     target_number: int = Field(default=5, ge=1, le=50)
     audience_specification: str = Field(default="All audiences")
     rank_tweets: bool = True
+    
+    # Optional Arcade credentials (falls back to .env if not provided)
+    arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")
+    arcade_api_key: Optional[str] = Field(None, description="Arcade API key (optional, defaults to .env)")
+    arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
 
 
 class TwitterSearchResponse(BaseModel):
@@ -236,8 +241,11 @@ class TwitterSearchResponse(BaseModel):
 # Twitter posting schemas
 class TwitterPostRequest(BaseModel):
     tweet_text: str = Field(..., description="The text content of the tweet to post", max_length=280)
-    userid: Optional[str] = Field(None, description="User ID for authorization (optional)")
-    provider: Optional[str] = Field("x", description="Provider name (defaults to 'x')")
+    
+    # Optional Arcade credentials (falls back to .env if not provided)
+    arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")
+    arcade_api_key: Optional[str] = Field(None, description="Arcade API key (optional, defaults to .env)")
+    arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
 
 
 class TwitterPostResponse(BaseModel):
@@ -250,8 +258,11 @@ class TwitterPostResponse(BaseModel):
 
 class TwitterDeleteRequest(BaseModel):
     tweet_id: str = Field(..., description="The ID of the tweet to delete")
-    userid: Optional[str] = Field(None, description="User ID for authorization (optional)")
-    provider: Optional[str] = Field("x", description="Provider name (defaults to 'x')")
+    
+    # Optional Arcade credentials (falls back to .env if not provided)
+    arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")
+    arcade_api_key: Optional[str] = Field(None, description="Arcade API key (optional, defaults to .env)")
+    arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
 
 
 class TwitterDeleteResponse(BaseModel):
@@ -259,6 +270,33 @@ class TwitterDeleteResponse(BaseModel):
     tweet_id: str
     message: str
     deleted_at: Optional[datetime] = None
+
+
+# Style Agent schemas
+class StyleTransferRequest(BaseModel):
+    content: str = Field(..., description="The content to transform with style")
+    style_description: str = Field(..., description="Description of the desired style")
+    output_format: str = Field(default="tweet", description="Output format: tweet, thread, post, etc.")
+    max_length: Optional[int] = Field(280, description="Maximum character length for output")
+    
+    # LLM Provider Configuration (with .env fallbacks)
+    llm_provider: str = Field(default="anthropic", description="LLM provider: openai, anthropic, google")
+    llm_model: Optional[str] = Field(None, description="Specific model to use (optional, defaults to provider default)")
+    openai_api_key: Optional[str] = Field(None, description="OpenAI API key (optional, defaults to .env)")
+    anthropic_api_key: Optional[str] = Field(None, description="Anthropic API key (optional, defaults to .env)")
+    google_api_key: Optional[str] = Field(None, description="Google API key (optional, defaults to .env)")
+    temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="LLM temperature for creativity")
+
+
+class StyleTransferResponse(BaseModel):
+    success: bool
+    transformed_content: Optional[str] = None
+    original_content: str
+    style_applied: str
+    character_count: int
+    llm_provider_used: str
+    processing_time: float
+    message: str
 
 
 # Dashboard/UI specific schemas

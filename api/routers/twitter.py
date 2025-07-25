@@ -93,9 +93,14 @@ async def search_twitter(
         start_time = datetime.now()
         
         try:
-            # Use the existing Twitter agent with generous timeout
+            # Use the existing Twitter agent with generous timeout and optional credentials
             documents = await asyncio.wait_for(
-                get_content(agent_input), 
+                get_content(
+                    agent_input,
+                    userid=request.arcade_user_id,
+                    key=request.arcade_api_key,
+                    provider=request.arcade_provider
+                ), 
                 timeout=120.0  # 2 minutes timeout for complex searches
             )
         except asyncio.TimeoutError:
@@ -124,11 +129,16 @@ async def search_twitter(
         # Save documents to database
         saved_documents = []
         for doc in documents:
+            # Convert HttpUrl to string if needed
+            doc_url = getattr(doc, 'url', None)
+            if doc_url and hasattr(doc_url, '__str__'):
+                doc_url = str(doc_url)
+            
             db_document = Document(
                 id=str(uuid.uuid4()),
                 title=doc.title,
                 content=doc.content,
-                url=getattr(doc, 'url', None),
+                url=doc_url,
                 author=getattr(doc, 'author', None),
                 score=getattr(doc, 'score', 0),
                 priority=getattr(doc, 'priority', 0),
@@ -271,8 +281,9 @@ async def post_twitter_tweet(
         # Use the posting agent with flexible credentials
         result = await post_tweet(
             tweet_text=request.tweet_text,
-            userid=request.userid,  # Will fall back to env vars if None
-            provider=request.provider
+            userid=request.arcade_user_id,  # Will fall back to env vars if None
+            key=request.arcade_api_key,
+            provider=request.arcade_provider
         )
         
         if result["success"]:
@@ -281,9 +292,16 @@ async def post_twitter_tweet(
             tweet_id = None
             tweet_url = None
             
+            # Handle different response formats
             if isinstance(tweet_info, dict):
                 tweet_id = tweet_info.get("id")
                 tweet_url = tweet_info.get("url")
+                
+                # If URL is not provided but ID is, construct the URL
+                if tweet_id and not tweet_url:
+                    # Extract username from the posting request if available
+                    username = request.arcade_user_id.split('@')[0] if '@' in str(request.arcade_user_id) else "user"
+                    tweet_url = f"https://x.com/{username}/status/{tweet_id}"
             
             return TwitterPostResponse(
                 success=True,
@@ -316,8 +334,9 @@ async def delete_twitter_tweet(
         # Use the deletion agent with flexible credentials
         result = await delete_tweet(
             tweet_id=tweet_id,
-            userid=request.userid,  # Will fall back to env vars if None
-            provider=request.provider
+            userid=request.arcade_user_id,  # Will fall back to env vars if None
+            key=request.arcade_api_key,
+            provider=request.arcade_provider
         )
         
         if result["success"]:

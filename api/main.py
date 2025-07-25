@@ -16,7 +16,7 @@ from api.schemas import (
     RunResponse, DocumentResponse, OutputSchemaResponse,
     TwitterSearchRequest, TwitterSearchResponse
 )
-from api.routers import auth, input_sources, runs, documents, outputs, twitter
+from api.routers import auth, input_sources, runs, documents, outputs, twitter, style
 
 import logging
 
@@ -54,6 +54,7 @@ app.include_router(runs.router, prefix="/api/v1/runs", tags=["runs"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])
 app.include_router(outputs.router, prefix="/api/v1/outputs", tags=["outputs"])
 app.include_router(twitter.router, prefix="/api/v1/twitter", tags=["twitter"])
+app.include_router(style.router, prefix="/api/v1/style", tags=["style-agent"])
 
 @app.get("/")
 async def root():

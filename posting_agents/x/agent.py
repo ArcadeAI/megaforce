@@ -67,15 +67,46 @@ async def post_tweet(
             # Handle the Output object properly
             output_value = result.output.value if hasattr(result.output, 'value') else result.output
             print(f"📋 Tweet posted successfully!")
+            print(f"🔍 Full output_value: {output_value}")
+            print(f"🔍 Output type: {type(output_value)}")
+            
+            tweet_id = None
+            tweet_url = None
+            
             if isinstance(output_value, dict):
-                tweet_id = output_value.get('id', 'Unknown')
-                tweet_url = output_value.get('url', 'Unknown')
-                print(f"🆔 Tweet ID: {tweet_id}")
-                print(f"🔗 Tweet URL: {tweet_url}")
+                tweet_id = output_value.get('id')
+                tweet_url = output_value.get('url')
+                print(f"🆔 Tweet ID from dict: {tweet_id}")
+                print(f"🔗 Tweet URL from dict: {tweet_url}")
+            elif isinstance(output_value, str):
+                # Parse string response: "Tweet with id 1948801436713701645 posted successfully. URL: https://x.com/x/status/1948801436713701645"
+                import re
+                
+                # Extract tweet ID using regex
+                id_match = re.search(r'id (\d+)', output_value)
+                if id_match:
+                    tweet_id = id_match.group(1)
+                    print(f"🆔 Tweet ID from string: {tweet_id}")
+                
+                # Extract URL using regex
+                url_match = re.search(r'URL: (https://[^\s]+)', output_value)
+                if url_match:
+                    tweet_url = url_match.group(1)
+                    print(f"🔗 Tweet URL from string: {tweet_url}")
+            else:
+                print(f"⚠️ Output is not a dict or string, it's: {type(output_value)}")
+            
+            # Create a structured output with extracted data
+            structured_output = {
+                "id": tweet_id,
+                "url": tweet_url,
+                "raw_response": output_value
+            }
+                
             return {
                 "success": True,
                 "status": result.status,
-                "output": output_value
+                "output": structured_output
             }
         else:
             print(f"❌ Tweet posting failed: {result}")

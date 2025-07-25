@@ -55,3 +55,26 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information."""
     return current_user
+
+
+@router.delete("/delete-user/{username}")
+async def delete_user(username: str, db: Session = Depends(get_db)):
+    """Delete a user by username (for testing purposes)."""
+    from api.models import User as UserModel
+    
+    # Find the user
+    user = db.query(UserModel).filter(
+        (UserModel.username == username) | (UserModel.email == username)
+    ).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    # Delete the user
+    db.delete(user)
+    db.commit()
+    
+    return {"message": f"User {username} deleted successfully"}
