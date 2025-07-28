@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from api.database import get_db, engine, Base
 from api.auth import get_current_user
@@ -67,7 +68,7 @@ async def health_check(db: Session = Depends(get_db)):
     """Health check endpoint for monitoring."""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         return {
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
