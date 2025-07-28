@@ -4,10 +4,26 @@ from typing import List
 
 from api.database import get_db
 from api.models import OutputSchema, ApprovalHistory
-from api.schemas import OutputSchemaResponse, ApprovalRequest
+from api.schemas import OutputSchemaResponse, OutputSchemaCreate, ApprovalRequest
 from api.auth import get_current_user
 
 router = APIRouter()
+
+@router.post("/", response_model=OutputSchemaResponse)
+async def create_output(
+    output_data: OutputSchemaCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Create a new output schema."""
+    output = OutputSchema(
+        **output_data.dict(),
+        user_id=current_user.id
+    )
+    db.add(output)
+    db.commit()
+    db.refresh(output)
+    return output
 
 @router.get("/", response_model=List[OutputSchemaResponse])
 async def list_outputs(
