@@ -15,8 +15,21 @@ async def list_input_sources(
     current_user = Depends(get_current_user)
 ):
     """List all input sources for the current user."""
-    input_sources = db.query(InputSource).filter(InputSource.user_id == current_user.id).all()
-    return input_sources
+    try:
+        print(f"DEBUG: Current user ID: {current_user.id}")
+        print(f"DEBUG: Current user: {current_user.username}")
+        
+        # Check if the user has any input sources
+        input_sources = db.query(InputSource).filter(InputSource.owner_id == current_user.id).all()
+        print(f"DEBUG: Found {len(input_sources)} input sources")
+        
+        return input_sources
+    except Exception as e:
+        print(f"ERROR in list_input_sources: {str(e)}")
+        print(f"ERROR type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/", response_model=InputSourceResponse)
 async def create_input_source(
@@ -27,7 +40,7 @@ async def create_input_source(
     """Create a new input source."""
     db_input_source = InputSource(
         **input_source.dict(),
-        user_id=current_user.id
+        owner_id=current_user.id
     )
     db.add(db_input_source)
     db.commit()
@@ -43,7 +56,7 @@ async def get_input_source(
     """Get a specific input source."""
     input_source = db.query(InputSource).filter(
         InputSource.id == input_source_id,
-        InputSource.user_id == current_user.id
+        InputSource.owner_id == current_user.id
     ).first()
     if not input_source:
         raise HTTPException(status_code=404, detail="Input source not found")
@@ -58,7 +71,7 @@ async def delete_input_source(
     """Delete an input source."""
     input_source = db.query(InputSource).filter(
         InputSource.id == input_source_id,
-        InputSource.user_id == current_user.id
+        InputSource.owner_id == current_user.id
     ).first()
     if not input_source:
         raise HTTPException(status_code=404, detail="Input source not found")
