@@ -225,7 +225,7 @@ class TwitterSearchRequest(BaseModel):
     limit: int = Field(default=10, ge=1, le=100)
     target_number: int = Field(default=5, ge=1, le=50)
     audience_specification: str = Field(default="All audiences")
-    rank_tweets: bool = False
+    rank_tweets: bool = Field(default=False)
     
     # Optional Arcade credentials (falls back to .env if not provided)
     arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")

@@ -50,10 +50,6 @@ async def search_twitter(
             )
         
         # Create input schema for the agent
-        print(f"DEBUG: request object: {request}")
-        print(f"DEBUG: request.rank_tweets = {request.rank_tweets}")
-        print(f"DEBUG: type of request.rank_tweets = {type(request.rank_tweets)}")
-        
         agent_input = InputSchema(
             search_type=search_type_map[request.search_type],
             search_query=request.search_query,
@@ -62,8 +58,6 @@ async def search_twitter(
             audience_specification=request.audience_specification,
             rank_tweets=request.rank_tweets
         )
-        print(f"DEBUG: agent_input.rank_tweets = {agent_input.rank_tweets}")
-        print(f"DEBUG: type of agent_input.rank_tweets = {type(agent_input.rank_tweets)}")
         
         # Create a temporary input source record
         input_source = InputSource(
