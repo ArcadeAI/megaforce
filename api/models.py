@@ -32,10 +32,14 @@ class OutputType(str, enum.Enum):
     TWEET_SINGLE = "tweet_single"
     TWEET_THREAD = "tweet_thread"
     SOCIAL_COMMENT = "social_comment"
+    TWITTER_REPLY = "twitter_reply"
     LINKEDIN_POST = "linkedin_post"
     LINKEDIN_COMMENT = "linkedin_comment"
     BLOG_POST = "blog_post"
     REDDIT_COMMENT = "reddit_comment"
+    FACEBOOK_COMMENT = "facebook_comment"
+    INSTAGRAM_COMMENT = "instagram_comment"
+    YOUTUBE_COMMENT = "youtube_comment"
 
 
 class User(Base):
