@@ -50,13 +50,15 @@ async def search_twitter(
             )
         
         # Create input schema for the agent
+        # Explicitly ensure rank_tweets defaults to False
+        rank_tweets_value = getattr(request, 'rank_tweets', False)
         agent_input = InputSchema(
             search_type=search_type_map[request.search_type],
             search_query=request.search_query,
             limit=request.limit,
             target_number=request.target_number,
             audience_specification=request.audience_specification,
-            rank_tweets=request.rank_tweets
+            rank_tweets=rank_tweets_value
         )
         
         # Create a temporary input source record
