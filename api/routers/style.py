@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.auth import get_current_active_user
-from api.models import User
+from api.models import User, Persona
 from api.schemas import StyleTransferRequest, StyleTransferResponse
 
 # Import the style agent
@@ -33,6 +33,45 @@ async def transform_content_style(
     start_time = datetime.now()
     
     try:
+        # Validate that either style_description or persona_id is provided
+        if not request.style_description and not request.persona_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Either style_description or persona_id must be provided"
+            )
+        
+        # Get style information from persona if persona_id is provided
+        style_description = request.style_description
+        if request.persona_id:
+            persona = db.query(Persona).filter(
+                Persona.id == request.persona_id,
+                Persona.owner_id == current_user.id
+            ).first()
+            
+            if not persona:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Persona with id {request.persona_id} not found"
+                )
+            
+            # Build style description from persona
+            style_parts = [persona.description or ""]
+            
+            if persona.style_preferences:
+                prefs = persona.style_preferences
+                if prefs.get('tone'):
+                    style_parts.append(f"Tone: {prefs['tone']}")
+                if prefs.get('formality'):
+                    style_parts.append(f"Formality: {prefs['formality']}")
+                if prefs.get('emoji_usage'):
+                    style_parts.append(f"Emoji usage: {prefs['emoji_usage']}")
+                if prefs.get('personality_traits'):
+                    traits = ', '.join(prefs['personality_traits'])
+                    style_parts.append(f"Personality: {traits}")
+            
+            style_description = ". ".join([part for part in style_parts if part])
+            print(f"DEBUG: Using persona '{persona.name}' with style: {style_description}")
+        
         # Create a basic style definition from the description
         style_definition = WritingStyle(
             tone='engaging',
@@ -41,7 +80,7 @@ async def transform_content_style(
             vocabulary_level='accessible',
             personality_traits=['authentic', 'engaging'],
             style_rules=[
-                request.style_description,
+                style_description,
                 f"Keep output under {request.max_length} characters" if request.max_length else "Be concise",
                 f"Format as {request.output_format}"
             ],
@@ -50,7 +89,7 @@ async def transform_content_style(
         
         reference_style = ReferenceStyle(
             name="Dynamic Style",
-            description=request.style_description,
+            description=style_description,
             style_definition=style_definition,
             documents=[]
         )

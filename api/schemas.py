@@ -287,7 +287,8 @@ class TwitterDeleteResponse(BaseModel):
 # Style Agent schemas
 class StyleTransferRequest(BaseModel):
     content: str = Field(..., description="The content to transform with style")
-    style_description: str = Field(..., description="Description of the desired style")
+    style_description: Optional[str] = Field(None, description="Description of the desired style (optional if persona_id provided)")
+    persona_id: Optional[str] = Field(None, description="ID of persona to use for style transfer (optional, overrides style_description)")
     output_format: str = Field(default="tweet", description="Output format: tweet, thread, post, etc.")
     max_length: Optional[int] = Field(280, description="Maximum character length for output")
     
