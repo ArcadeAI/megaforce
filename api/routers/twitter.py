@@ -93,13 +93,33 @@ async def search_twitter(
         start_time = datetime.now()
         
         try:
-            # Use the existing Twitter agent with generous timeout and optional credentials
+            # Check if we have the necessary credentials (either from request or environment)
+            import os
+            user_id = request.arcade_user_id or os.getenv('USER_ID') or os.getenv('ARCADE_USER_ID')
+            api_key = request.arcade_api_key or os.getenv('ARCADE_API_KEY')
+            provider = request.arcade_provider or 'x'
+            
+            if not api_key:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Arcade API key is required. Set ARCADE_API_KEY environment variable or provide arcade_api_key in request."
+                )
+            
+            if not user_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="User ID is required. Set USER_ID environment variable or provide arcade_user_id in request."
+                )
+            
+            print(f"DEBUG: Using user_id={user_id}, provider={provider}, api_key={'***' + api_key[-4:] if api_key else 'None'}")
+            
+            # Use the existing Twitter agent with generous timeout and credentials
             documents = await asyncio.wait_for(
                 get_content(
                     agent_input,
-                    userid=request.arcade_user_id,
-                    key=request.arcade_api_key,
-                    provider=request.arcade_provider
+                    userid=user_id,
+                    key=api_key,
+                    provider=provider
                 ), 
                 timeout=120.0  # 2 minutes timeout for complex searches
             )
@@ -278,12 +298,30 @@ async def post_twitter_tweet(
 ):
     """Post a tweet to X/Twitter using the posting agent."""
     try:
-        # Use the posting agent with flexible credentials
+        # Check if we have the necessary credentials (either from request or environment)
+        import os
+        user_id = request.arcade_user_id or os.getenv('USER_ID') or os.getenv('ARCADE_USER_ID')
+        api_key = request.arcade_api_key or os.getenv('ARCADE_API_KEY')
+        provider = request.arcade_provider or 'x'
+        
+        if not api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Arcade API key is required. Set ARCADE_API_KEY environment variable or provide arcade_api_key in request."
+            )
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="User ID is required. Set USER_ID environment variable or provide arcade_user_id in request."
+            )
+        
+        # Use the posting agent with credentials
         result = await post_tweet(
             tweet_text=request.tweet_text,
-            userid=request.arcade_user_id,  # Will fall back to env vars if None
-            key=request.arcade_api_key,
-            provider=request.arcade_provider
+            userid=user_id,
+            key=api_key,
+            provider=provider
         )
         
         if result["success"]:
@@ -331,12 +369,30 @@ async def delete_twitter_tweet(
 ):
     """Delete a tweet from X/Twitter using the posting agent."""
     try:
-        # Use the deletion agent with flexible credentials
+        # Check if we have the necessary credentials (either from request or environment)
+        import os
+        user_id = request.arcade_user_id or os.getenv('USER_ID') or os.getenv('ARCADE_USER_ID')
+        api_key = request.arcade_api_key or os.getenv('ARCADE_API_KEY')
+        provider = request.arcade_provider or 'x'
+        
+        if not api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Arcade API key is required. Set ARCADE_API_KEY environment variable or provide arcade_api_key in request."
+            )
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="User ID is required. Set USER_ID environment variable or provide arcade_user_id in request."
+            )
+        
+        # Use the deletion agent with credentials
         result = await delete_tweet(
             tweet_id=tweet_id,
-            userid=request.arcade_user_id,  # Will fall back to env vars if None
-            key=request.arcade_api_key,
-            provider=request.arcade_provider
+            userid=user_id,
+            key=api_key,
+            provider=provider
         )
         
         if result["success"]:
