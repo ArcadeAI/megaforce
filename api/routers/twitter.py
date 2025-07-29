@@ -23,10 +23,6 @@ from posting_agents.x.agent import post_tweet, delete_tweet
 
 router = APIRouter()
 
-
-
-
-
 @router.post("/search", response_model=TwitterSearchResponse)
 async def search_twitter(
     request: TwitterSearchRequest,
@@ -148,13 +144,13 @@ async def search_twitter(
             # Use the existing Twitter agent with generous timeout and credentials
             documents = await asyncio.wait_for(
                 get_content(
-                    agent_input,
+                    parser_agent_config=agent_input,
                     userid=user_id,
                     key=api_key,
                     provider=provider,
-                    llm_provider=request.llm_provider if request.rank_tweets else None,
-                    llm_model=request.llm_model if request.rank_tweets else None,
-                    llm_api_key=llm_api_key if request.rank_tweets else None
+                    llm_provider=request.llm_provider,
+                    llm_model=request.llm_model,
+                    llm_api_key=llm_api_key
                 ), 
                 timeout=120.0  # 2 minutes timeout for complex searches
             )
