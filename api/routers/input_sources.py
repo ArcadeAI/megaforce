@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+import uuid
 
 from api.database import get_db
 from api.models import InputSource
@@ -38,14 +39,28 @@ async def create_input_source(
     current_user = Depends(get_current_user)
 ):
     """Create a new input source."""
-    db_input_source = InputSource(
-        **input_source.dict(),
-        owner_id=current_user.id
-    )
-    db.add(db_input_source)
-    db.commit()
-    db.refresh(db_input_source)
-    return db_input_source
+    try:
+        print(f"DEBUG: Creating input source for user {current_user.id}")
+        print(f"DEBUG: Input source data: {input_source.dict()}")
+        
+        db_input_source = InputSource(
+            id=str(uuid.uuid4()),  # Generate UUID for id field
+            **input_source.dict(),
+            owner_id=current_user.id
+        )
+        db.add(db_input_source)
+        db.commit()
+        db.refresh(db_input_source)
+        
+        print(f"DEBUG: Created input source with id: {db_input_source.id}")
+        return db_input_source
+    except Exception as e:
+        print(f"ERROR in create_input_source: {str(e)}")
+        print(f"ERROR type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create input source: {str(e)}")
 
 @router.get("/{input_source_id}", response_model=InputSourceResponse)
 async def get_input_source(

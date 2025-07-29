@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+import uuid
 
 from api.database import get_db
 from api.models import OutputSchema, ApprovalHistory
@@ -16,14 +17,28 @@ async def create_output(
     current_user = Depends(get_current_user)
 ):
     """Create a new output schema."""
-    # Note: OutputSchema doesn't have user_id, it's linked through persona_id
-    output = OutputSchema(
-        **output_data.dict()
-    )
-    db.add(output)
-    db.commit()
-    db.refresh(output)
-    return output
+    try:
+        print(f"DEBUG: Creating output for user {current_user.id}")
+        print(f"DEBUG: Output data: {output_data.dict()}")
+        
+        # Note: OutputSchema doesn't have user_id, it's linked through persona_id
+        output = OutputSchema(
+            id=str(uuid.uuid4()),  # Generate UUID for id field
+            **output_data.dict()
+        )
+        db.add(output)
+        db.commit()
+        db.refresh(output)
+        
+        print(f"DEBUG: Created output with id: {output.id}")
+        return output
+    except Exception as e:
+        print(f"ERROR in create_output: {str(e)}")
+        print(f"ERROR type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create output: {str(e)}")
 
 @router.get("/", response_model=List[OutputSchemaResponse])
 async def list_outputs(
@@ -74,6 +89,7 @@ async def approve_output(
     
     # Create approval history (ApprovalHistory doesn't have user_id field)
     approval_history = ApprovalHistory(
+        id=str(uuid.uuid4()),  # Generate UUID for id field
         output_schema_id=output_id,
         action="approved",
         score=approval.score,
@@ -105,6 +121,7 @@ async def reject_output(
     
     # Create approval history (ApprovalHistory doesn't have user_id field)
     approval_history = ApprovalHistory(
+        id=str(uuid.uuid4()),  # Generate UUID for id field
         output_schema_id=output_id,
         action="rejected",
         score=approval.score,
