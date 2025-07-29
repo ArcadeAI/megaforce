@@ -147,6 +147,20 @@ class DocumentBase(BaseModel):
     platform_data: Optional[Dict[str, Any]] = None
 
 
+class DocumentCreate(DocumentBase):
+    run_id: str
+
+
+class DocumentUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    url: Optional[str] = None
+    author: Optional[str] = None
+    score: Optional[int] = None
+    priority: Optional[int] = None
+    platform_data: Optional[Dict[str, Any]] = None
+
+
 class DocumentResponse(DocumentBase):
     id: str
     run_id: str

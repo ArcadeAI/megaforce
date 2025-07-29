@@ -131,3 +131,22 @@ async def reject_output(
     db.commit()
     
     return {"message": "Output rejected successfully"}
+
+@router.delete("/{output_id}")
+async def delete_output(
+    output_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Delete an output and its approval history."""
+    output = db.query(OutputSchema).join(OutputSchema.persona).filter(
+        OutputSchema.id == output_id,
+        OutputSchema.persona.has(owner_id=current_user.id)
+    ).first()
+    if not output:
+        raise HTTPException(status_code=404, detail="Output not found")
+    
+    # Delete the output (cascade will delete approval history)
+    db.delete(output)
+    db.commit()
+    return {"message": "Output deleted successfully"}

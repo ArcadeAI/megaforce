@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+import uuid
 
 from api.database import get_db
-from api.models import Document
-from api.schemas import DocumentResponse
+from api.models import Document, Run
+from api.schemas import DocumentResponse, DocumentCreate, DocumentUpdate
 from api.auth import get_current_user
 
 router = APIRouter()
@@ -48,3 +49,67 @@ async def get_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     return document
+
+@router.post("/", response_model=DocumentResponse)
+async def create_document(
+    document: DocumentCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Create a new document manually."""
+    # Verify the run belongs to the current user
+    run = db.query(Run).join(Run.input_source).filter(
+        Run.id == document.run_id,
+        Run.input_source.has(owner_id=current_user.id)
+    ).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    db_document = Document(
+        id=str(uuid.uuid4()),
+        **document.dict()
+    )
+    db.add(db_document)
+    db.commit()
+    db.refresh(db_document)
+    return db_document
+
+@router.put("/{document_id}", response_model=DocumentResponse)
+async def update_document(
+    document_id: str,
+    document_update: DocumentUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Update a document."""
+    document = db.query(Document).join(Document.run).join(Document.run.input_source).filter(
+        Document.id == document_id,
+        Document.run.input_source.has(owner_id=current_user.id)
+    ).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    for field, value in document_update.dict(exclude_unset=True).items():
+        setattr(document, field, value)
+    
+    db.commit()
+    db.refresh(document)
+    return document
+
+@router.delete("/{document_id}")
+async def delete_document(
+    document_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Delete a document."""
+    document = db.query(Document).join(Document.run).join(Document.run.input_source).filter(
+        Document.id == document_id,
+        Document.run.input_source.has(owner_id=current_user.id)
+    ).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    db.delete(document)
+    db.commit()
+    return {"message": "Document deleted successfully"}

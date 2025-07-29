@@ -34,3 +34,22 @@ async def get_run(
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     return run
+
+@router.delete("/{run_id}")
+async def delete_run(
+    run_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Delete a run and all its associated documents."""
+    run = db.query(Run).join(Run.input_source).filter(
+        Run.id == run_id,
+        Run.input_source.has(owner_id=current_user.id)
+    ).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    # Delete the run (cascade will delete associated documents)
+    db.delete(run)
+    db.commit()
+    return {"message": "Run deleted successfully"}
