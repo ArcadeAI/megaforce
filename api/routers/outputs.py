@@ -16,9 +16,9 @@ async def create_output(
     current_user = Depends(get_current_user)
 ):
     """Create a new output schema."""
+    # Note: OutputSchema doesn't have user_id, it's linked through persona_id
     output = OutputSchema(
-        **output_data.dict(),
-        user_id=current_user.id
+        **output_data.dict()
     )
     db.add(output)
     db.commit()
@@ -31,7 +31,10 @@ async def list_outputs(
     current_user = Depends(get_current_user)
 ):
     """List all output schemas for the current user."""
-    outputs = db.query(OutputSchema).filter(OutputSchema.user_id == current_user.id).all()
+    # Filter through persona relationship since OutputSchema doesn't have user_id
+    outputs = db.query(OutputSchema).join(OutputSchema.persona).filter(
+        OutputSchema.persona.has(owner_id=current_user.id)
+    ).all()
     return outputs
 
 @router.get("/{output_id}", response_model=OutputSchemaResponse)
@@ -41,9 +44,10 @@ async def get_output(
     current_user = Depends(get_current_user)
 ):
     """Get a specific output schema."""
-    output = db.query(OutputSchema).filter(
+    # Filter through persona relationship since OutputSchema doesn't have user_id
+    output = db.query(OutputSchema).join(OutputSchema.persona).filter(
         OutputSchema.id == output_id,
-        OutputSchema.user_id == current_user.id
+        OutputSchema.persona.has(owner_id=current_user.id)
     ).first()
     if not output:
         raise HTTPException(status_code=404, detail="Output not found")
@@ -57,9 +61,10 @@ async def approve_output(
     current_user = Depends(get_current_user)
 ):
     """Approve an output schema."""
-    output = db.query(OutputSchema).filter(
+    # Filter through persona relationship since OutputSchema doesn't have user_id
+    output = db.query(OutputSchema).join(OutputSchema.persona).filter(
         OutputSchema.id == output_id,
-        OutputSchema.user_id == current_user.id
+        OutputSchema.persona.has(owner_id=current_user.id)
     ).first()
     if not output:
         raise HTTPException(status_code=404, detail="Output not found")
@@ -67,13 +72,12 @@ async def approve_output(
     # Update output status
     output.status = "approved"
     
-    # Create approval history
+    # Create approval history (ApprovalHistory doesn't have user_id field)
     approval_history = ApprovalHistory(
         output_schema_id=output_id,
-        user_id=current_user.id,
         action="approved",
         score=approval.score,
-        feedback=approval.feedback
+        notes=approval.feedback
     )
     db.add(approval_history)
     db.commit()
@@ -88,9 +92,10 @@ async def reject_output(
     current_user = Depends(get_current_user)
 ):
     """Reject an output schema."""
-    output = db.query(OutputSchema).filter(
+    # Filter through persona relationship since OutputSchema doesn't have user_id
+    output = db.query(OutputSchema).join(OutputSchema.persona).filter(
         OutputSchema.id == output_id,
-        OutputSchema.user_id == current_user.id
+        OutputSchema.persona.has(owner_id=current_user.id)
     ).first()
     if not output:
         raise HTTPException(status_code=404, detail="Output not found")
@@ -98,13 +103,12 @@ async def reject_output(
     # Update output status
     output.status = "rejected"
     
-    # Create approval history
+    # Create approval history (ApprovalHistory doesn't have user_id field)
     approval_history = ApprovalHistory(
         output_schema_id=output_id,
-        user_id=current_user.id,
         action="rejected",
         score=approval.score,
-        feedback=approval.feedback
+        notes=approval.feedback
     )
     db.add(approval_history)
     db.commit()

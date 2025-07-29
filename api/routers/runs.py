@@ -16,7 +16,7 @@ async def list_runs(
 ):
     """List all runs for the current user."""
     runs = db.query(Run).join(Run.input_source).filter(
-        Run.input_source.has(user_id=current_user.id)
+        Run.input_source.has(owner_id=current_user.id)
     ).all()
     return runs
 
@@ -29,7 +29,7 @@ async def get_run(
     """Get a specific run."""
     run = db.query(Run).join(Run.input_source).filter(
         Run.id == run_id,
-        Run.input_source.has(user_id=current_user.id)
+        Run.input_source.has(owner_id=current_user.id)
     ).first()
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
