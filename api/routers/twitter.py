@@ -117,23 +117,21 @@ async def search_twitter(
             # Validate LLM credentials if ranking is enabled
             llm_api_key = None
             if request.rank_tweets:
-                # Default to openai if no provider specified
-                effective_llm_provider = request.llm_provider or "openai"
-                if effective_llm_provider == "openai":
+                if request.llm_provider == "openai":
                     llm_api_key = request.openai_api_key or os.getenv('OPENAI_API_KEY')
                     if not llm_api_key:
                         raise HTTPException(
                             status_code=400,
                             detail="OpenAI API key is required when rank_tweets=True and llm_provider=openai. Provide openai_api_key in request or set OPENAI_API_KEY environment variable."
                         )
-                elif effective_llm_provider == "anthropic":
+                elif request.llm_provider == "anthropic":
                     llm_api_key = request.anthropic_api_key or os.getenv('ANTHROPIC_API_KEY')
                     if not llm_api_key:
                         raise HTTPException(
                             status_code=400,
                             detail="Anthropic API key is required when rank_tweets=True and llm_provider=anthropic. Provide anthropic_api_key in request or set ANTHROPIC_API_KEY environment variable."
                         )
-                elif effective_llm_provider == "google_genai":
+                elif request.llm_provider == "google_genai":
                     llm_api_key = request.google_api_key or os.getenv('GOOGLE_API_KEY')
                     if not llm_api_key:
                         raise HTTPException(
@@ -141,9 +139,7 @@ async def search_twitter(
                             detail="Google API key is required when rank_tweets=True and llm_provider=google_genai. Provide google_api_key in request or set GOOGLE_API_KEY environment variable."
                         )
                         
-                print(f"DEBUG: LLM ranking enabled with provider={effective_llm_provider}, model={request.llm_model}")
-                # Update the request object for consistency
-                request.llm_provider = effective_llm_provider
+                print(f"DEBUG: LLM ranking enabled with provider={request.llm_provider}, model={request.llm_model}")
             
             # Use the existing Twitter agent with generous timeout and credentials
             documents = await asyncio.wait_for(
