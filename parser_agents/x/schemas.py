@@ -20,8 +20,8 @@ class InputSchema(BaseModel):
         default="All audiences",
         description="The audience specification")
     rank_tweets: bool = Field(
-        default=True,
-        description="Whether to rank the tweets using an LLM or not, defaults to True")
+        default=False,
+        description="Whether to rank the tweets using an LLM or not, defaults to False")
 
 
 def create_scoring_schema(
