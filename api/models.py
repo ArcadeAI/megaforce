@@ -28,7 +28,7 @@ class OutputStatus(str, enum.Enum):
     PUBLISHED = "published"
 
 
-class OutputType(str, Enum):
+class OutputType(str, enum.Enum):
     TWEET_SINGLE = "tweet_single"
     TWEET_THREAD = "tweet_thread"
     SOCIAL_COMMENT = "social_comment"
