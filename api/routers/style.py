@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.auth import get_current_active_user
-from api.models import User, Persona
+from api.models import User, Persona, StyleReference
 from api.schemas import StyleTransferRequest, StyleTransferResponse
 
 # Import the style agent
@@ -41,7 +41,7 @@ async def transform_content_style(
             )
         
         # Get style information from persona if persona_id is provided
-        style_description = request.style_description
+        style_description = request.style_description or ""
         if request.persona_id:
             persona = db.query(Persona).filter(
                 Persona.id == request.persona_id,
@@ -69,8 +69,32 @@ async def transform_content_style(
                     traits = ', '.join(prefs['personality_traits'])
                     style_parts.append(f"Personality: {traits}")
             
-            style_description = ". ".join([part for part in style_parts if part])
-            print(f"DEBUG: Using persona '{persona.name}' with style: {style_description}")
+            # Fetch style references for this persona
+            style_references = db.query(StyleReference).filter(
+                StyleReference.persona_id == persona.id
+            ).all()
+            
+            # Add style references as examples
+            if style_references:
+                style_parts.append("\n\nStyle Examples:")
+                for i, ref in enumerate(style_references[:3], 1):  # Limit to 3 examples
+                    if ref.content_text:
+                        style_parts.append(f"Example {i}: {ref.content_text}")
+                        if ref.meta_data and ref.meta_data.get('style_notes'):
+                            style_parts.append(f"  Notes: {ref.meta_data['style_notes']}")
+            
+            persona_style = ". ".join([part for part in style_parts if part])
+            
+            # Combine persona style with optional user-provided style_description
+            if request.style_description:
+                style_description = f"{request.style_description}\n\nPersona Context: {persona_style}"
+                print(f"DEBUG: Using persona '{persona.name}' + custom style description")
+            else:
+                style_description = persona_style
+                print(f"DEBUG: Using persona '{persona.name}' only")
+            
+            print(f"DEBUG: Found {len(style_references)} style references")
+            print(f"DEBUG: Full style context: {style_description[:200]}...")
         
         # Create a basic style definition from the description
         style_definition = WritingStyle(
