@@ -16,13 +16,33 @@ This directory contains tests for the Megaforce project. **Manual testing via AP
 
 ```
 tests/
-├── test_production_end_to_end.py    # Complete production API testing
-├── test_personas_api.py             # Persona CRUD endpoint tests
-├── test_style_references_api.py     # StyleReference CRUD endpoint tests
-├── test_style_agent.py              # Style transfer and content generation
-├── test_password_update.py          # Password update functionality
+├── test_production_end_to_end.py    # Complete production API testing (HEROKU ONLY)
+├── test_personas_api.py             # Persona CRUD endpoint tests (DOCKER ONLY)
+├── test_style_references_api.py     # StyleReference CRUD endpoint tests (DOCKER ONLY)
+├── test_style_agent.py              # Style transfer and content generation (ENV AGNOSTIC)
+├── test_password_update.py          # Password update functionality (DOCKER ONLY)
 └── README.md                        # This file
 ```
+
+## 🎯 Environment-Specific Test Configuration
+
+### **Heroku Production Tests**
+- **File:** `test_production_end_to_end.py`
+- **Target:** `https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com`
+- **Purpose:** End-to-end testing on live production deployment
+- **Features:** Complete workflow testing with real API calls
+
+### **Docker Local Tests**
+- **Files:** `test_personas_api.py`, `test_style_references_api.py`, `test_password_update.py`
+- **Target:** `http://localhost:8000`
+- **Purpose:** Individual endpoint testing during development
+- **Requirements:** Docker container running locally
+
+### **Environment-Agnostic Tests**
+- **File:** `test_style_agent.py`
+- **Target:** Direct LLM API calls (no web server required)
+- **Purpose:** Style transfer and content generation testing
+- **Requirements:** LLM API credentials in `.env`
 
 ### Test Descriptions
 - **test_production_end_to_end.py** - Comprehensive testing against live Heroku deployment
@@ -30,6 +50,22 @@ tests/
 - **test_style_references_api.py** - CRUD operations for style reference management
 - **test_style_agent.py** - Style transfer functionality and content generation
 - **test_password_update.py** - User password update and security features
+
+### ⚠️ Important Notes
+- **URLs are hardcoded** in each test file - no automatic environment switching
+- **Different test files target different environments** by design
+- **No unified configuration** - each test has its own BASE_URL setting
+- **Manual environment selection** required when running specific tests
+
+### 📊 Quick Reference Table
+
+| Test File | Environment | Target URL | Purpose |
+|-----------|-------------|------------|----------|
+| `test_production_end_to_end.py` | **Heroku** | `https://megaforce-api-*.herokuapp.com` | End-to-end production testing |
+| `test_personas_api.py` | **Docker** | `http://localhost:8000` | Persona CRUD operations |
+| `test_style_references_api.py` | **Docker** | `http://localhost:8000` | Style reference management |
+| `test_password_update.py` | **Docker** | `http://localhost:8000` | Password update functionality |
+| `test_style_agent.py` | **Agnostic** | Direct LLM APIs | Style transfer testing |
 
 ## Quick Start
 
@@ -50,15 +86,33 @@ Use the interactive API documentation for comprehensive testing:
 - **Health Check**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/health
 
 ### **2. Automated Tests (Secondary)**
-For development and CI/CD:
-```bash
-# Run production end-to-end test
-python tests/test_production_end_to_end.py
 
-# Run specific API tests
+#### **Testing Against Heroku Production:**
+```bash
+# Run end-to-end production test (requires live Heroku deployment)
+python tests/test_production_end_to_end.py
+```
+
+#### **Testing Against Docker Local:**
+```bash
+# First, ensure Docker container is running
+docker-compose up -d
+
+# Run individual API tests
 python tests/test_personas_api.py
 python tests/test_style_references_api.py
+python tests/test_password_update.py
+
+# Or use pytest
+uv run pytest tests/test_personas_api.py -v
 uv run pytest tests/test_style_references_api.py -v
+uv run pytest tests/test_password_update.py -v
+```
+
+#### **Testing Style Agent (Environment-Agnostic):**
+```bash
+# Requires LLM API credentials in .env
+uv run pytest tests/test_style_agent.py -v
 ```
 
 ### Run Posting Tests (Creates Real Tweets!)
