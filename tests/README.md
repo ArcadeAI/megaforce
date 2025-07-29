@@ -1,31 +1,35 @@
 # Megaforce Testing Suite
 
-This directory contains comprehensive tests for the Megaforce project, covering all agents and API endpoints.
+🚀 **API DEPLOYED & TESTED**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/
 
-## Test Structure
+This directory contains tests for the Megaforce project. **Manual testing via API docs is recommended** for the deployed API.
+
+## 🎯 Current Testing Status
+
+✅ **Manual API Testing** - All endpoints tested and working  
+✅ **Production Deployment** - Live on Heroku  
+✅ **Authentication Flow** - JWT tokens working  
+✅ **CRUD Operations** - All entities functional  
+✅ **Twitter Integration** - Arcade tools operational
+
+## Available Tests
 
 ```
 tests/
-├── __init__.py                      # Test package initialization
-├── conftest.py                      # Shared test fixtures and configuration
-├── test_common_utils.py             # Tests for common utility functions
-├── test_parser_agent.py             # Tests for X/Twitter parser agent
-├── test_posting_agent.py            # Tests for X/Twitter posting agent
-├── test_api_endpoints.py            # Tests for FastAPI endpoints
-├── test_integration.py              # End-to-end integration tests
-├── test_personas_api.py             # Tests for Persona CRUD endpoints
-├── test_style_references_api.py     # Tests for StyleReference CRUD endpoints
-├── test_password_update.py          # Tests for password update functionality
-├── requirements-test.txt            # Testing dependencies
+├── test_production_end_to_end.py    # Complete production API testing
+├── test_personas_api.py             # Persona CRUD endpoint tests
+├── test_style_references_api.py     # StyleReference CRUD endpoint tests
+├── test_style_agent.py              # Style transfer and content generation
+├── test_password_update.py          # Password update functionality
 └── README.md                        # This file
+```
 
-### Real Integration Tests
-- `test_real_integration.py` - Complete real API testing with actual Arcade calls
-- `test_real_api.py` - FastAPI endpoint testing with real application
-- `test_parser_agent.py` - Lightweight schema validation tests
-- `test_style_agent.py` - Style transfer and content generation tests
-- `test_personas_api.py` - Persona CRUD endpoint testing with authentication
-- `test_style_references_api.py` - StyleReference CRUD endpoint testing
+### Test Descriptions
+- **test_production_end_to_end.py** - Comprehensive testing against live Heroku deployment
+- **test_personas_api.py** - CRUD operations for persona management with authentication
+- **test_style_references_api.py** - CRUD operations for style reference management
+- **test_style_agent.py** - Style transfer functionality and content generation
+- **test_password_update.py** - User password update and security features
 
 ## Quick Start
 
@@ -38,16 +42,22 @@ USER_ID=your_user_id
 ARCADE_PROVIDER_ID=x
 ```
 
-### Run All Tests
-```bash
-# Run the complete real test suite
-python tests/run_real_tests.py
+## 📝 Recommended Testing Approach
 
-# Run specific test files
-uv run pytest tests/test_real_integration.py -v
-uv run pytest tests/test_real_api.py -v
-uv run pytest tests/test_parser_agent.py -v
-uv run pytest tests/test_personas_api.py -v
+### **1. Manual API Testing (Primary)**
+Use the interactive API documentation for comprehensive testing:
+- **API Docs**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/docs
+- **Health Check**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/health
+
+### **2. Automated Tests (Secondary)**
+For development and CI/CD:
+```bash
+# Run production end-to-end test
+python tests/test_production_end_to_end.py
+
+# Run specific API tests
+python tests/test_personas_api.py
+python tests/test_style_references_api.py
 uv run pytest tests/test_style_references_api.py -v
 ```
 

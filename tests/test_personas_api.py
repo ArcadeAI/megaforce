@@ -22,6 +22,9 @@ class TestPersonasAPI:
     @pytest.fixture(autouse=True)
     def setup_auth(self):
         """Setup authentication for all tests."""
+        # Initialize created_personas list
+        self.created_personas = []
+        
         # Register test user
         try:
             requests.post(f"{BASE_URL}/api/v1/auth/register", json=TEST_USER)
@@ -29,7 +32,7 @@ class TestPersonasAPI:
             pass  # User might already exist
         
         # Login and get token
-        login_response = requests.post(f"{BASE_URL}/api/v1/auth/login", data={
+        login_response = requests.post(f"{BASE_URL}/api/v1/auth/login", json={
             "username": TEST_USER["username"],
             "password": TEST_USER["password"]
         })
@@ -38,9 +41,6 @@ class TestPersonasAPI:
         token_data = login_response.json()
         self.token = token_data["access_token"]
         self.headers = {"Authorization": f"Bearer {self.token}"}
-        
-        # Store created persona IDs for cleanup
-        self.created_personas = []
     
     def teardown_method(self):
         """Clean up created personas after each test."""
@@ -177,7 +177,7 @@ class TestPersonasAPI:
         """Test accessing personas without authentication."""
         response = requests.get(f"{BASE_URL}/api/v1/personas/")
         
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

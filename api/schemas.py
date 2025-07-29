@@ -225,12 +225,19 @@ class TwitterSearchRequest(BaseModel):
     limit: int = Field(default=10, ge=1, le=100)
     target_number: int = Field(default=5, ge=1, le=50)
     audience_specification: str = Field(default="All audiences")
-    rank_tweets: bool = True
+    rank_tweets: bool = Field(default=False, description="Enable LLM-based tweet ranking (requires LLM credentials if True)")
     
     # Optional Arcade credentials (falls back to .env if not provided)
     arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")
     arcade_api_key: Optional[str] = Field(None, description="Arcade API key (optional, defaults to .env)")
     arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
+    
+    # Optional LLM credentials (only required if rank_tweets=True)
+    llm_provider: Optional[str] = Field("openai", description="LLM provider: openai, anthropic, google_genai (only needed if rank_tweets=True)")
+    llm_model: Optional[str] = Field(None, description="LLM model name (optional, uses provider default if not specified)")
+    openai_api_key: Optional[str] = Field(None, description="OpenAI API key (only required if rank_tweets=True and llm_provider=openai)")
+    anthropic_api_key: Optional[str] = Field(None, description="Anthropic API key (only required if rank_tweets=True and llm_provider=anthropic)")
+    google_api_key: Optional[str] = Field(None, description="Google API key (only required if rank_tweets=True and llm_provider=google_genai)")
 
 
 class TwitterSearchResponse(BaseModel):

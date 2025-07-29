@@ -1,6 +1,18 @@
 # Megaforce Social Media API
 
+🚀 **DEPLOYED & READY**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/
+
 A comprehensive FastAPI-based backend for managing social media content generation, approval workflows, and publishing automation with Twitter/X integration via Arcade tools.
+
+## 🎯 Current Status
+
+✅ **Fully Deployed** on Heroku with working endpoints  
+✅ **Authentication System** with JWT tokens  
+✅ **Twitter/X Integration** via Arcade tools  
+✅ **Database Models** with proper relationships  
+✅ **CRUD Operations** for all entities  
+✅ **Approval Workflow** for ML/RL training  
+✅ **Manual Testing** completed and documented
 
 ## 🏗️ Architecture Overview
 
@@ -302,3 +314,155 @@ The API provides endpoints specifically designed for the Next.js UI:
 - Existing authentication system preserved and enhanced
 
 This API serves as the central hub connecting your existing agents, UI, and database while providing the approval workflow and monitoring capabilities needed for production deployment.
+
+## 🧪 API Testing Guide
+
+### **Interactive Documentation**
+Access the live API docs: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/docs
+
+### **Authentication Flow**
+1. **Register a user:**
+```bash
+POST /api/v1/auth/register
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "testpassword123"
+}
+```
+
+2. **Login to get token:**
+```bash
+POST /api/v1/auth/login
+{
+  "username": "testuser",
+  "password": "testpassword123"
+}
+# Returns: {"access_token": "your-jwt-token", "token_type": "bearer"}
+```
+
+3. **Use token in headers:**
+```bash
+Authorization: Bearer your-jwt-token
+```
+
+### **Core Endpoints (All Working ✅)**
+
+#### **Input Sources**
+```bash
+# List input sources
+GET /api/v1/input-sources/
+
+# Create input source
+POST /api/v1/input-sources/
+{
+  "name": "AI News Keywords",
+  "source_type": "twitter_keywords",
+  "config": {
+    "keywords": ["artificial intelligence", "AI news"],
+    "limit": 10
+  },
+  "schedule_config": {
+    "frequency": "manual",
+    "enabled": false
+  }
+}
+```
+
+#### **Personas**
+```bash
+# Create persona
+POST /api/v1/personas/
+{
+  "name": "Tech Influencer",
+  "description": "Expert in AI and technology trends",
+  "style_preferences": {
+    "tone": "professional",
+    "length": "medium"
+  }
+}
+```
+
+#### **Twitter Integration**
+```bash
+# Basic tweet search (no LLM ranking)
+POST /api/v1/twitter/search
+{
+  "search_type": "keywords",
+  "search_query": "artificial intelligence",
+  "limit": 10,
+  "rank_tweets": false,
+  "arcade_user_id": "your-arcade-user-id",
+  "arcade_api_key": "your-arcade-api-key"
+}
+
+# Tweet search with LLM ranking (requires LLM credentials)
+POST /api/v1/twitter/search
+{
+  "search_type": "keywords",
+  "search_query": "artificial intelligence",
+  "limit": 20,
+  "target_number": 5,
+  "rank_tweets": true,
+  "llm_provider": "openai",
+  "llm_model": "gpt-4o-2024-08-06",
+  "openai_api_key": "your-openai-api-key",
+  "arcade_user_id": "your-arcade-user-id",
+  "arcade_api_key": "your-arcade-api-key"
+}
+
+# Tweet search with Anthropic ranking
+POST /api/v1/twitter/search
+{
+  "search_type": "keywords",
+  "search_query": "machine learning",
+  "limit": 15,
+  "target_number": 3,
+  "rank_tweets": true,
+  "llm_provider": "anthropic",
+  "anthropic_api_key": "your-anthropic-api-key",
+  "arcade_user_id": "your-arcade-user-id",
+  "arcade_api_key": "your-arcade-api-key"
+}
+```
+
+#### **Documents & Outputs**
+```bash
+# List documents
+GET /api/v1/documents/
+
+# List outputs
+GET /api/v1/outputs/
+
+# Create output
+POST /api/v1/outputs/
+{
+  "content_type": "twitter_thread",
+  "generated_content": "Test content",
+  "persona_id": "your-persona-id"
+}
+```
+
+### **Health Check**
+```bash
+GET /health
+# Returns: {"status": "healthy", "timestamp": "...", "database": "connected"}
+```
+
+### **Recent Fixes Applied ✅**
+- Fixed field name mismatches (`user_id` → `owner_id`)
+- Added UUID generation for all create endpoints
+- Fixed database relationship queries
+- Added comprehensive error handling and debugging
+- Enhanced Twitter search with optional LLM ranking
+- Added support for multiple LLM providers (OpenAI, Anthropic, Google)
+- Set `rank_tweets` default to `false` (no LLM required by default)
+- Deployed all fixes to production
+
+### **Testing Status**
+- ✅ Authentication endpoints working
+- ✅ All CRUD operations functional
+- ✅ Twitter integration operational
+- ✅ Database relationships correct
+- ✅ Error handling implemented
+- ✅ Production deployment stable

@@ -113,13 +113,43 @@ async def search_twitter(
             
             print(f"DEBUG: Using user_id={user_id}, provider={provider}, api_key={'***' + api_key[-4:] if api_key else 'None'}")
             
+            # Validate LLM credentials if ranking is enabled
+            llm_api_key = None
+            if request.rank_tweets:
+                if request.llm_provider == "openai":
+                    llm_api_key = request.openai_api_key or os.getenv('OPENAI_API_KEY')
+                    if not llm_api_key:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="OpenAI API key is required when rank_tweets=True and llm_provider=openai. Provide openai_api_key in request or set OPENAI_API_KEY environment variable."
+                        )
+                elif request.llm_provider == "anthropic":
+                    llm_api_key = request.anthropic_api_key or os.getenv('ANTHROPIC_API_KEY')
+                    if not llm_api_key:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Anthropic API key is required when rank_tweets=True and llm_provider=anthropic. Provide anthropic_api_key in request or set ANTHROPIC_API_KEY environment variable."
+                        )
+                elif request.llm_provider == "google_genai":
+                    llm_api_key = request.google_api_key or os.getenv('GOOGLE_API_KEY')
+                    if not llm_api_key:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Google API key is required when rank_tweets=True and llm_provider=google_genai. Provide google_api_key in request or set GOOGLE_API_KEY environment variable."
+                        )
+                        
+                print(f"DEBUG: LLM ranking enabled with provider={request.llm_provider}, model={request.llm_model}")
+            
             # Use the existing Twitter agent with generous timeout and credentials
             documents = await asyncio.wait_for(
                 get_content(
                     agent_input,
                     userid=user_id,
                     key=api_key,
-                    provider=provider
+                    provider=provider,
+                    llm_provider=request.llm_provider if request.rank_tweets else None,
+                    llm_model=request.llm_model if request.rank_tweets else None,
+                    llm_api_key=llm_api_key if request.rank_tweets else None
                 ), 
                 timeout=120.0  # 2 minutes timeout for complex searches
             )
