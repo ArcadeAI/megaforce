@@ -233,7 +233,7 @@ class TwitterSearchRequest(BaseModel):
     arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
     
     # Optional LLM credentials (only required if rank_tweets=True)
-    llm_provider: str = "openai"
+    llm_provider: Optional[str] = Field(default=None, description="LLM provider (e.g., 'openai', 'anthropic')")
     llm_model: Optional[str] = None
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
