@@ -109,42 +109,13 @@ Deprioritize tweets that are obviously spam.
     # Set up LLM with provided parameters or environment defaults
     effective_llm_provider = llm_provider or os.getenv("LLM_PROVIDER", "openai")
     effective_llm_model = llm_model or os.getenv("LLM_MODEL", "gpt-4o-2024-08-06")
-    
-    # Temporarily set the appropriate API key environment variable if provided
-    original_env_key = None
-    if llm_api_key:
-        if effective_llm_provider == "openai":
-            original_env_key = os.getenv("OPENAI_API_KEY")
-            os.environ["OPENAI_API_KEY"] = llm_api_key
-        elif effective_llm_provider == "anthropic":
-            original_env_key = os.getenv("ANTHROPIC_API_KEY")
-            os.environ["ANTHROPIC_API_KEY"] = llm_api_key
-        elif effective_llm_provider == "google_genai":
-            original_env_key = os.getenv("GOOGLE_API_KEY")
-            os.environ["GOOGLE_API_KEY"] = llm_api_key
-    
-    try:
-        agent = get_llm(
-            provider=effective_llm_provider,
-            model=effective_llm_model,
-        )
-    finally:
-        # Restore original environment variable if we modified it
-        if llm_api_key and original_env_key is not None:
-            if effective_llm_provider == "openai":
-                os.environ["OPENAI_API_KEY"] = original_env_key
-            elif effective_llm_provider == "anthropic":
-                os.environ["ANTHROPIC_API_KEY"] = original_env_key
-            elif effective_llm_provider == "google_genai":
-                os.environ["GOOGLE_API_KEY"] = original_env_key
-        elif llm_api_key:
-            # Remove the key we temporarily set
-            if effective_llm_provider == "openai" and "OPENAI_API_KEY" in os.environ:
-                del os.environ["OPENAI_API_KEY"]
-            elif effective_llm_provider == "anthropic" and "ANTHROPIC_API_KEY" in os.environ:
-                del os.environ["ANTHROPIC_API_KEY"]
-            elif effective_llm_provider == "google_genai" and "GOOGLE_API_KEY" in os.environ:
-                del os.environ["GOOGLE_API_KEY"]
+
+    # Get the LLM agent, passing the API key directly to the constructor
+    agent = get_llm(
+        provider=effective_llm_provider,
+        model=effective_llm_model,
+        api_key=llm_api_key
+    )
 
     scoring_schema = create_scoring_schema(tweets)
 
