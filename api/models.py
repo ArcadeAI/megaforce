@@ -34,6 +34,7 @@ class OutputType(str, enum.Enum):
     REDDIT_COMMENT = "reddit_comment"
     LINKEDIN_COMMENT = "linkedin_comment"
     SOCIAL_COMMENT = "social_comment"
+    TWEET_SINGLE = "tweet_single"
     BLOG_POST = "blog_post"
 
 
