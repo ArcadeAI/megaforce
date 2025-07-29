@@ -35,7 +35,9 @@ async def get_content(parser_agent_config: InputSchema, userid: str = None, key:
         user_id=userid,
     )
 
+    logger.info(f"DEBUG: rank_tweets = {parser_agent_config.rank_tweets}")
     if not parser_agent_config.rank_tweets:
+        logger.info("DEBUG: Skipping LLM ranking, returning raw tweets")
         return await translate_items(
             tweets=tweets,
         )
