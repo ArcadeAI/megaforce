@@ -147,7 +147,10 @@ class MegaforceProductionTester:
             if response.status_code == 200:
                 result = response.json()
                 self.log("✅ Style transformation successful")
-                self.log(f"📝 Transformed content: {result['transformed_content'][:100]}...")
+                if result and result.get('transformed_content'):
+                    self.log(f"📝 Transformed content: {result['transformed_content'][:100]}...")
+                else:
+                    self.log("⚠️ Style transformation returned empty content")
                 return result
             else:
                 self.log(f"❌ Style transformation failed: {response.text}", "ERROR")
@@ -185,16 +188,17 @@ class MegaforceProductionTester:
             self.log(f"⚠️  Twitter search error: {str(e)}", "WARN")
             return None
     
-    def test_output_creation_and_approval(self) -> bool:
+    def test_output_creation_and_approval(self, persona_id: str) -> bool:
         """Test output creation and approval workflow"""
         self.log("📤 Testing output creation and approval workflow...")
         
-        # Create an output
+        # Create an output with correct schema fields
         output_data = {
-            "content": "🚀 BREAKING: New AI breakthrough achieves 90% accuracy with 50% less compute! This could revolutionize edge AI deployment. The future is here! #AI #TechBreakthrough #Innovation",
-            "output_type": "TWEET_SINGLE",
-            "platform": "twitter",
-            "status": "pending"
+            "content_type": "TWEET_SINGLE",
+            "generated_content": "🚀 BREAKING: New AI breakthrough achieves 90% accuracy with 50% less compute! This could revolutionize edge AI deployment. The future is here! #AI #TechBreakthrough #Innovation",
+            "persona_id": persona_id,
+            "source_document_id": None,
+            "publish_config": {"platform": "twitter", "scheduled_time": None}
         }
         
         try:
@@ -282,7 +286,8 @@ class MegaforceProductionTester:
             results["twitter_search"] = self.test_twitter_search() is not None
             
             # Test 6: Output Creation and Approval
-            results["output_workflow"] = self.test_output_creation_and_approval()
+            persona_id = persona["id"] if persona else None
+            results["output_workflow"] = self.test_output_creation_and_approval(persona_id) if persona_id else False
             
         except Exception as e:
             self.log(f"❌ Test suite error: {str(e)}", "ERROR")
