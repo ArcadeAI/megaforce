@@ -2,6 +2,7 @@ import os
 import asyncio
 from datetime import datetime
 from typing import Optional, List
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.auth import get_current_active_user
-from api.models import User, Persona, StyleReference
+from api.models import User, Persona, StyleReference, OutputSchema, OutputType, OutputStatus
 from api.schemas import StyleTransferRequest, StyleTransferResponse
 
 # Import the style agent
@@ -267,6 +268,7 @@ class CommentSuggestion(BaseModel):
     type: str
     content: str
     confidence: int  # 1-100 confidence score
+    output_id: Optional[str] = None  # ID of saved OutputSchema record for approval workflow
 
 
 class CommentSuggestionsResponse(BaseModel):
@@ -394,11 +396,35 @@ async def generate_comment_suggestions(
                     # Calculate confidence score (based on length and style match)
                     confidence = min(95, max(75, 85 + (len(comment_content) // 10)))
                     
+                    # Save comment as OutputSchema for approval workflow
+                    output_id = None
+                    user_personas = db.query(Persona).filter(Persona.owner_id == current_user.id).first()
+                    if user_personas:
+                        output_id = str(uuid.uuid4())
+                        output_record = OutputSchema(
+                            id=output_id,
+                            content_type=OutputType.SOCIAL_COMMENT,
+                            generated_content=comment_content,
+                            status=OutputStatus.DRAFT,
+                            score=confidence / 10.0,  # Convert to 1-10 scale
+                            persona_id=user_personas.id,
+                            publish_config={
+                                "comment_style": style,
+                                "original_post": request.post_content,
+                                "post_title": request.post_title,
+                                "platform": "social",
+                                "confidence": confidence
+                            }
+                        )
+                        db.add(output_record)
+                        db.commit()
+                    
                     suggestions.append(CommentSuggestion(
                         id=i + 1,
                         type=style,
                         content=comment_content,
-                        confidence=confidence
+                        confidence=confidence,
+                        output_id=output_id
                     ))
                 
         finally:

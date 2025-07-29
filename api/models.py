@@ -32,6 +32,8 @@ class OutputType(str, enum.Enum):
     TWITTER_THREAD = "twitter_thread"
     TWITTER_REPLY = "twitter_reply"
     REDDIT_COMMENT = "reddit_comment"
+    LINKEDIN_COMMENT = "linkedin_comment"
+    SOCIAL_COMMENT = "social_comment"
     BLOG_POST = "blog_post"
 
 
