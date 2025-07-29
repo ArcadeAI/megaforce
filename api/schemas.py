@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -298,6 +298,14 @@ class StyleTransferRequest(BaseModel):
     openai_api_key: Optional[str] = Field(None, description="OpenAI API key (optional, defaults to .env)")
     anthropic_api_key: Optional[str] = Field(None, description="Anthropic API key (optional, defaults to .env)")
     google_api_key: Optional[str] = Field(None, description="Google API key (optional, defaults to .env)")
+    
+    @field_validator('style_description')
+    @classmethod
+    def validate_style_or_persona(cls, v, info):
+        """Ensure either style_description or persona_id is provided."""
+        if not v and not info.data.get('persona_id'):
+            raise ValueError('Either style_description or persona_id must be provided')
+        return v
     temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="LLM temperature for creativity")
 
 
