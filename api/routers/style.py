@@ -403,7 +403,7 @@ async def generate_comment_suggestions(
                         output_id = str(uuid.uuid4())
                         output_record = OutputSchema(
                             id=output_id,
-                            content_type=OutputType.SOCIAL_COMMENT,
+                            content_type=OutputType.LINKEDIN_COMMENT,
                             generated_content=comment_content,
                             status=OutputStatus.DRAFT,
                             score=confidence / 10.0,  # Convert to 1-10 scale
