@@ -111,6 +111,7 @@ Deprioritize tweets that are obviously spam.
     effective_llm_model = llm_model or os.getenv("LLM_MODEL", "gpt-4o-2024-08-06")
 
     # Get the LLM agent, passing the API key directly to the constructor
+    print(f"DEPLOYMENT_CANARY_V2: Calling get_llm. API key is {'PRESENT' if llm_api_key else 'MISSING'}.")
     agent = get_llm(
         provider=effective_llm_provider,
         model=effective_llm_model,
