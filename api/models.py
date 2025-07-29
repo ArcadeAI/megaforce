@@ -28,14 +28,14 @@ class OutputStatus(str, enum.Enum):
     PUBLISHED = "published"
 
 
-class OutputType(str, enum.Enum):
-    TWITTER_THREAD = "twitter_thread"
-    TWITTER_REPLY = "twitter_reply"
-    REDDIT_COMMENT = "reddit_comment"
-    LINKEDIN_COMMENT = "linkedin_comment"
-    SOCIAL_COMMENT = "social_comment"
+class OutputType(str, Enum):
     TWEET_SINGLE = "tweet_single"
+    TWEET_THREAD = "tweet_thread"
+    SOCIAL_COMMENT = "social_comment"
+    LINKEDIN_POST = "linkedin_post"
+    LINKEDIN_COMMENT = "linkedin_comment"
     BLOG_POST = "blog_post"
+    REDDIT_COMMENT = "reddit_comment"
 
 
 class User(Base):
