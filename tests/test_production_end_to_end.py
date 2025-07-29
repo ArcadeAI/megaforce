@@ -194,7 +194,7 @@ class MegaforceProductionTester:
         
         # Create an output with correct schema fields
         output_data = {
-            "content_type": "TWEET_SINGLE",
+            "content_type": "twitter_thread",
             "generated_content": "🚀 BREAKING: New AI breakthrough achieves 90% accuracy with 50% less compute! This could revolutionize edge AI deployment. The future is here! #AI #TechBreakthrough #Innovation",
             "persona_id": persona_id,
             "source_document_id": None,
