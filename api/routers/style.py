@@ -10,14 +10,15 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.auth import get_current_active_user
-from api.models import User, Persona, StyleReference, OutputSchema, OutputType, OutputStatus
+from api.models import User, Persona, StyleReference, OutputType, OutputStatus
+from api.models import OutputSchema as DBOutputSchema  # SQLAlchemy model
 from api.schemas import StyleTransferRequest, StyleTransferResponse
 
 # Import the style agent
 from style_agent.agent import transfer_style
 from common.schemas import (
     StyleTransferRequest as AgentStyleRequest, ReferenceStyle, OutputSchema, 
-    OutputType, WritingStyle, FewShotExample, Document, ContentType, 
+    OutputType as CommonOutputType, WritingStyle, FewShotExample, Document, ContentType, 
     DocumentCategory
 )
 
@@ -398,27 +399,27 @@ async def generate_comment_suggestions(
                     
                     # Save comment as OutputSchema for approval workflow
                     output_id = None
-                    # TODO: Fix validation issue and re-enable saving
-                    # user_personas = db.query(Persona).filter(Persona.owner_id == current_user.id).first()
-                    # if user_personas:
-                    #     output_id = str(uuid.uuid4())
-                    #     output_record = OutputSchema(
-                    #         id=output_id,
-                    #         content_type=OutputType.LINKEDIN_COMMENT,
-                    #         generated_content=comment_content,
-                    #         status=OutputStatus.DRAFT,
-                    #         score=confidence / 10.0,  # Convert to 1-10 scale
-                    #         persona_id=user_personas.id,
-                    #         publish_config={
-                    #             "comment_style": style,
-                    #             "original_post": request.post_content,
-                    #             "post_title": request.post_title,
-                    #             "platform": "social",
-                    #             "confidence": confidence
-                    #         }
-                    #     )
-                    #     db.add(output_record)
-                    #     db.commit()
+                    # Save comment as OutputSchema for approval workflow
+                    user_personas = db.query(Persona).filter(Persona.owner_id == current_user.id).first()
+                    if user_personas:
+                        output_id = str(uuid.uuid4())
+                        output_record = DBOutputSchema(
+                            id=output_id,
+                            content_type=OutputType.LINKEDIN_COMMENT,
+                            generated_content=comment_content,
+                            status=OutputStatus.DRAFT,
+                            score=confidence / 10.0,  # Convert to 1-10 scale
+                            persona_id=user_personas.id,
+                            publish_config={
+                                "comment_style": style,
+                                "original_post": request.post_content,
+                                "post_title": request.post_title,
+                                "platform": "social",
+                                "confidence": confidence
+                            }
+                        )
+                        db.add(output_record)
+                        db.commit()
                     
                     suggestions.append(CommentSuggestion(
                         id=i + 1,
