@@ -127,7 +127,7 @@ async def transform_content_style(
             reference_style=[reference_style],
             target_content=[target_content],
             target_schemas=[output_schema],
-            intent=f"Transform content to {request.style_description}",
+            intent=f"Transform content to {style_description}",
             focus="style and engagement"
         )
         
@@ -180,7 +180,7 @@ async def transform_content_style(
                     success=True,
                     transformed_content=transformed_content,
                     original_content=request.content,
-                    style_applied=request.style_description,
+                    style_applied=style_description,
                     character_count=len(transformed_content),
                     llm_provider_used=request.llm_provider,
                     processing_time=processing_time,
@@ -211,7 +211,7 @@ async def transform_content_style(
             success=False,
             transformed_content=None,
             original_content=request.content,
-            style_applied=request.style_description,
+            style_applied=style_description,
             character_count=0,
             llm_provider_used=request.llm_provider,
             processing_time=processing_time,
