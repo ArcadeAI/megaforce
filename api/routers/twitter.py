@@ -50,8 +50,11 @@ async def search_twitter(
             )
         
         # Create input schema for the agent
-        # Explicitly ensure rank_tweets defaults to False
-        rank_tweets_value = getattr(request, 'rank_tweets', False)
+        # Force rank_tweets to default to False if not explicitly provided
+        rank_tweets_value = False  # Always default to False
+        if hasattr(request, 'rank_tweets') and request.rank_tweets is not None:
+            rank_tweets_value = request.rank_tweets
+            
         agent_input = InputSchema(
             search_type=search_type_map[request.search_type],
             search_query=request.search_query,
