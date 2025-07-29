@@ -41,7 +41,7 @@ async def search_tweets(
         print(f"Getting tweets for {search_query} with next_token {next_token}")
         tool_input = {
             "keywords": [search_query],
-            "max_results": 100,
+            "max_results": limit,
         }
 
         if next_token is not None:
@@ -57,7 +57,7 @@ async def search_tweets(
         print(f"Getting tweets for {search_query} with next_token {next_token}")
         tool_input = {
             "username": search_query,
-            "max_results": 100,
+            "max_results": limit,
         }
         if next_token is not None:
             tool_input["next_token"] = next_token
