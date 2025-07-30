@@ -312,12 +312,13 @@ async def generate_comment(
         )
         
         # Create output schema for social media comment
+        from common.schemas import OutputType as CommonOutputType
         output_schema = OutputSchema(
+            name="social_media_comment",
+            output_type=CommonOutputType.LINKEDIN_COMMENT,
             platform="social_media",
-            content_type="comment",
             max_length=280,  # Twitter-like limit
-            tone=request.comment_style.lower(),
-            additional_requirements=["engaging", "concise"]
+            description=f"Generate a {request.comment_style.lower()} social media comment"
         )
         
         # Create reference styles from persona context or default
