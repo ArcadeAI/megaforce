@@ -1,459 +1,357 @@
 import os
-import asyncio
 from datetime import datetime
 from typing import Optional, List
 import uuid
+from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from sqlalchemy.orm import Session
 
-from api.database import get_db
-from api.auth import get_current_active_user
-from api.models import User, Persona, StyleReference, OutputType, OutputStatus
-from api.models import OutputSchema as DBOutputSchema  # SQLAlchemy model
-from api.schemas import StyleTransferRequest, StyleTransferResponse
+from ..database import get_db
+from ..auth import get_current_active_user
+from ..models import User, Persona, Document, OutputSchema as DBOutputSchema, ApprovalHistory, OutputType, OutputStatus, Run, StyleReference
 
-# Import the style agent
+# Import the style agent and its schemas
 from style_agent.agent import transfer_style
-from common.schemas import (
-    StyleTransferRequest as AgentStyleRequest, ReferenceStyle, OutputSchema, 
-    OutputType as CommonOutputType, WritingStyle, FewShotExample, Document, ContentType, 
-    DocumentCategory
-)
+from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle
 
 router = APIRouter()
 
+# --- Enums --- #
 
-@router.post("/transform", response_model=StyleTransferResponse)
-async def transform_content_style(
-    request: StyleTransferRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """Transform content using the style agent with dynamic LLM credentials."""
-    start_time = datetime.now()
-    
-    try:
-        # Validate that either style_description or persona_id is provided
-        if not request.style_description and not request.persona_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Either style_description or persona_id must be provided"
-            )
-        
-        # Get style information from persona if persona_id is provided
-        style_description = request.style_description or ""
-        if request.persona_id:
-            persona = db.query(Persona).filter(
-                Persona.id == request.persona_id,
-                Persona.owner_id == current_user.id
-            ).first()
-            
-            if not persona:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Persona with id {request.persona_id} not found"
-                )
-            
-            # Build style description from persona
-            style_parts = [persona.description or ""]
-            
-            if persona.style_preferences:
-                prefs = persona.style_preferences
-                if prefs.get('tone'):
-                    style_parts.append(f"Tone: {prefs['tone']}")
-                if prefs.get('formality'):
-                    style_parts.append(f"Formality: {prefs['formality']}")
-                if prefs.get('emoji_usage'):
-                    style_parts.append(f"Emoji usage: {prefs['emoji_usage']}")
-                if prefs.get('personality_traits'):
-                    traits = ', '.join(prefs['personality_traits'])
-                    style_parts.append(f"Personality: {traits}")
-            
-            # Fetch style references for this persona
-            style_references = db.query(StyleReference).filter(
-                StyleReference.persona_id == persona.id
-            ).all()
-            
-            # Add style references as examples
-            if style_references:
-                style_parts.append("\n\nStyle Examples:")
-                for i, ref in enumerate(style_references[:3], 1):  # Limit to 3 examples
-                    if ref.content_text:
-                        style_parts.append(f"Example {i}: {ref.content_text}")
-                        if ref.meta_data and ref.meta_data.get('style_notes'):
-                            style_parts.append(f"  Notes: {ref.meta_data['style_notes']}")
-            
-            persona_style = ". ".join([part for part in style_parts if part])
-            
-            # Combine persona style with optional user-provided style_description
-            if request.style_description:
-                style_description = f"{request.style_description}\n\nPersona Context: {persona_style}"
-                print(f"DEBUG: Using persona '{persona.name}' + custom style description")
-            else:
-                style_description = persona_style
-                print(f"DEBUG: Using persona '{persona.name}' only")
-            
-            print(f"DEBUG: Found {len(style_references)} style references")
-            print(f"DEBUG: Full style context: {style_description[:200]}...")
-        
-        # Create a basic style definition from the description
-        style_definition = WritingStyle(
-            tone='engaging',
-            formality_level=0.3,
-            sentence_structure='varied',
-            vocabulary_level='accessible',
-            personality_traits=['authentic', 'engaging'],
-            style_rules=[
-                style_description,
-                f"Keep output under {request.max_length} characters" if request.max_length else "Be concise",
-                f"Format as {request.output_format}"
-            ],
-            few_shot_examples=[]
-        )
-        
-        reference_style = ReferenceStyle(
-            name="Dynamic Style",
-            description=style_description,
-            style_definition=style_definition,
-            documents=[]
-        )
-        
-        # Create target content document
-        target_content = Document(
-            title="Content to Transform",
-            content=request.content,
-            url="https://example.com/api-request",
-            type=ContentType.TWITTER,
-            category=DocumentCategory.CASUAL,
-            metadata={"source": "api_request"}
-        )
-        
-        # Create output schema based on format
-        output_type_map = {
-            "tweet": OutputType.TWEET_SINGLE,
-            "thread": OutputType.TWEET_THREAD,
-            "comment": OutputType.LINKEDIN_COMMENT,
-            "post": OutputType.LINKEDIN_POST,
-            "blog": OutputType.BLOG_POST
-        }
-        
-        output_schema = OutputSchema(
-            name=f"{request.output_format.title()} Output",
-            description=f"Transformed content as {request.output_format}",
-            output_type=output_type_map.get(request.output_format, OutputType.TWEET_SINGLE),
-            max_length=request.max_length or 280,
-            required_elements=['main_message'],
-            optional_elements=['hashtags', 'emojis']
-        )
-        
-        # Create agent request
-        agent_request = AgentStyleRequest(
-            reference_style=[reference_style],
-            target_content=[target_content],
-            target_schemas=[output_schema],
-            intent=f"Transform content to {style_description}",
-            focus="style and engagement"
-        )
-        
-        # Determine which API key to use based on provider
-        api_key = None
-        if request.llm_provider == "openai":
-            api_key = request.openai_api_key or os.getenv("OPENAI_API_KEY")
-        elif request.llm_provider == "anthropic":
-            api_key = request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
-        elif request.llm_provider == "google":
-            api_key = request.google_api_key or os.getenv("GOOGLE_API_KEY")
-        
-        if not api_key:
-            raise HTTPException(
-                status_code=400,
-                detail=f"No API key provided for {request.llm_provider}. Please provide the key or set it in environment variables."
-            )
-        
-        # Temporarily set the API key in environment for the agent
-        original_key = os.environ.get(f"{request.llm_provider.upper()}_API_KEY")
-        os.environ[f"{request.llm_provider.upper()}_API_KEY"] = api_key
-        
-        try:
-            # Call the style agent with timeout
-            results = await asyncio.wait_for(
-                transfer_style(
-                    agent_request,
-                    llm_provider=request.llm_provider,
-                    temperature=request.temperature or 0.7
-                ),
-                timeout=60.0  # 1 minute timeout
-            )
-            
-            if results and len(results) > 0:
-                result = results[0]
-                transformed_content = result.processed_content
-                
-                # Parse JSON if needed
-                if isinstance(transformed_content, str) and transformed_content.startswith('{'):
-                    import json
-                    try:
-                        parsed = json.loads(transformed_content)
-                        transformed_content = parsed.get('text', transformed_content)
-                    except json.JSONDecodeError:
-                        pass  # Use as-is if not valid JSON
-                
-                processing_time = (datetime.now() - start_time).total_seconds()
-                
-                return StyleTransferResponse(
-                    success=True,
-                    transformed_content=transformed_content,
-                    original_content=request.content,
-                    style_applied=style_description,
-                    character_count=len(transformed_content),
-                    llm_provider_used=request.llm_provider,
-                    processing_time=processing_time,
-                    message="Content transformed successfully!"
-                )
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Style agent returned no results"
-                )
-                
-        finally:
-            # Restore original API key
-            if original_key:
-                os.environ[f"{request.llm_provider.upper()}_API_KEY"] = original_key
-            else:
-                os.environ.pop(f"{request.llm_provider.upper()}_API_KEY", None)
-                
-    except asyncio.TimeoutError:
-        processing_time = (datetime.now() - start_time).total_seconds()
-        raise HTTPException(
-            status_code=408,
-            detail="Style transformation timed out. The content may be too complex or the LLM is slow."
-        )
-    except Exception as e:
-        processing_time = (datetime.now() - start_time).total_seconds()
-        return StyleTransferResponse(
-            success=False,
-            transformed_content=None,
-            original_content=request.content,
-            style_applied=style_description,
-            character_count=0,
-            llm_provider_used=request.llm_provider,
-            processing_time=processing_time,
-            message=f"Style transformation failed: {str(e)}"
-        )
+class CommentType(str, Enum):
+    REPLY = "reply"  # Reply to a single post (one document_id OR custom content)
+    NEW_CONTENT = "new_content"  # Create new content (multiple sources: run_id, document_ids, OR custom content)
 
+# --- Schemas --- #
 
-# Schema for generating multiple comment suggestions (matches UI expectations)
-class CommentSuggestionsRequest(BaseModel):
-    post_content: str = Field(..., description="The original post content to generate comments for")
-    post_title: str = Field(..., description="The post title for context")
-    subreddit: Optional[str] = Field(None, description="The subreddit context")
-    num_suggestions: int = Field(default=3, ge=1, le=10, description="Number of comment suggestions to generate")
-    
-    # Style preferences
-    comment_styles: List[str] = Field(default=["Insightful", "Question", "Supportive"], description="Types of comments to generate")
-    
-    # LLM Provider Configuration (with .env fallbacks)
-    llm_provider: str = Field(default="anthropic", description="LLM provider: openai, anthropic, google")
-    llm_model: Optional[str] = Field(None, description="Specific model to use (optional)")
-    openai_api_key: Optional[str] = Field(None, description="OpenAI API key (optional, defaults to .env)")
-    anthropic_api_key: Optional[str] = Field(None, description="Anthropic API key (optional, defaults to .env)")
-    google_api_key: Optional[str] = Field(None, description="Google API key (optional, defaults to .env)")
-    temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="LLM temperature for creativity")
+class StyleTransferRequest(BaseModel):
+    content_to_transform: str
+    style_description: Optional[str] = None
+    persona_id: Optional[str] = None
+    reference_styles: List[ReferenceStyle] = []
+    llm_provider: str = Field(default="anthropic")
+    llm_model: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    google_api_key: Optional[str] = None
+    temperature: float = 0.7
 
-
-class CommentSuggestion(BaseModel):
-    id: int
-    type: str
-    content: str
-    confidence: int  # 1-100 confidence score
-    output_id: Optional[str] = None  # ID of saved OutputSchema record for approval workflow
-
-
-class CommentSuggestionsResponse(BaseModel):
+class StyleTransferResponse(BaseModel):
     success: bool
-    suggestions: List[CommentSuggestion]
+    transformed_content: str
+    original_content: str
+    style_description: str
+    llm_provider_used: str
+    processing_time: float
+    message: str
+
+class CommentRequest(BaseModel):
+    comment_type: CommentType = Field(default=CommentType.REPLY, description="Type of comment: reply or new_content")
+    
+    # Content sources (mutually exclusive based on comment_type)
+    run_id: Optional[str] = Field(None, description="ID of a run to use all documents from (new_content only)")
+    document_ids: Optional[List[str]] = Field(None, description="List of document IDs to use (new_content only)")
+    document_id: Optional[str] = Field(None, description="Single document ID (reply only)")
+    post_content: Optional[str] = Field(None, description="Custom post content")
+    post_title: Optional[str] = Field(None, description="Custom post title")
+    
+    # Style configuration
+    persona_ids: Optional[List[str]] = Field(None, description="Persona IDs to use their style references")
+    comment_style: str = Field(default="Insightful", description="Style of comment to generate")
+    
+    # LLM configuration
+    llm_provider: str = Field(default="anthropic")
+    llm_model: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    google_api_key: Optional[str] = None
+    temperature: float = 0.7
+
+    @field_validator('comment_type')
+    def validate_content_sources(cls, v, info: ValidationInfo):
+        data = info.data
+        
+        if v == CommentType.REPLY:
+            # Reply: only one document_id OR custom content
+            has_document_id = data.get('document_id') is not None
+            has_custom_content = data.get('post_content') is not None
+            has_run_id = data.get('run_id') is not None
+            has_document_ids = data.get('document_ids') is not None
+            
+            if has_run_id or has_document_ids:
+                raise ValueError('Reply type cannot use run_id or document_ids. Use document_id or custom content only.')
+            
+            if not (has_document_id or has_custom_content):
+                raise ValueError('Reply type requires either document_id or post_content.')
+            
+            if has_document_id and has_custom_content:
+                raise ValueError('Reply type cannot use both document_id and custom content.')
+                
+        elif v == CommentType.NEW_CONTENT:
+            # New content: run_id OR document_ids OR custom content (mutually exclusive)
+            has_run_id = data.get('run_id') is not None
+            has_document_ids = data.get('document_ids') is not None and len(data.get('document_ids', [])) > 0
+            has_document_id = data.get('document_id') is not None
+            has_custom_content = data.get('post_content') is not None
+            
+            if has_document_id:
+                raise ValueError('New content type cannot use single document_id. Use document_ids list, run_id, or custom content.')
+            
+            sources_count = sum([has_run_id, has_document_ids, has_custom_content])
+            if sources_count == 0:
+                raise ValueError('New content type requires run_id, document_ids, or custom content.')
+            if sources_count > 1:
+                raise ValueError('New content type can only use one source: run_id, document_ids, or custom content.')
+        
+        return v
+
+class CommentResponse(BaseModel):
+    success: bool
+    comment: str
+    style: str
+    confidence: int
+    output_id: Optional[str] = None
     post_context: str
     llm_provider_used: str
     processing_time: float
     message: str
 
+# --- Endpoints --- #
 
-@router.post("/generate-comments", response_model=CommentSuggestionsResponse)
-async def generate_comment_suggestions(
-    request: CommentSuggestionsRequest,
+@router.post("/transform", response_model=StyleTransferResponse)
+async def style_transfer(
+    request: StyleTransferRequest,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Generate multiple AI comment suggestions for a post (matches UI expectations)."""
+    """Transforms a given text to a new style, optionally using a persona."""
     start_time = datetime.now()
     
+    style_description = request.style_description
+    
+    if request.persona_id:
+        persona = db.query(Persona).filter(Persona.id == request.persona_id, Persona.owner_id == current_user.id).first()
+        if not persona:
+            raise HTTPException(status_code=404, detail="Persona not found or access denied")
+        style_description = f"{persona.description}. Tone: {persona.style_preferences.get('tone', 'default')}."
+
+    if not style_description:
+        raise HTTPException(status_code=400, detail="Either style_description or persona_id must be provided.")
+
+    agent_request = AgentStyleRequest(
+        content_to_transform=request.content_to_transform,
+        style_description=style_description,
+        llm_provider=request.llm_provider,
+        llm_model=request.llm_model,
+        temperature=request.temperature
+    )
+
     try:
-        # Determine which API key to use
-        api_key = None
-        if request.llm_provider == "openai":
-            api_key = request.openai_api_key or os.getenv("OPENAI_API_KEY")
-        elif request.llm_provider == "anthropic":
-            api_key = request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
-        elif request.llm_provider == "google":
-            api_key = request.google_api_key or os.getenv("GOOGLE_API_KEY")
-        
-        if not api_key:
-            raise HTTPException(
-                status_code=400,
-                detail=f"No API key provided for {request.llm_provider}."
-            )
-        
-        # Set API key temporarily
-        original_key = os.environ.get(f"{request.llm_provider.upper()}_API_KEY")
-        os.environ[f"{request.llm_provider.upper()}_API_KEY"] = api_key
-        
-        suggestions = []
-        
-        try:
-            # Generate suggestions for each requested style
-            for i, style in enumerate(request.comment_styles[:request.num_suggestions]):
-                # Create style-specific prompt
-                style_description = f"Generate a {style.lower()} comment that engages meaningfully with the post content"
-                
-                style_definition = WritingStyle(
-                    tone=style.lower(),
-                    formality_level=0.4,
-                    sentence_structure='varied',
-                    vocabulary_level='accessible',
-                    personality_traits=['engaging', 'thoughtful'],
-                    style_rules=[
-                        f"Write in a {style.lower()} style",
-                        "Be authentic and engaging",
-                        "Keep under 300 characters",
-                        "Ask questions to encourage discussion" if style == "Question" else "Provide valuable insights"
-                    ],
-                    few_shot_examples=[]
-                )
-                
-                reference_style = ReferenceStyle(
-                    name=f"{style} Comment Style",
-                    description=style_description,
-                    style_definition=style_definition,
-                    documents=[]
-                )
-                
-                # Create context document
-                context_content = f"Post Title: {request.post_title}\n\nPost Content: {request.post_content}"
-                if request.subreddit:
-                    context_content = f"Subreddit: {request.subreddit}\n\n{context_content}"
-                
-                target_content = Document(
-                    title=request.post_title,
-                    content=context_content,
-                    url="https://reddit.com/api-request",
-                    type=ContentType.REDDIT,
-                    category=DocumentCategory.CASUAL,
-                    metadata={"subreddit": request.subreddit, "style": style}
-                )
-                
-                output_schema = OutputSchema(
-                    name="Reddit Comment",
-                    description=f"{style} comment for Reddit post",
-                    output_type=OutputType.LINKEDIN_COMMENT,
-                    max_length=300,
-                    required_elements=['main_message'],
-                    optional_elements=['question', 'insight']
-                )
-                
-                agent_request = AgentStyleRequest(
-                    reference_style=[reference_style],
-                    target_content=[target_content],
-                    target_schemas=[output_schema],
-                    intent=f"Generate {style.lower()} comment",
-                    focus="engagement and authenticity"
-                )
-                
-                # Generate comment
-                results = await asyncio.wait_for(
-                    transfer_style(
-                        agent_request,
-                        llm_provider=request.llm_provider,
-                        temperature=request.temperature or 0.7
-                    ),
-                    timeout=30.0
-                )
-                
-                if results and len(results) > 0:
-                    result = results[0]
-                    comment_content = result.processed_content
-                    
-                    # Parse JSON if needed
-                    if isinstance(comment_content, str) and comment_content.startswith('{'):
-                        import json
-                        try:
-                            parsed = json.loads(comment_content)
-                            comment_content = parsed.get('text', comment_content)
-                        except json.JSONDecodeError:
-                            pass
-                    
-                    # Calculate confidence score (based on length and style match)
-                    confidence = min(95, max(75, 85 + (len(comment_content) // 10)))
-                    
-                    # Save comment as OutputSchema for approval workflow
-                    output_id = None
-                    # Save comment as OutputSchema for approval workflow
-                    user_personas = db.query(Persona).filter(Persona.owner_id == current_user.id).first()
-                    if user_personas:
-                        output_id = str(uuid.uuid4())
-                        output_record = DBOutputSchema(
-                            id=output_id,
-                            content_type=OutputType.TWITTER_REPLY,
-                            generated_content=comment_content,
-                            status=OutputStatus.DRAFT,
-                            score=confidence / 10.0,  # Convert to 1-10 scale
-                            persona_id=user_personas.id,
-                            publish_config={
-                                "comment_style": style,
-                                "original_post": request.post_content,
-                                "post_title": request.post_title,
-                                "platform": "social",
-                                "confidence": confidence
-                            }
-                        )
-                        db.add(output_record)
-                        db.commit()
-                    
-                    suggestions.append(CommentSuggestion(
-                        id=i + 1,
-                        type=style,
-                        content=comment_content,
-                        confidence=confidence,
-                        output_id=output_id
-                    ))
-                
-        finally:
-            # Restore original API key
-            if original_key:
-                os.environ[f"{request.llm_provider.upper()}_API_KEY"] = original_key
-            else:
-                os.environ.pop(f"{request.llm_provider.upper()}_API_KEY", None)
-        
-        processing_time = (datetime.now() - start_time).total_seconds()
-        
-        return CommentSuggestionsResponse(
-            success=True,
-            suggestions=suggestions,
-            post_context=f"{request.post_title} in {request.subreddit or 'unknown subreddit'}",
-            llm_provider_used=request.llm_provider,
-            processing_time=processing_time,
-            message=f"Generated {len(suggestions)} comment suggestions successfully!"
-        )
-        
+        transformed_output = await transfer_style(agent_request)
     except Exception as e:
-        processing_time = (datetime.now() - start_time).total_seconds()
-        return CommentSuggestionsResponse(
-            success=False,
-            suggestions=[],
-            post_context=request.post_title,
-            llm_provider_used=request.llm_provider,
-            processing_time=processing_time,
-            message=f"Failed to generate comments: {str(e)}"
+        raise HTTPException(status_code=500, detail=f"Error during style transfer: {e}")
+
+    processing_time = (datetime.now() - start_time).total_seconds()
+
+    return StyleTransferResponse(
+        success=True,
+        transformed_content=transformed_output.transformed_content,
+        original_content=request.content_to_transform,
+        style_description=style_description,
+        llm_provider_used=transformed_output.llm_provider,
+        processing_time=processing_time,
+        message="Style transfer completed successfully."
+    )
+
+@router.post("/generate-comment", response_model=CommentResponse)
+async def generate_comment(
+    request: CommentRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Generate a single AI comment using various content sources and persona styles."""
+    start_time = datetime.now()
+    
+    # Collect content sources based on comment type
+    content_sources = []
+    source_document_ids = []
+    
+    if request.comment_type == CommentType.REPLY:
+        # Reply: single document or custom content
+        if request.document_id:
+            document = db.query(Document).filter(Document.id == request.document_id).first()
+            if not document:
+                raise HTTPException(status_code=404, detail="Document not found")
+            if document.run and document.run.input_source and document.run.input_source.owner_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Access denied to this document")
+            content_sources.append({"content": document.content, "title": document.title})
+            source_document_ids.append(document.id)
+        else:
+            # Custom content
+            if not request.post_content or not request.post_title:
+                raise HTTPException(status_code=400, detail="Custom content requires both post_content and post_title.")
+            content_sources.append({"content": request.post_content, "title": request.post_title})
+            
+    elif request.comment_type == CommentType.NEW_CONTENT:
+        # New content: run_id, document_ids, or custom content
+        if request.run_id:
+            # Get all documents from the run
+            run = db.query(Run).filter(Run.id == request.run_id).first()
+            if not run:
+                raise HTTPException(status_code=404, detail="Run not found")
+            if run.input_source.owner_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Access denied to this run")
+            
+            documents = db.query(Document).filter(Document.run_id == request.run_id).all()
+            if not documents:
+                raise HTTPException(status_code=404, detail="No documents found in this run")
+            
+            for doc in documents:
+                content_sources.append({"content": doc.content, "title": doc.title})
+                source_document_ids.append(doc.id)
+                
+        elif request.document_ids:
+            # Get specific documents
+            for doc_id in request.document_ids:
+                document = db.query(Document).filter(Document.id == doc_id).first()
+                if not document:
+                    raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+                if document.run and document.run.input_source and document.run.input_source.owner_id != current_user.id:
+                    raise HTTPException(status_code=403, detail=f"Access denied to document {doc_id}")
+                content_sources.append({"content": document.content, "title": document.title})
+                source_document_ids.append(document.id)
+                
+        else:
+            # Custom content
+            if not request.post_content or not request.post_title:
+                raise HTTPException(status_code=400, detail="Custom content requires both post_content and post_title.")
+            content_sources.append({"content": request.post_content, "title": request.post_title})
+    
+    if not content_sources:
+        raise HTTPException(status_code=400, detail="No content sources found for comment generation.")
+    
+    # Build style description from personas if provided
+    style_context = ""
+    if request.persona_ids:
+        personas = db.query(Persona).filter(
+            Persona.id.in_(request.persona_ids),
+            Persona.owner_id == current_user.id
+        ).all()
+        
+        if len(personas) != len(request.persona_ids):
+            raise HTTPException(status_code=404, detail="One or more personas not found or access denied")
+        
+        # Get style references for all personas
+        persona_styles = []
+        for persona in personas:
+            style_refs = db.query(StyleReference).filter(
+                StyleReference.persona_id == persona.id
+            ).all()
+            
+            persona_context = f"Persona: {persona.description}"
+            if persona.style_preferences:
+                persona_context += f". Style preferences: {persona.style_preferences}"
+            
+            if style_refs:
+                ref_contexts = [f"{ref.title}: {ref.content[:200]}..." for ref in style_refs]
+                persona_context += f". Style references: {'; '.join(ref_contexts)}"
+            
+            persona_styles.append(persona_context)
+        
+        style_context = f"Use the following persona styles: {' | '.join(persona_styles)}. "
+    
+    # Combine content for context (for new_content type)
+    if request.comment_type == CommentType.NEW_CONTENT and len(content_sources) > 1:
+        combined_content = "\n\n---\n\n".join([f"Title: {src['title']}\nContent: {src['content']}" for src in content_sources])
+        post_content = combined_content
+        post_title = f"Combined content from {len(content_sources)} sources"
+    else:
+        post_content = content_sources[0]["content"]
+        post_title = content_sources[0]["title"]
+    
+    # Set up LLM API key
+    api_key = None
+    provider_env_var = f"{request.llm_provider.upper()}_API_KEY"
+    if request.llm_provider == "openai":
+        api_key = request.openai_api_key or os.getenv(provider_env_var)
+    elif request.llm_provider == "anthropic":
+        api_key = request.anthropic_api_key or os.getenv(provider_env_var)
+    elif request.llm_provider == "google":
+        api_key = request.google_api_key or os.getenv(provider_env_var)
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail=f"API key for {request.llm_provider} not found.")
+
+    original_key = os.environ.get(provider_env_var)
+    os.environ[provider_env_var] = api_key
+
+    try:
+        # Build style description with persona context
+        base_style_desc = f"Generate a {request.comment_style.lower()} comment that engages meaningfully with the content."
+        if request.comment_type == CommentType.REPLY:
+            base_style_desc += " This is a reply to the specific post."
+        else:
+            base_style_desc += " This is new content inspired by the provided sources."
+        
+        full_style_description = style_context + base_style_desc
+        
+        agent_req = AgentStyleRequest(
+            content_to_transform=post_content,
+            style_description=full_style_description,
+            llm_provider=request.llm_provider,
+            llm_model=request.llm_model,
+            temperature=request.temperature
         )
+        
+        transformed_output = await transfer_style(agent_req)
+        confidence = 75 + (hash(transformed_output.transformed_content) % 21)
+
+        # Save to database with metadata
+        output_record = DBOutputSchema(
+            id=str(uuid.uuid4()),
+            owner_id=current_user.id,
+            source_document_id=source_document_ids[0] if source_document_ids else None,
+            output_type=OutputType.SOCIAL_COMMENT,
+            content=transformed_output.transformed_content,
+            status=OutputStatus.PENDING,
+            confidence_score=confidence,
+            metadata={
+                "style": request.comment_style,
+                "comment_type": request.comment_type.value,
+                "llm_provider": request.llm_provider,
+                "source_document_ids": source_document_ids,
+                "persona_ids": request.persona_ids or [],
+                "num_sources": len(content_sources)
+            }
+        )
+        db.add(output_record)
+        db.commit()
+        db.refresh(output_record)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred during comment generation: {e}")
+    finally:
+        if original_key:
+            os.environ[provider_env_var] = original_key
+        elif provider_env_var in os.environ:
+            del os.environ[provider_env_var]
+
+    processing_time = (datetime.now() - start_time).total_seconds()
+    
+    context_summary = post_content[:200] + "..." if len(post_content) > 200 else post_content
+    if len(content_sources) > 1:
+        context_summary = f"Combined {len(content_sources)} sources: {context_summary}"
+
+    return CommentResponse(
+        success=True,
+        comment=transformed_output.transformed_content,
+        style=request.comment_style,
+        confidence=confidence,
+        output_id=output_record.id,
+        post_context=context_summary,
+        llm_provider_used=request.llm_provider,
+        processing_time=processing_time,
+        message=f"{request.comment_style} {request.comment_type.value} comment generated successfully from {len(content_sources)} source(s)."
+    )
