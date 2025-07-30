@@ -325,16 +325,14 @@ async def generate_comment(
         reference_styles = []
         if style_context.strip():
             reference_styles.append(ReferenceStyle(
-                style_name=f"{request.comment_style} Style",
-                description=style_context,
-                examples=[]
+                name=f"{request.comment_style} Style",
+                description=style_context
             ))
         else:
             # Default reference style
             reference_styles.append(ReferenceStyle(
-                style_name=f"{request.comment_style} Comment Style",
-                description=f"Generate {request.comment_style.lower()} comments that are engaging and appropriate for social media.",
-                examples=[]
+                name=f"{request.comment_style} Comment Style",
+                description=f"Generate {request.comment_style.lower()} comments that are engaging and appropriate for social media."
             ))
         
         # Build the proper StyleTransferRequest
