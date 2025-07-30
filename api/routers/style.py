@@ -297,7 +297,7 @@ async def generate_comment(
         
         full_style_description = style_context + base_style_desc
         
-        agent_req = AgentStyleRequest(
+        agent_req = StyleTransferRequest(
             content_to_transform=post_content,
             style_description=full_style_description,
             llm_provider=request.llm_provider,
