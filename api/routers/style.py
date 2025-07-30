@@ -297,16 +297,62 @@ async def generate_comment(
         
         full_style_description = style_context + base_style_desc
         
-        agent_req = StyleTransferRequest(
-            content_to_transform=post_content,
-            style_description=full_style_description,
+        # Build proper StyleTransferRequest for the style agent
+        from common.schemas import Document, OutputSchema, ReferenceStyle
+        from common.schemas import StyleTransferRequest as StyleAgentRequest
+        
+        # Create target content as Document
+        target_doc = Document(
+            id=str(uuid.uuid4()),
+            content=post_content,
+            metadata={"source": "comment_generation"}
+        )
+        
+        # Create output schema for social media comment
+        output_schema = OutputSchema(
+            platform="social_media",
+            content_type="comment",
+            max_length=280,  # Twitter-like limit
+            tone=request.comment_style.lower(),
+            additional_requirements=["engaging", "concise"]
+        )
+        
+        # Create reference styles from persona context or default
+        reference_styles = []
+        if style_context.strip():
+            reference_styles.append(ReferenceStyle(
+                style_name=f"{request.comment_style} Style",
+                description=style_context,
+                examples=[]
+            ))
+        else:
+            # Default reference style
+            reference_styles.append(ReferenceStyle(
+                style_name=f"{request.comment_style} Comment Style",
+                description=f"Generate {request.comment_style.lower()} comments that are engaging and appropriate for social media.",
+                examples=[]
+            ))
+        
+        # Build the proper StyleTransferRequest
+        style_agent_request = StyleAgentRequest(
+            reference_style=reference_styles,
+            intent=f"Generate a {request.comment_style.lower()} social media comment",
+            focus="Create engaging social media content",
+            target_content=[target_doc],
+            target_schemas=[output_schema]
+        )
+        
+        # Call the style agent with proper parameters
+        transformed_outputs = await transfer_style(
+            style_agent_request,
             llm_provider=request.llm_provider,
-            llm_model=request.llm_model,
+            model=request.llm_model,
             temperature=request.temperature
         )
         
-        transformed_output = await transfer_style(agent_req)
-        confidence = 75 + (hash(transformed_output.transformed_content) % 21)
+        # Extract the generated comment from the first response
+        generated_comment = transformed_outputs[0].content if transformed_outputs else "Unable to generate comment"
+        confidence = 75 + (hash(generated_comment) % 21)
 
         # Save to database with metadata
         output_record = DBOutputSchema(
@@ -314,7 +360,7 @@ async def generate_comment(
             owner_id=current_user.id,
             source_document_id=source_document_ids[0] if source_document_ids else None,
             output_type=OutputType.SOCIAL_COMMENT,
-            content=transformed_output.transformed_content,
+            content=generated_comment,
             status=OutputStatus.PENDING,
             confidence_score=confidence,
             metadata={
@@ -346,7 +392,7 @@ async def generate_comment(
 
     return CommentResponse(
         success=True,
-        comment=transformed_output.transformed_content,
+        comment=generated_comment,
         style=request.comment_style,
         confidence=confidence,
         output_id=output_record.id,
