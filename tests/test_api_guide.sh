@@ -92,7 +92,7 @@ echo "[SUCCESS] Twitter search completed. Run ID: $RUN_ID, First Document ID: $D
 
 # --- Step 4: AI Comment Generation ---
 echo "[INFO] Step 4.1: Generating single comment from search results..."
-COMMENT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment" \
+COMMENT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comments" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
@@ -106,7 +106,7 @@ COMMENT_ID=$(echo "$COMMENT_RESPONSE" | jq -r '.output_id')
 echo "[SUCCESS] Comment generated with ID: $COMMENT_ID"
 
 echo "[INFO] Step 4.2: Generating persona-styled comment..."
-PERSONA_COMMENT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment" \
+PERSONA_COMMENT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comments" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
@@ -117,8 +117,8 @@ PERSONA_COMMENT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-co
     \"llm_provider\": \"openai\",\
     \"openai_api_key\": \"${OPENAI_API_KEY}\"\
   }")
-PERSONA_COMMENT_ID=$(echo "$PERSONA_COMMENT_RESPONSE" | jq -r '.output_id')
-echo "[SUCCESS] Persona-styled comment generated with ID: $PERSONA_COMMENT_ID"
+COMMENT_ID=$(echo "$PERSONA_COMMENT_RESPONSE" | jq -r '.output_id')
+echo "[SUCCESS] Persona-styled comment generated with ID: $COMMENT_ID"
 
 # --- Step 6: Approval Workflow ---
 echo "[INFO] Step 6.1: Approving comment..."
@@ -128,16 +128,9 @@ curl -s -X POST "${BASE_URL}/api/v1/outputs/${COMMENT_ID}/approve" \
   -d '{"score": 9, "feedback": "Excellent comment! Very engaging and on-brand.", "notes": "Perfect tone for our target audience"}'
 echo "[SUCCESS] Comment approved."
 
-echo "[INFO] Step 6.2: Rejecting persona comment..."
-curl -s -X POST "${BASE_URL}/api/v1/outputs/${PERSONA_COMMENT_ID}/reject" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  -H 'Content-Type: application/json' \
-  -d '{"score": 4, "feedback": "Too generic, needs more personality", "notes": "Try adding more specific industry knowledge"}'
-echo "[SUCCESS] Comment rejected."
-
 # --- Step 7: Social Media Posting ---
 echo "[INFO] Step 7.1: Posting approved content to Twitter..."
-APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE" | jq -r '.output_text')
+APPROVED_CONTENT=$(echo "$PERSONA_COMMENT_RESPONSE" | jq -r '.comment')
 TWITTER_POST_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/twitter/post" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
