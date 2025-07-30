@@ -302,8 +302,11 @@ async def generate_comment(
         from common.schemas import StyleTransferRequest as StyleAgentRequest
         
         # Create target content as Document
+        from common.schemas import ContentType, DocumentCategory
         target_doc = Document(
-            id=str(uuid.uuid4()),
+            url="https://example.com/comment-generation",  # Placeholder URL
+            type=ContentType.SOCIAL_MEDIA,
+            category=DocumentCategory.CASUAL,
             content=post_content,
             metadata={"source": "comment_generation"}
         )
