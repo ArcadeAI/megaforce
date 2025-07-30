@@ -5,7 +5,7 @@ import uuid
 from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, Field, field_validator, model_validator, ValidationInfo
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -69,16 +69,16 @@ class CommentRequest(BaseModel):
     google_api_key: Optional[str] = None
     temperature: float = 0.7
 
-    @field_validator('comment_type')
-    def validate_content_sources(cls, v, info: ValidationInfo):
-        data = info.data
+    @model_validator(mode='after')
+    def validate_content_sources(self):
+        comment_type = self.comment_type
         
-        if v == CommentType.REPLY:
+        if comment_type == CommentType.REPLY:
             # Reply: only one document_id OR custom content
-            has_document_id = data.get('document_id') is not None
-            has_custom_content = data.get('post_content') is not None
-            has_run_id = data.get('run_id') is not None
-            has_document_ids = data.get('document_ids') is not None
+            has_document_id = self.document_id is not None
+            has_custom_content = self.post_content is not None
+            has_run_id = self.run_id is not None
+            has_document_ids = self.document_ids is not None and len(self.document_ids) > 0
             
             if has_run_id or has_document_ids:
                 raise ValueError('Reply type cannot use run_id or document_ids. Use document_id or custom content only.')
@@ -89,12 +89,12 @@ class CommentRequest(BaseModel):
             if has_document_id and has_custom_content:
                 raise ValueError('Reply type cannot use both document_id and custom content.')
                 
-        elif v == CommentType.NEW_CONTENT:
+        elif comment_type == CommentType.NEW_CONTENT:
             # New content: run_id OR document_ids OR custom content (mutually exclusive)
-            has_run_id = data.get('run_id') is not None
-            has_document_ids = data.get('document_ids') is not None and len(data.get('document_ids', [])) > 0
-            has_document_id = data.get('document_id') is not None
-            has_custom_content = data.get('post_content') is not None
+            has_run_id = self.run_id is not None
+            has_document_ids = self.document_ids is not None and len(self.document_ids) > 0
+            has_document_id = self.document_id is not None
+            has_custom_content = self.post_content is not None
             
             if has_document_id:
                 raise ValueError('New content type cannot use single document_id. Use document_ids list, run_id, or custom content.')
@@ -105,7 +105,7 @@ class CommentRequest(BaseModel):
             if sources_count > 1:
                 raise ValueError('New content type can only use one source: run_id, document_ids, or custom content.')
         
-        return v
+        return self
 
 class CommentResponse(BaseModel):
     success: bool
