@@ -16,7 +16,7 @@ from ..schemas import CommentResponse, Comment
 
 # Import the style agent and its schemas
 from style_agent.agent import transfer_style
-from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, StyleOutputSchema, LinkedInComment
+from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment, OutputType as CommonOutputType
 
 router = APIRouter()
 
@@ -141,7 +141,7 @@ async def generate_comments(
         persona_id = default_persona.id
 
     # Define the output schema for the agent
-    output_schemas = [StyleOutputSchema(name="linkedin_comment", description="A professional LinkedIn comment", output_type=LinkedInComment)]
+    output_schemas = [OutputSchema(name="linkedin_comment", description="A professional LinkedIn comment", output_type=CommonOutputType.LINKEDIN_COMMENT)]
 
     # Construct the request for the style agent
     agent_request = StyleTransferRequest(
