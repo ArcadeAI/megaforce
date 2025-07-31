@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 from typing import Optional, List
 import uuid
@@ -11,10 +12,11 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..auth import get_current_active_user
 from ..models import User, Persona, Document, OutputSchema as DBOutputSchema, ApprovalHistory, OutputType, OutputStatus, Run, StyleReference
+from ..schemas import CommentResponse, Comment
 
 # Import the style agent and its schemas
 from style_agent.agent import transfer_style
-from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle
+from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, StyleOutputSchema, LinkedInComment
 
 router = APIRouter()
 
@@ -81,7 +83,7 @@ class CommentRequest(BaseModel):
 
 @router.post("/generate-comments", response_model=List[CommentResponse], tags=["Style"])
 async def generate_comments(
-    request: GenerateCommentRequest,
+    request: CommentRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> List[CommentResponse]:

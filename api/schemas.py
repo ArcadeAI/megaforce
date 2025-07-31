@@ -362,3 +362,21 @@ class SubredditSummary(BaseModel):
     name: str
     posts: int
     priority: str  # high, medium, low
+
+
+# Comment generation schemas
+class Comment(BaseModel):
+    """Individual comment data."""
+    text: str
+    
+class CommentResponse(BaseModel):
+    """Response from comment generation endpoint."""
+    success: bool
+    comment: Comment
+    style: str
+    confidence: int
+    output_id: str
+    post_context: str
+    llm_provider_used: str
+    processing_time: float
+    message: str
