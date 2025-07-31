@@ -2,7 +2,7 @@
 
 🚀 **Interactive API Documentation**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/docs
 
-## 🎉 **PRODUCTION READY - v49 DEPLOYED!**
+## 🎉 **PRODUCTION READY - v50 DEPLOYED!**
 
 ✅ **All Database Issues RESOLVED** - Enum mismatches and foreign key constraints fixed  
 ✅ **Complete Workflow Tested** - Comment generation, approval, and Twitter posting working  
@@ -287,11 +287,11 @@ The Megaforce API provides flexible comment generation with multiple content sou
 
 ### 4.2 Content Source Options
 
-#### Option 1: From Entire Twitter Search Run
+#### Method 1: From Entire Twitter Search Run
 ```json
 {
   "comment_type": "new_content",
-  "run_id": "8952347d-f034-43ed-a64c-e66395516466",
+  "run_id": "YOUR_RUN_ID_FROM_TWITTER_SEARCH",
   "comment_style": "Insightful",
   "llm_provider": "openai",
   "openai_api_key": "YOUR_OPENAI_KEY"
@@ -299,30 +299,45 @@ The Megaforce API provides flexible comment generation with multiple content sou
 ```
 *Generates content from ALL documents in the search run*
 
-#### Option 2: From Multiple Specific Documents
-```json
-{
-  "comment_type": "new_content",
-  "document_ids": ["doc1-uuid", "doc2-uuid", "doc3-uuid"],
-  "comment_style": "Professional",
-  "llm_provider": "anthropic",
-  "anthropic_api_key": "YOUR_ANTHROPIC_KEY"
-}
-```
-*Combines insights from selected documents*
-
-#### Option 3: Reply to Single Document
+#### Method 2: Reply to Single Document
 ```json
 {
   "comment_type": "reply",
-  "document_id": "76dbcf09-5414-444c-a5e4-7222d4199eeb",
-  "comment_style": "Congratulatory",
-  "llm_provider": "openai"
+  "document_id": "YOUR_DOCUMENT_ID_FROM_SEARCH",
+  "comment_style": "Question",
+  "llm_provider": "openai",
+  "openai_api_key": "YOUR_OPENAI_KEY"
 }
 ```
-*Replies to a specific tweet/post*
+*Generates a reply to a specific tweet or document*
 
-#### Option 4: From Custom Content
+#### Method 3: Generate from Custom Content
+```json
+{
+  "comment_type": "new_content",
+  "post_content": "Just launched our new AI-powered social media management tool! It can generate contextual comments, manage multiple personas, and automate engagement workflows.",
+  "post_title": "AI Social Media Tool Launch",
+  "comment_style": "Congratulatory",
+  "llm_provider": "openai",
+  "openai_api_key": "YOUR_OPENAI_KEY"
+}
+```
+*Generates content from your custom text input*
+
+#### Method 4: Generate with Persona Styling
+```json
+{
+  "comment_type": "reply",
+  "document_id": "YOUR_DOCUMENT_ID_FROM_SEARCH",
+  "persona_ids": ["YOUR_PERSONA_ID_FROM_STEP_2.1"],
+  "comment_style": "Supportive",
+  "llm_provider": "openai",
+  "openai_api_key": "YOUR_OPENAI_KEY"
+}
+```
+*Applies your persona's style to the generated comment*
+
+#### Option 5: From Custom Content
 ```json
 {
   "comment_type": "reply",
@@ -415,6 +430,8 @@ Add persona styling to any comment generation:
 - **JavaScript:** `JSON.parse(response.comment).text`
 - **Python:** `json.loads(response['comment'])['text']`
 - **Bash/curl:** `jq -r '.comment | fromjson | .text'`
+
+**🐦 Twitter Character Limit:** Comments are automatically generated to stay under 280 characters for Twitter compatibility (v50 update).
 
 **💾 Data Saved to `output_schemas` table:**
 - `content`: The generated comment text
