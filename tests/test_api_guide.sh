@@ -16,8 +16,8 @@ if [ -f .env ]; then
 fi
 
 # Check for required environment variables
-if [ -z "$OPENAI_API_KEY" ] || [ -z "$ARCADE_API_KEY" ]; then
-  echo "Error: Please set OPENAI_API_KEY and ARCADE_API_KEY environment variables."
+if [ -z "$OPENAI_API_KEY" ] || [ -z "$ARCADE_API_KEY" ] || [ -z "$ANTHROPIC_API_KEY" ]; then
+  echo "Error: Please set OPENAI_API_KEY, ARCADE_API_KEY, and ANTHROPIC_API_KEY environment variables."
   exit 1
 fi
 
@@ -142,10 +142,10 @@ COMMENT_RESPONSE_4=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment"
   -d "{\
     \"comment_type\": \"reply\",\
     \"document_id\": \"${DOCUMENT_ID}\",\
-    \"persona_ids\": [\"${PERSONA_ID}\"],\
+    \"persona_id\": \"${PERSONA_ID}\",\
     \"comment_style\": \"Supportive\",\
-    \"llm_provider\": \"openai\",\
-    \"openai_api_key\": \"${OPENAI_API_KEY}\"\
+    \"llm_provider\": \"anthropic\",\
+    \"anthropic_api_key\": \"${ANTHROPIC_API_KEY}\"\
   }")
 COMMENT_ID=$(echo "$COMMENT_RESPONSE_4" | jq -r '.output_id')
 echo "[SUCCESS] Method 4 - Persona-styled comment generated with ID: $COMMENT_ID"
