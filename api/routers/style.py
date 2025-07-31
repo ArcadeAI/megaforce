@@ -314,7 +314,7 @@ async def generate_comment(
             output_type=CommonOutputType.LINKEDIN_COMMENT,
             platform="social_media",
             max_length=280,  # Twitter-like limit
-            description=f"Generate a {request.comment_style.lower()} social media comment"
+            description=f"Generate a {request.comment_style.lower()} social media comment that is under 280 characters for Twitter compatibility"
         )
         
         # Create reference styles from persona context or default
@@ -327,7 +327,7 @@ async def generate_comment(
             sentence_structure="short",
             vocabulary_level="simple",
             personality_traits=["engaging", "friendly"],
-            style_rules=["Keep it concise", "Be engaging", "Use social media appropriate language"]
+            style_rules=["Keep it concise and under 280 characters", "Be engaging", "Use social media appropriate language", "Perfect for Twitter posting"]
         )
         
         reference_styles = []
@@ -341,7 +341,7 @@ async def generate_comment(
             # Default reference style
             reference_styles.append(ReferenceStyle(
                 name=f"{request.comment_style} Comment Style",
-                description=f"Generate {request.comment_style.lower()} comments that are engaging and appropriate for social media.",
+                description=f"Generate {request.comment_style.lower()} comments that are engaging, appropriate for social media, and under 280 characters for Twitter compatibility.",
                 style_definition=style_definition
             ))
         

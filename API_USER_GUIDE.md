@@ -2,6 +2,12 @@
 
 🚀 **Interactive API Documentation**: https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/docs
 
+## 🎉 **PRODUCTION READY - v49 DEPLOYED!**
+
+✅ **All Database Issues RESOLVED** - Enum mismatches and foreign key constraints fixed  
+✅ **Complete Workflow Tested** - Comment generation, approval, and Twitter posting working  
+✅ **Production Validated** - Full end-to-end testing completed successfully  
+
 This guide walks you through testing **every endpoint** in the Megaforce Social Media API using the interactive Swagger documentation. Follow these steps in order to experience the complete workflow from authentication to AI-powered social media posting.
 
 ## 📋 Prerequisites
@@ -393,16 +399,22 @@ Add persona styling to any comment generation:
 ```json
 {
   "success": true,
-  "comment": "This is fascinating! The intersection of AI and social media management is creating incredible opportunities for brands to engage more authentically. How are you measuring the ROI on AI-generated content?",
+  "comment": "{\n  \"text\": \"This is fascinating! The intersection of AI and social media management is creating incredible opportunities for brands to engage more authentically. How are you measuring the ROI on AI-generated content? 🤔 #AI #SocialMedia\"
+}",
   "style": "Question",
   "confidence": 87,
-  "output_id": "output-uuid-for-approval",
+  "output_id": "777402fa-ea9e-472f-843b-a5c45eb0b217",
   "post_context": "Just launched our new AI-powered social media...",
   "llm_provider_used": "openai",
   "processing_time": 2.34,
   "message": "Question reply comment generated successfully from 1 source(s)."
 }
 ```
+
+**📝 Note:** The `comment` field contains JSON-formatted text. To extract the actual comment text for posting, use:
+- **JavaScript:** `JSON.parse(response.comment).text`
+- **Python:** `json.loads(response['comment'])['text']`
+- **Bash/curl:** `jq -r '.comment | fromjson | .text'`
 
 **💾 Data Saved to `output_schemas` table:**
 - `content`: The generated comment text

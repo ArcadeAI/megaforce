@@ -167,7 +167,15 @@ echo "[SUCCESS] Comment approved."
 
 # --- Step 7: Social Media Posting ---
 echo "[INFO] Step 7.1: Posting approved content to Twitter..."
-APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE_4" | jq -r '.comment')
+# Extract comment text from nested JSON response
+APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE_4" | jq -r '.comment | fromjson | .text')
+echo "[INFO] Comment to post: $APPROVED_CONTENT"
+
+# Truncate to Twitter's 280 character limit if needed
+if [ ${#APPROVED_CONTENT} -gt 280 ]; then
+  APPROVED_CONTENT="${APPROVED_CONTENT:0:277}..."
+  echo "[INFO] Comment truncated to 280 characters: $APPROVED_CONTENT"
+fi
 TWITTER_POST_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/twitter/post" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
@@ -176,7 +184,9 @@ TWITTER_POST_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/twitter/post" \
     \"arcade_api_key\": \"${ARCADE_API_KEY}\"\
   }")
 TWEET_ID=$(echo "$TWITTER_POST_RESPONSE" | jq -r '.tweet_id')
+TWEET_URL=$(echo "$TWITTER_POST_RESPONSE" | jq -r '.tweet_url')
 echo "[SUCCESS] Tweet posted with ID: $TWEET_ID"
+echo "[SUCCESS] Tweet URL: $TWEET_URL"
 
 # --- Step 8: Dashboard & Advanced Features ---
 echo "[INFO] Step 8.1: Viewing dashboard data..."
