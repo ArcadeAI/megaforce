@@ -4,7 +4,7 @@ from typing import List
 import uuid
 
 from api.database import get_db
-from api.models import Document, Run
+from api.models import Document, Run, InputSource
 from api.schemas import DocumentResponse, DocumentCreate, DocumentUpdate
 from api.auth import get_current_user
 
@@ -21,8 +21,8 @@ async def list_documents(
         print(f"DEBUG: Current user: {current_user.username}")
         
         # Fixed: use owner_id instead of user_id
-        documents = db.query(Document).join(Document.run).join(Document.run.input_source).filter(
-            Document.run.input_source.has(owner_id=current_user.id)
+        documents = db.query(Document).join(Run).join(InputSource).filter(
+            InputSource.owner_id == current_user.id
         ).all()
         print(f"DEBUG: Found {len(documents)} documents")
         
@@ -42,9 +42,9 @@ async def get_document(
 ):
     """Get a specific document."""
     # Fixed: use owner_id instead of user_id
-    document = db.query(Document).join(Document.run).join(Document.run.input_source).filter(
+    document = db.query(Document).join(Run).join(InputSource).filter(
         Document.id == document_id,
-        Document.run.input_source.has(owner_id=current_user.id)
+        InputSource.owner_id == current_user.id
     ).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -82,9 +82,9 @@ async def update_document(
     current_user = Depends(get_current_user)
 ):
     """Update a document."""
-    document = db.query(Document).join(Document.run).join(Document.run.input_source).filter(
+    document = db.query(Document).join(Run).join(InputSource).filter(
         Document.id == document_id,
-        Document.run.input_source.has(owner_id=current_user.id)
+        InputSource.owner_id == current_user.id
     ).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -103,9 +103,9 @@ async def delete_document(
     current_user = Depends(get_current_user)
 ):
     """Delete a document."""
-    document = db.query(Document).join(Document.run).join(Document.run.input_source).filter(
+    document = db.query(Document).join(Run).join(InputSource).filter(
         Document.id == document_id,
-        Document.run.input_source.has(owner_id=current_user.id)
+        InputSource.owner_id == current_user.id
     ).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
