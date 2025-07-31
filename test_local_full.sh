@@ -6,7 +6,7 @@ set -e
 set -x
 
 # --- Configuration ---
-BASE_URL="https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com"
+BASE_URL="http://localhost:8000"
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then

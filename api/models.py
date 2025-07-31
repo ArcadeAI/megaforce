@@ -29,17 +29,17 @@ class OutputStatus(str, enum.Enum):
 
 
 class OutputType(str, enum.Enum):
-    TWEET_SINGLE = "tweet_single"
-    TWEET_THREAD = "tweet_thread"
-    SOCIAL_COMMENT = "social_comment"
-    TWITTER_REPLY = "twitter_reply"
-    LINKEDIN_POST = "linkedin_post"
-    LINKEDIN_COMMENT = "linkedin_comment"
-    BLOG_POST = "blog_post"
-    REDDIT_COMMENT = "reddit_comment"
-    FACEBOOK_COMMENT = "facebook_comment"
-    INSTAGRAM_COMMENT = "instagram_comment"
-    YOUTUBE_COMMENT = "youtube_comment"
+    TWEET_SINGLE = "TWEET_SINGLE"  # Match database values
+    TWEET_THREAD = "TWITTER_THREAD"  # Match database values
+    SOCIAL_COMMENT = "SOCIAL_COMMENT"  # Will add to database
+    TWITTER_REPLY = "TWITTER_REPLY"  # Match database values
+    LINKEDIN_POST = "LINKEDIN_POST"  # Will add to database
+    LINKEDIN_COMMENT = "LINKEDIN_COMMENT"  # Will add to database
+    BLOG_POST = "BLOG_POST"  # Match database values
+    REDDIT_COMMENT = "REDDIT_COMMENT"  # Match database values
+    FACEBOOK_COMMENT = "FACEBOOK_COMMENT"  # Will add to database
+    INSTAGRAM_COMMENT = "INSTAGRAM_COMMENT"  # Will add to database
+    YOUTUBE_COMMENT = "YOUTUBE_COMMENT"  # Will add to database
 
 
 class User(Base):

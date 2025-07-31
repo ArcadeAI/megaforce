@@ -265,56 +265,158 @@ Each step in the workflow saves data to specific database tables:
 
 ## Step 4: AI Comment Generation
 
-### 4.1 Generate Single Comment from Search Results
+The Megaforce API provides flexible comment generation with multiple content sources and styling options.
 
 **Endpoint:** `POST /api/v1/style/generate-comment`
 
-1. Find `POST /api/v1/style/generate-comment` and click **"Try it out"**
-2. Use this request body (using search results):
+### 4.1 Comment Types
 
+**REPLY**: Generate a reply to a specific post
+- Uses: `document_id` OR custom content (`post_content` + `post_title`)
+- Best for: Responding to individual tweets/posts
+
+**NEW_CONTENT**: Generate new content inspired by multiple sources  
+- Uses: `run_id` OR `document_ids` OR custom content
+- Best for: Creating original posts based on research
+
+### 4.2 Content Source Options
+
+#### Option 1: From Entire Twitter Search Run
 ```json
 {
   "comment_type": "new_content",
-  "run_id": "RUN_ID_FROM_STEP_3.1",
+  "run_id": "8952347d-f034-43ed-a64c-e66395516466",
   "comment_style": "Insightful",
-  "llm_provider": "anthropic"
+  "llm_provider": "openai",
+  "openai_api_key": "YOUR_OPENAI_KEY"
 }
 ```
+*Generates content from ALL documents in the search run*
 
-**OR** generate from a single document:
+#### Option 2: From Multiple Specific Documents
+```json
+{
+  "comment_type": "new_content",
+  "document_ids": ["doc1-uuid", "doc2-uuid", "doc3-uuid"],
+  "comment_style": "Professional",
+  "llm_provider": "anthropic",
+  "anthropic_api_key": "YOUR_ANTHROPIC_KEY"
+}
+```
+*Combines insights from selected documents*
 
+#### Option 3: Reply to Single Document
 ```json
 {
   "comment_type": "reply",
-  "document_id": "DOCUMENT_ID_FROM_SEARCH",
+  "document_id": "76dbcf09-5414-444c-a5e4-7222d4199eeb",
   "comment_style": "Congratulatory",
-  "llm_provider": "anthropic"
+  "llm_provider": "openai"
 }
 ```
+*Replies to a specific tweet/post*
 
-**OR** generate from custom content:
-
+#### Option 4: From Custom Content
 ```json
 {
   "comment_type": "reply",
-  "post_content": "Just launched our new AI-powered social media management tool!",
+  "post_content": "Just launched our new AI-powered social media management tool! It can generate contextual comments and manage multiple personas.",
   "post_title": "AI Social Media Tool Launch",
   "comment_style": "Question",
+  "llm_provider": "google",
+  "google_api_key": "YOUR_GOOGLE_KEY"
+}
+```
+*Uses your own content as the source*
+
+### 4.3 Persona-Based Styling
+
+Add persona styling to any comment generation:
+
+```json
+{
+  "comment_type": "reply",
+  "document_id": "76dbcf09-5414-444c-a5e4-7222d4199eeb",
+  "persona_ids": ["persona-uuid-1", "persona-uuid-2"],
+  "comment_style": "Supportive",
   "llm_provider": "anthropic"
 }
 ```
 
-3. Click **Execute**
-4. **Expected Response:** `200 OK` with single AI-generated comment
+**Persona Integration:**
+- Fetches persona descriptions and style preferences
+- Includes linked style references as examples
+- Blends multiple personas for sophisticated voice
+- Maintains brand consistency across comments
 
-**💾 Data Saved:**
-- **`output_schemas`**: Generated comment with metadata
-  - `content`: The actual comment text
-  - `status`: PENDING (ready for approval)
-  - `confidence_score`: AI confidence (75-95%)
-  - `metadata`: Style, source info, personas used
+### 4.4 Available Comment Styles
 
-**📝 Note the `output_id` from the response - you'll use this for approval.**
+- **Insightful**: Thoughtful analysis and observations
+- **Question**: Engaging questions to drive discussion  
+- **Congratulatory**: Positive praise and recognition
+- **Supportive**: Encouraging and helpful responses
+- **Professional**: Business-appropriate tone
+- **Casual**: Friendly, conversational style
+
+### 4.5 LLM Provider Options
+
+**OpenAI** (recommended for creativity):
+```json
+{
+  "llm_provider": "openai",
+  "llm_model": "gpt-4o-mini",
+  "openai_api_key": "YOUR_KEY",
+  "temperature": 0.7
+}
+```
+
+**Anthropic** (recommended for analysis):
+```json
+{
+  "llm_provider": "anthropic", 
+  "llm_model": "claude-3-haiku-20240307",
+  "anthropic_api_key": "YOUR_KEY"
+}
+```
+
+**Google** (recommended for factual content):
+```json
+{
+  "llm_provider": "google",
+  "llm_model": "gemini-1.5-flash",
+  "google_api_key": "YOUR_KEY"
+}
+```
+
+### 4.6 Expected Response
+
+```json
+{
+  "success": true,
+  "comment": "This is fascinating! The intersection of AI and social media management is creating incredible opportunities for brands to engage more authentically. How are you measuring the ROI on AI-generated content?",
+  "style": "Question",
+  "confidence": 87,
+  "output_id": "output-uuid-for-approval",
+  "post_context": "Just launched our new AI-powered social media...",
+  "llm_provider_used": "openai",
+  "processing_time": 2.34,
+  "message": "Question reply comment generated successfully from 1 source(s)."
+}
+```
+
+**💾 Data Saved to `output_schemas` table:**
+- `content`: The generated comment text
+- `status`: PENDING (ready for approval)
+- `confidence_score`: AI confidence rating (75-95%)
+- `metadata`: Complete context including:
+  - `comment_type`: "reply" or "new_content"
+  - `style`: Comment style used
+  - `source_document_ids`: Source documents
+  - `persona_ids`: Personas applied
+  - `num_sources`: Number of content sources
+  - `llm_provider`: AI model used
+
+**📝 Save the `output_id` - you'll need it for approval in Step 5!**
 
 ### 4.2 Generate Comment with Persona Styling
 

@@ -6,7 +6,7 @@ set -e
 set -x
 
 # --- Configuration ---
-BASE_URL="https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com"
+BASE_URL="http://localhost:8000"
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
@@ -167,7 +167,8 @@ echo "[SUCCESS] Comment approved."
 
 # --- Step 7: Social Media Posting ---
 echo "[INFO] Step 7.1: Posting approved content to Twitter..."
-APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE_4" | jq -r '.comment')
+# Extract just the text content from the comment JSON
+APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE_4" | jq -r '.comment | fromjson | .text')
 TWITTER_POST_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/twitter/post" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \

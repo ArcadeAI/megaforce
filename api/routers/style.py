@@ -14,7 +14,7 @@ from ..models import User, Persona, Document, OutputSchema as DBOutputSchema, Ap
 
 # Import the style agent and its schemas
 from style_agent.agent import transfer_style
-from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle
+from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle
 
 router = APIRouter()
 
@@ -255,7 +255,7 @@ async def generate_comment(
                 persona_context += f". Style preferences: {persona.style_preferences}"
             
             if style_refs:
-                ref_contexts = [f"{ref.title}: {ref.content[:200]}..." for ref in style_refs]
+                ref_contexts = [f"{ref.reference_type}: {ref.content_text[:200] if ref.content_text else 'No content'}..." for ref in style_refs]
                 persona_context += f". Style references: {'; '.join(ref_contexts)}"
             
             persona_styles.append(persona_context)
@@ -298,12 +298,8 @@ async def generate_comment(
         full_style_description = style_context + base_style_desc
         
         # Build proper StyleTransferRequest for the style agent
-        from common.schemas import Document, OutputSchema, ReferenceStyle
-        from common.schemas import StyleTransferRequest as StyleAgentRequest
-        
         # Create target content as Document
-        from common.schemas import ContentType, DocumentCategory
-        target_doc = Document(
+        target_doc = SchemaDocument(
             url="https://example.com/comment-generation",  # Placeholder URL
             type=ContentType.TWITTER,
             category=DocumentCategory.CASUAL,
@@ -322,21 +318,35 @@ async def generate_comment(
         )
         
         # Create reference styles from persona context or default
+        from common.schemas import WritingStyle
+        
+        # Create a WritingStyle definition
+        style_definition = WritingStyle(
+            tone=request.comment_style.lower(),
+            formality_level=0.3,  # Casual for social media
+            sentence_structure="short",
+            vocabulary_level="simple",
+            personality_traits=["engaging", "friendly"],
+            style_rules=["Keep it concise", "Be engaging", "Use social media appropriate language"]
+        )
+        
         reference_styles = []
         if style_context.strip():
             reference_styles.append(ReferenceStyle(
                 name=f"{request.comment_style} Style",
-                description=style_context
+                description=style_context,
+                style_definition=style_definition
             ))
         else:
             # Default reference style
             reference_styles.append(ReferenceStyle(
                 name=f"{request.comment_style} Comment Style",
-                description=f"Generate {request.comment_style.lower()} comments that are engaging and appropriate for social media."
+                description=f"Generate {request.comment_style.lower()} comments that are engaging and appropriate for social media.",
+                style_definition=style_definition
             ))
         
         # Build the proper StyleTransferRequest
-        style_agent_request = StyleAgentRequest(
+        style_agent_request = AgentStyleRequest(
             reference_style=reference_styles,
             intent=f"Generate a {request.comment_style.lower()} social media comment",
             focus="Create engaging social media content",
@@ -353,19 +363,42 @@ async def generate_comment(
         )
         
         # Extract the generated comment from the first response
-        generated_comment = transformed_outputs[0].content if transformed_outputs else "Unable to generate comment"
+        generated_comment = transformed_outputs[0].processed_content if transformed_outputs else "Unable to generate comment"
         confidence = 75 + (hash(generated_comment) % 21)
 
+        # Get or create default persona for user if none specified
+        if request.persona_ids:
+            persona_id = request.persona_ids[0]
+        else:
+            # Create or get default persona for user
+            default_persona = db.query(Persona).filter(
+                Persona.owner_id == current_user.id,
+                Persona.name == "Default"
+            ).first()
+            
+            if not default_persona:
+                default_persona = Persona(
+                    id=str(uuid.uuid4()),
+                    owner_id=current_user.id,
+                    name="Default",
+                    description="Default persona for comment generation",
+                    style_preferences="Professional and engaging tone"
+                )
+                db.add(default_persona)
+                db.flush()  # Get the ID without committing
+            
+            persona_id = default_persona.id
+        
         # Save to database with metadata
         output_record = DBOutputSchema(
             id=str(uuid.uuid4()),
-            owner_id=current_user.id,
+            persona_id=persona_id,
             source_document_id=source_document_ids[0] if source_document_ids else None,
-            output_type=OutputType.SOCIAL_COMMENT,
-            content=generated_comment,
-            status=OutputStatus.PENDING,
-            confidence_score=confidence,
-            metadata={
+            content_type=OutputType.SOCIAL_COMMENT,  # Now exists in database
+            generated_content=generated_comment,
+            status=OutputStatus.PENDING_REVIEW,
+            score=confidence,
+            publish_config={
                 "style": request.comment_style,
                 "comment_type": request.comment_type.value,
                 "llm_provider": request.llm_provider,
@@ -374,6 +407,7 @@ async def generate_comment(
                 "num_sources": len(content_sources)
             }
         )
+        
         db.add(output_record)
         db.commit()
         db.refresh(output_record)
