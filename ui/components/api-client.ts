@@ -74,6 +74,23 @@ export interface Persona {
   created_at: string
 }
 
+export interface StyleReference {
+  id: string
+  persona_id: string
+  reference_type: string
+  content_url?: string
+  content_text?: string
+  meta_data?: Record<string, any>
+  created_at: string
+}
+
+export interface StyleReferenceCreate {
+  reference_type: string
+  content_url?: string
+  content_text?: string
+  meta_data?: Record<string, any>
+}
+
 // Token management
 class TokenManager {
   private static TOKEN_KEY = 'megaforce_token'
@@ -207,6 +224,32 @@ class ApiClient {
   async deletePersona(id: string): Promise<void> {
     return this.request(`/api/v1/personas/${id}`, {
       method: 'DELETE',
+    })
+  }
+  
+  // Style Reference endpoints
+  async getStyleReferences(personaId?: string): Promise<StyleReference[]> {
+    const params = personaId ? `?persona_id=${personaId}` : ''
+    return this.request(`/api/v1/style-references/${params}`)
+  }
+
+  async createStyleReference(personaId: string, styleRef: StyleReferenceCreate): Promise<StyleReference> {
+    return this.request(`/api/v1/style-references/?persona_id=${personaId}`, {
+      method: 'POST',
+      body: JSON.stringify(styleRef)
+    })
+  }
+
+  async updateStyleReference(id: string, styleRef: Partial<StyleReferenceCreate>): Promise<StyleReference> {
+    return this.request(`/api/v1/style-references/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(styleRef)
+    })
+  }
+
+  async deleteStyleReference(id: string): Promise<void> {
+    return this.request(`/api/v1/style-references/${id}`, {
+      method: 'DELETE'
     })
   }
   

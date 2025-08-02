@@ -25,8 +25,12 @@ const navigationSections = [
   { id: "personas", label: "Personas", icon: Users },
 ]
 
-export function Sidebar() {
-  const [activeSection, setActiveSection] = useState("dashboard")
+interface SidebarProps {
+  activeSection: string
+  setActiveSection: (section: string) => void
+}
+
+export function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
   const { user, logout } = useAuth()
 
   return (
