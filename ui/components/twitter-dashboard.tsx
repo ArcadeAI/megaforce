@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowUpRight, MessageSquare, Heart, ExternalLink, Clock, Twitter, TrendingUp } from "lucide-react"
+import { ArrowUpRight, MessageSquare, Heart, ExternalLink, Clock, Twitter, TrendingUp, User } from "lucide-react"
 import { apiClient } from "./api-client"
 
 // Types for Twitter data
@@ -28,27 +28,15 @@ interface Tweet {
   url?: string
 }
 
-interface TwitterSearchResult {
-  query: string
-  tweets: Tweet[]
-  total_count: number
-}
-
-// Default user for development - using "the_dog" as specified
-const DEFAULT_USER = {
-  username: "the_dog",
-  token: "dev-token-for-the-dog" // This will be replaced with real auth
-}
-
-// Sample tweets for fallback/development
+// Sample tweets for fallback/development using "the_dog" user context
 function getSampleTweets(): Tweet[] {
   return [
     {
       id: "1",
-      text: "Just shipped a new AI feature that automatically generates social media content. The future is here! 🚀 #AI #tech",
+      text: "Just shipped a new AI feature that automatically generates social media content for our clients. The engagement rates are through the roof! 🚀 #AI #SocialMedia #Megaforce",
       author: {
-        username: "techfounder",
-        name: "Tech Founder",
+        username: "the_dog",
+        name: "Theo (The Dog)",
         profile_image_url: "https://pbs.twimg.com/profile_images/1234567890/avatar.jpg"
       },
       public_metrics: {
@@ -58,15 +46,15 @@ function getSampleTweets(): Tweet[] {
         quote_count: 8
       },
       created_at: "2024-01-15T10:30:00Z",
-      search_query: "AI OR tech OR startup",
-      url: "https://twitter.com/techfounder/status/1"
+      search_query: "AI OR social media OR automation",
+      url: "https://twitter.com/the_dog/status/1"
     },
     {
-      id: "2",
-      text: "Building in public: Our startup just raised $2M seed round! Here's what we learned during the fundraising process 🧵",
+      id: "2", 
+      text: "Building in public: Our social media management platform now integrates with Twitter API v2. Real-time sentiment analysis and automated responses are game changers! 🧵",
       author: {
-        username: "startup_ceo",
-        name: "Startup CEO",
+        username: "startup_founder",
+        name: "Sarah Chen",
         profile_image_url: "https://pbs.twimg.com/profile_images/1234567891/avatar.jpg"
       },
       public_metrics: {
@@ -76,44 +64,43 @@ function getSampleTweets(): Tweet[] {
         quote_count: 23
       },
       created_at: "2024-01-15T09:15:00Z",
-      search_query: "AI OR tech OR startup",
-      url: "https://twitter.com/startup_ceo/status/2"
+      search_query: "AI OR social media OR automation",
+      url: "https://twitter.com/startup_founder/status/2"
     },
     {
       id: "3",
-      text: "The intersection of AI and social media is fascinating. We're seeing unprecedented engagement rates with AI-generated content.",
+      text: "The intersection of AI and social media management is fascinating. We're seeing 300% improvement in engagement when using AI-generated content vs manual posts.",
       author: {
         username: "ai_researcher",
-        name: "AI Researcher",
+        name: "Dr. Alex Kim",
         profile_image_url: "https://pbs.twimg.com/profile_images/1234567892/avatar.jpg"
       },
       public_metrics: {
-        retweet_count: 23,
-        like_count: 156,
-        reply_count: 18,
-        quote_count: 5
+        retweet_count: 156,
+        like_count: 892,
+        reply_count: 67,
+        quote_count: 34
       },
       created_at: "2024-01-15T08:45:00Z",
-      search_query: "AI OR tech OR startup",
+      search_query: "AI OR social media OR automation",
       url: "https://twitter.com/ai_researcher/status/3"
     }
   ]
 }
 
-export function MainDashboard() {
+export function TwitterDashboard() {
   const [selectedTweet, setSelectedTweet] = useState<Tweet | null>(null)
   const [tweets, setTweets] = useState<Tweet[]>([])
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
 
   useEffect(() => {
     const fetchTweets = async () => {
       try {
         setLoading(true)
-        // Use the existing Twitter search endpoint with "the_dog" user data
+        // Try to use the existing Twitter search endpoint
         const searchResult = await apiClient.searchTwitter({
           search_type: "keywords",
-          search_query: "AI OR tech OR startup",
+          search_query: "AI OR social media OR automation",
           limit: 10
         })
         
@@ -133,7 +120,7 @@ export function MainDashboard() {
             quote_count: tweet.public_metrics?.quote_count || tweet.quote_count || 0
           },
           created_at: tweet.created_at || new Date().toISOString(),
-          search_query: "AI OR tech OR startup",
+          search_query: "AI OR social media OR automation",
           url: tweet.url || `https://twitter.com/${tweet.author?.username || 'unknown'}/status/${tweet.id}`
         })) || []
         
@@ -159,7 +146,7 @@ export function MainDashboard() {
       <div className="flex-1 p-4">
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-white mb-2">Latest Tweets</h2>
-          <p className="text-gray-400">Recent tweets from your tracked searches</p>
+          <p className="text-gray-400">Recent tweets from your tracked searches • Connected as: the_dog</p>
         </div>
 
         <div className="grid gap-4 mb-6">
@@ -194,7 +181,7 @@ export function MainDashboard() {
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Replies</p>
+                    <p className="text-sm text-gray-400">Total Replies</p>
                     <p className="text-2xl font-bold text-white">{tweets.reduce((acc, tweet) => acc + tweet.public_metrics.reply_count, 0)}</p>
                   </div>
                   <div className="text-purple-400">
@@ -207,7 +194,7 @@ export function MainDashboard() {
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Searches</p>
+                    <p className="text-sm text-gray-400">Active Searches</p>
                     <p className="text-2xl font-bold text-white">3</p>
                   </div>
                   <div className="text-orange-400">
@@ -285,30 +272,6 @@ export function MainDashboard() {
 }
 
 function TweetDetail({ tweet, onBack }: { tweet: Tweet; onBack: () => void }) {
-  const aiSuggestions = [
-    {
-      id: 1,
-      type: "Insightful",
-      content:
-        "This is a fascinating development! The implications for enterprise software development could be huge. Has anyone here had experience implementing similar AI-driven solutions in production environments?",
-      confidence: 92,
-    },
-    {
-      id: 2,
-      type: "Question",
-      content:
-        "Great post! I'm curious about the technical implementation details. Are there any open-source alternatives or similar approaches that the community has experimented with?",
-      confidence: 87,
-    },
-    {
-      id: 3,
-      type: "Supportive",
-      content:
-        "Thanks for sharing this! The timing couldn't be better as our team is evaluating similar technologies. Would love to hear more about real-world performance metrics if anyone has data to share.",
-      confidence: 89,
-    },
-  ]
-
   return (
     <div className="flex-1 p-4">
       <div className="mb-4">
@@ -316,145 +279,72 @@ function TweetDetail({ tweet, onBack }: { tweet: Tweet; onBack: () => void }) {
           ← Back to Dashboard
         </Button>
         <div className="flex items-center space-x-3 mb-2">
-          <Badge variant="outline">#{post.priority}</Badge>
-          <Badge variant="secondary">{post.subreddit}</Badge>
-          <span className="text-sm text-gray-400">{post.timeAgo}</span>
+          <Badge variant="secondary" className="bg-blue-600">@{tweet.author.username}</Badge>
+          <span className="text-sm text-gray-400 flex items-center">
+            <Clock className="w-4 h-4 mr-1" />
+            {new Date(tweet.created_at).toLocaleString()}
+          </span>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-4">{post.title}</h1>
+        <h1 className="text-2xl font-bold text-white mb-4">{tweet.author.name}</h1>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card className="bg-gray-800 border-gray-700 mb-6">
             <CardHeader>
-              <CardTitle className="text-white">Post Content</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <p className="text-gray-300 leading-relaxed mb-4">{post.preview}</p>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                ex ea commodo consequat.
-              </p>
-              <p className="text-gray-300 leading-relaxed">
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-                laborum.
-              </p>
-              <div className="mt-6 pt-4 border-t border-gray-700">
-                <Button
-                  variant="outline"
-                  className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 hover:text-white bg-transparent"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View Original Post on Reddit
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Sparkles className="w-5 h-5 mr-2 text-purple-400" />
-                AI Comment Suggestions
-              </CardTitle>
+              <CardTitle className="text-white">Tweet Content</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {aiSuggestions.map((suggestion) => (
-                  <div key={suggestion.id} className="p-3 bg-gray-700/50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        {suggestion.type}
-                      </Badge>
-                      <span className="text-xs text-gray-400">{suggestion.confidence}% confidence</span>
-                    </div>
-                    <p className="text-gray-300 text-sm leading-relaxed mb-3">{suggestion.content}</p>
-                    <Button size="sm" variant="secondary" className="w-full">
-                      Use This Comment
-                    </Button>
-                  </div>
-                ))}
+              <p className="text-gray-300 text-lg leading-relaxed mb-4">{tweet.text}</p>
+              
+              <div className="flex items-center space-x-6 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Heart className="w-5 h-5 text-red-400" />
+                  <span className="text-white font-semibold">{tweet.public_metrics.like_count.toLocaleString()}</span>
+                  <span className="text-gray-400">likes</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                  <span className="text-white font-semibold">{tweet.public_metrics.reply_count}</span>
+                  <span className="text-gray-400">replies</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <ArrowUpRight className="w-5 h-5 text-green-400" />
+                  <span className="text-white font-semibold">{tweet.public_metrics.retweet_count}</span>
+                  <span className="text-gray-400">retweets</span>
+                </div>
               </div>
+
+              <Button 
+                variant="outline" 
+                onClick={() => window.open(tweet.url, '_blank')}
+                className="w-full"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View on Twitter
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div>
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Post Metrics</CardTitle>
+              <CardTitle className="text-white">AI Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Score</span>
-                <div className="flex items-center space-x-2">
-                  <ThumbsUp className="w-4 h-4 text-green-400" />
-                  <span className="text-white font-semibold">{post.score.toLocaleString()}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Comments</span>
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-semibold">{post.comments}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Author</span>
-                <span className="text-white">{post.author}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Priority Rank</span>
-                <Badge variant="outline">#{post.priority}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Engagement Rate</span>
-                <span className="text-green-400 font-semibold">94.2%</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 hover:text-white bg-transparent"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open in Reddit
+              <Button variant="outline" className="w-full">
+                <User className="w-4 h-4 mr-2" />
+                Generate Reply
               </Button>
-              <Button variant="secondary" className="w-full">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate More Comments
+              <Button variant="outline" className="w-full">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Analyze Sentiment
               </Button>
-              <Button variant="ghost" className="w-full">
-                Mark as Reviewed
+              <Button variant="outline" className="w-full">
+                <Twitter className="w-4 h-4 mr-2" />
+                Add to Queue
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Subreddit Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Today's Posts</span>
-                <span className="text-white">10</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Avg Score</span>
-                <span className="text-white">12.4K</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Top Performer</span>
-                <span className="text-green-400">This Post</span>
-              </div>
             </CardContent>
           </Card>
         </div>

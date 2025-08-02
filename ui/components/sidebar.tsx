@@ -4,102 +4,112 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Plus, Settings, TrendingUp, Users, BarChart3, Target } from "lucide-react"
+import { 
+  MessageSquare, 
+  FileText, 
+  Users, 
+  BarChart3, 
+  Settings, 
+  LogOut,
+  Sparkles,
+  CheckCircle,
+  Wand2
+} from "lucide-react"
+import { useAuth } from "./auth-context"
 
-const subreddits = [
-  { name: "r/technology", posts: 10, priority: "high" },
-  { name: "r/programming", posts: 8, priority: "medium" },
-  { name: "r/MachineLearning", posts: 10, priority: "high" },
-  { name: "r/startups", posts: 6, priority: "medium" },
-  { name: "r/investing", posts: 10, priority: "high" },
-  { name: "r/webdev", posts: 7, priority: "medium" },
-  { name: "r/artificial", posts: 9, priority: "high" },
-  { name: "r/entrepreneur", posts: 5, priority: "low" },
+const navigationSections = [
+  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+  { id: "approval", label: "Approval Queue", icon: CheckCircle },
+  { id: "generate", label: "Generate Content", icon: Wand2 },
+  { id: "sources", label: "Source Materials", icon: FileText },
+  { id: "personas", label: "Personas", icon: Users },
 ]
 
 export function Sidebar() {
   const [activeSection, setActiveSection] = useState("dashboard")
+  const { user, logout } = useAuth()
 
   return (
     <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
       <div className="p-4 border-b border-gray-700">
-        <h1 className="text-xl font-bold text-white">Reddit Agent</h1>
-        <p className="text-sm text-gray-400 mt-1">Subreddit Management</p>
+        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-blue-400" />
+          Megaforce
+        </h1>
+        <p className="text-sm text-gray-400 mt-1">AI Social Media Management</p>
       </div>
 
       <div className="p-3 space-y-2">
-        <Button
-          variant={activeSection === "dashboard" ? "secondary" : "ghost"}
-          className="w-full justify-start text-left"
-          onClick={() => setActiveSection("dashboard")}
-        >
-          <BarChart3 className="w-4 h-4 mr-3" />
-          Dashboard
-        </Button>
-        <Button
-          variant={activeSection === "subreddits" ? "secondary" : "ghost"}
-          className="w-full justify-start text-left"
-          onClick={() => setActiveSection("subreddits")}
-        >
-          <Users className="w-4 h-4 mr-3" />
-          Subreddits
-        </Button>
-        <Button
-          variant={activeSection === "analytics" ? "secondary" : "ghost"}
-          className="w-full justify-start text-left"
-          onClick={() => setActiveSection("analytics")}
-        >
-          <TrendingUp className="w-4 h-4 mr-3" />
-          Analytics
-        </Button>
-        <Button
-          variant={activeSection === "settings" ? "secondary" : "ghost"}
-          className="w-full justify-start text-left"
-          onClick={() => setActiveSection("settings")}
-        >
-          <Settings className="w-4 h-4 mr-3" />
-          Settings
-        </Button>
+        {navigationSections.map((section) => {
+          const Icon = section.icon
+          return (
+            <Button
+              key={section.id}
+              variant={activeSection === section.id ? "secondary" : "ghost"}
+              className="w-full justify-start text-left"
+              onClick={() => setActiveSection(section.id)}
+            >
+              <Icon className="w-4 h-4 mr-3" />
+              {section.label}
+            </Button>
+          )
+        })}
       </div>
 
-      <div className="px-4 py-2">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-gray-300">Tracked Subreddits</h3>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-            <Plus className="w-3 h-3" />
-          </Button>
-        </div>
-
-        <ScrollArea className="h-[calc(100vh-280px)]">
-          <div className="space-y-1">
-            {subreddits.map((subreddit) => (
-              <div
-                key={subreddit.name}
-                className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-700 cursor-pointer transition-colors"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-white">{subreddit.name}</span>
-                  <Badge
-                    variant={
-                      subreddit.priority === "high"
-                        ? "default"
-                        : subreddit.priority === "medium"
-                          ? "secondary"
-                          : "outline"
-                    }
-                    className="text-xs"
-                  >
-                    {subreddit.priority}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">{subreddit.posts} posts today</span>
-                  <Target className="w-3 h-3 text-green-400" />
-                </div>
+      <ScrollArea className="flex-1 p-3">
+        <div className="space-y-4">
+          <div className="p-3 rounded-lg bg-gray-700/30">
+            <h3 className="text-sm font-medium text-gray-300 mb-2">Quick Stats</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Comments Generated</span>
+                <span className="text-white">24</span>
               </div>
-            ))}
+              <div className="flex justify-between">
+                <span className="text-gray-400">Posts Published</span>
+                <span className="text-white">8</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Approval Rate</span>
+                <span className="text-green-400">92%</span>
+              </div>
+            </div>
           </div>
-        </ScrollArea>
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-gray-700 mt-auto">
+        {user ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {user.username?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{user.username || user.email}</p>
+                <p className="text-xs text-green-400">Online</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-sm text-gray-400 mb-2">Not logged in</p>
+            <Button variant="outline" size="sm" className="w-full">
+              Sign In
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
