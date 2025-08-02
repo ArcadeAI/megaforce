@@ -22,10 +22,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const currentUser = await apiClient.getCurrentUser()
-        setUser(currentUser)
+        // Only try to get current user if we have a token
+        const token = localStorage.getItem('token')
+        if (token) {
+          const currentUser = await apiClient.getCurrentUser()
+          setUser(currentUser)
+        }
       } catch (error) {
-        // Token might be invalid or expired
+        // Token might be invalid or expired - silently clear it
+        console.log('Authentication check failed, clearing token')
         apiClient.logout()
       } finally {
         setLoading(false)
@@ -38,8 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: LoginRequest) => {
     setLoading(true)
     try {
-      const response = await apiClient.login(credentials)
-      setUser(response.user)
+      // Login and get token
+      await apiClient.login(credentials)
+      // Fetch user data after successful login
+      const currentUser = await apiClient.getCurrentUser()
+      setUser(currentUser)
     } catch (error) {
       throw error
     } finally {

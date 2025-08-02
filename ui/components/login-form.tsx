@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from './auth-context'
 
 export function LoginForm() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,8 +24,8 @@ export function LoginForm() {
     setLoading(true)
 
     try {
-      await login({ email, password })
-      router.push('/dashboard')
+      await login({ username, password })
+      router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -50,14 +50,15 @@ export function LoginForm() {
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               disabled={loading}
+              placeholder="Enter your username"
             />
           </div>
           
@@ -76,6 +77,15 @@ export function LoginForm() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
+          
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <a href="/register" className="text-blue-600 hover:text-blue-800 underline">
+                Sign up here
+              </a>
+            </p>
+          </div>
         </form>
       </CardContent>
     </Card>

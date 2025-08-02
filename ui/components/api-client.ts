@@ -12,7 +12,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-  email: string
+  username: string
   password: string
 }
 
@@ -129,13 +129,12 @@ class ApiClient {
   
   // Authentication endpoints
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const formData = new FormData()
-    formData.append('username', credentials.email)
-    formData.append('password', credentials.password)
-    
     const response = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
     })
     
     if (!response.ok) {
