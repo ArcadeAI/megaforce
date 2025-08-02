@@ -58,8 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: RegisterRequest) => {
     setLoading(true)
     try {
-      const response = await apiClient.register(userData)
-      setUser(response.user)
+      // Register user
+      await apiClient.register(userData)
+      // Registration successful, now log them in automatically
+      await apiClient.login({ username: userData.username, password: userData.password })
+      // Fetch user data after successful login
+      const currentUser = await apiClient.getCurrentUser()
+      setUser(currentUser)
     } catch (error) {
       throw error
     } finally {
