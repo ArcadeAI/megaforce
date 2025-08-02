@@ -1,0 +1,22 @@
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+arcadepy
+python-dotenv
+langchain
+langchain-core
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+arcade-ai>=2.0.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+email-validator>=2.0.0
+sqlalchemy>=2.0.0
+psycopg2-binary
+requests
+pytest
+pytest-asyncio
+alembic
+# Force rebuild Mon Jul 28 23:43:53 PDT 2025
