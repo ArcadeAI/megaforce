@@ -1,7 +1,7 @@
 import threading
 import time
 from datetime import datetime
-from typing import Callable, Any, Optional
+from typing import Callable, Optional
 import heapq
 
 
