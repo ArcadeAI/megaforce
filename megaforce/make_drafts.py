@@ -1,9 +1,7 @@
 from megaforce.common.schemas import StyleTransferRequest, Document, OutputSchema, OutputType, ReferenceStyle
 from megaforce.style_agent.agent import generate_related_content
 from megaforce.common.utils import load_documents_from_json
-import json
 from pathlib import Path
-from typing import List
 import asyncio
 
 async def generate_and_print_single(request: StyleTransferRequest):

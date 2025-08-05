@@ -1,34 +1,76 @@
 [project]
-name = "stream-agent"
+name = "megaforce"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "fastapi>=0.100.0",
-    "uvicorn[standard]>=0.20.0",
-    "pydantic>=2.0.0",
-    "python-multipart>=0.0.6",
-    "arcadepy",
-    "python-dotenv",
-    "langchain",
-    "langchain-core",
-    "langchain-openai",
-    "langchain-anthropic",
-    "arcade-ai>=2.0.0",
-    "python-jose[cryptography]>=3.3.0",
-    "passlib[bcrypt]>=1.7.4",
-    "email-validator>=2.0.0",
-    "sqlalchemy>=2.0.0",
-    "alembic>=1.10.0",
+description = "Agent that implements textual style transfer from pre-processed documents"
+authors = [
+    {name = "Regis Camimura", email = "regis@noctua-ff.dev"},
+    {name = "Mateo Torres", email = "mateo@arcade.dev"}
 ]
-
-[project.scripts]
-api = "stream_agent.api.main:app"
-
-[tool.hatch.build.targets.wheel]
-packages = ["stream_agent"]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "alembic>=1.10.0",
+    "arcade-ai>=2.0.0",
+    "arcadepy",
+    "autoflake>=2.0.0",
+    "black>=23.0.0",
+    "cryptography>=3.4.0",
+    "email-validator>=2.0.0",
+    "fastapi>=0.100.0",
+    "flake8>=6.0.0",
+    "isort>=5.12.0",
+    "langchain-anthropic>=0.1.0",
+    "langchain-google-genai>=0.1.0",
+    "langchain-openai>=0.1.0",
+    "langchain>=0.1.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic>=2.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-vcr>=1.0.2",
+    "pytest>=7.0.0",
+    "python-dotenv>=1.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "python-multipart>=0.0.6",
+    "pyupgrade>=3.0.0",
+    "sqlalchemy>=2.0.0",
+    "textual>=5.0.1",
+    "uvicorn[standard]>=0.20.0",
+    "vcrpy>=6.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[project.scripts]
+encrypt-env = "scripts.env_vault:encrypt_env"
+decrypt-env = "scripts.env_vault:decrypt_env"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--strict-config",
+    "--color=yes",
+]
+markers = [
+    "asyncio: mark a test as an async test",
+    "vcr: mark a test to record API calls",
+    "integration: mark a test as an integration test requiring real API keys",
+] 
+
+
