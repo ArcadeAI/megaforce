@@ -6,7 +6,7 @@ set -e
 set -x
 
 # --- Configuration ---
-BASE_URL="https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com"
+BASE_URL="http://localhost:8000"
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
@@ -93,7 +93,7 @@ echo "[SUCCESS] Twitter search completed. Run ID: $RUN_ID, First Document ID: $D
 # --- Step 4: AI Comment Generation (Multiple Methods) ---
 
 echo "[INFO] Step 4.1: Method 1 - Generate from entire Twitter search run..."
-COMMENT_RESPONSE_1=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment" \
+COMMENT_RESPONSE_1=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comments" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
@@ -103,11 +103,11 @@ COMMENT_RESPONSE_1=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment"
     \"llm_provider\": \"openai\",\
     \"openai_api_key\": \"${OPENAI_API_KEY}\"\
   }")
-COMMENT_ID_1=$(echo "$COMMENT_RESPONSE_1" | jq -r '.output_id')
+COMMENT_ID_1=$(echo "$COMMENT_RESPONSE_1" | jq -r '.[0].output_id')
 echo "[SUCCESS] Method 1 - Comment from run generated with ID: $COMMENT_ID_1"
 
 echo "[INFO] Step 4.2: Method 2 - Generate reply to single document..."
-COMMENT_RESPONSE_2=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment" \
+COMMENT_RESPONSE_2=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comments" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
@@ -117,11 +117,11 @@ COMMENT_RESPONSE_2=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment"
     \"llm_provider\": \"openai\",\
     \"openai_api_key\": \"${OPENAI_API_KEY}\"\
   }")
-COMMENT_ID_2=$(echo "$COMMENT_RESPONSE_2" | jq -r '.output_id')
+COMMENT_ID_2=$(echo "$COMMENT_RESPONSE_2" | jq -r '.[0].output_id')
 echo "[SUCCESS] Method 2 - Reply comment generated with ID: $COMMENT_ID_2"
 
 echo "[INFO] Step 4.3: Method 3 - Generate from custom content..."
-COMMENT_RESPONSE_3=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment" \
+COMMENT_RESPONSE_3=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comments" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
@@ -132,11 +132,11 @@ COMMENT_RESPONSE_3=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment"
     \"llm_provider\": \"openai\",\
     \"openai_api_key\": \"${OPENAI_API_KEY}\"\
   }")
-COMMENT_ID_3=$(echo "$COMMENT_RESPONSE_3" | jq -r '.output_id')
+COMMENT_ID_3=$(echo "$COMMENT_RESPONSE_3" | jq -r '.[0].output_id')
 echo "[SUCCESS] Method 3 - Custom content comment generated with ID: $COMMENT_ID_3"
 
 echo "[INFO] Step 4.4: Method 4 - Generate with persona styling..."
-COMMENT_RESPONSE_4=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment" \
+COMMENT_RESPONSE_4=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comments" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
@@ -147,7 +147,7 @@ COMMENT_RESPONSE_4=$(curl -s -X POST "${BASE_URL}/api/v1/style/generate-comment"
     \"llm_provider\": \"anthropic\",\
     \"anthropic_api_key\": \"${ANTHROPIC_API_KEY}\"\
   }")
-COMMENT_ID=$(echo "$COMMENT_RESPONSE_4" | jq -r '.output_id')
+COMMENT_ID=$(echo "$COMMENT_RESPONSE_4" | jq -r '.[0].output_id')
 echo "[SUCCESS] Method 4 - Persona-styled comment generated with ID: $COMMENT_ID"
 
 echo "[INFO] Comment Generation Summary:"
@@ -168,7 +168,7 @@ echo "[SUCCESS] Comment approved."
 # --- Step 7: Social Media Posting ---
 echo "[INFO] Step 7.1: Posting approved content to Twitter..."
 # Extract comment text from nested JSON response
-APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE_4" | jq -r '.comment | fromjson | .text')
+APPROVED_CONTENT=$(echo "$COMMENT_RESPONSE_4" | jq -r '.[0].comment.text')
 echo "[INFO] Comment to post: $APPROVED_CONTENT"
 
 # Truncate to Twitter's 280 character limit if needed
