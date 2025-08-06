@@ -11,7 +11,6 @@ async def auth_tools(
     client: AsyncArcade,
     user_id: str,
     tool_names: List[str],
-    provider: str
 ):
     # collect the scopes for every tool I want to use
     tools = []
