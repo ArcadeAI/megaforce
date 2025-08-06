@@ -75,7 +75,6 @@ Set these environment variables in your `.env` file:
 ```bash
 ARCADE_API_KEY=your_arcade_api_key
 USER_ID=your_user_id
-ARCADE_PROVIDER_ID=x
 ```
 
 ## 📝 Recommended Testing Approach

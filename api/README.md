@@ -261,7 +261,6 @@ Copy `.env.template` to `.env` and configure:
 # Arcade Integration (Required for Twitter/X)
 USER_ID=your_arcade_user_id_here
 ARCADE_API_KEY=your_arcade_api_key_here
-ARCADE_PROVIDER_ID=your_arcade_provider_id_here
 
 # LLM Providers (Required for content generation)
 OPENAI_API_KEY=your_openai_api_key_here
