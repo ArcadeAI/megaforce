@@ -1,5 +1,8 @@
-. DS_Store
+.DS_Store
 
+# SMB temporary delete files (contain secrets)
+.smbdelete*
+**/.smbdelete*
 
 # Playground script
 pg.py

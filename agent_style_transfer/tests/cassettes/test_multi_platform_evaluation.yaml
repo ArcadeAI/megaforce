@@ -1,0 +1,463 @@
+interactions:
+- request:
+    body: '{"max_tokens": 1024, "messages": [{"role": "user", "content": "\nRate the
+      style fidelity of this content (1-5 scale):\n\nReference Style: {reference_style}\nOriginal
+      Content: {original_content}\nGenerated Content: {outputs}\n\nConsider tone,
+      formality, vocabulary, and writing patterns.\nScore 1-5 where 1=completely different,
+      5=excellent match.\n\n\nOutput: REST API design best practices? \ud83e\udd14
+      Learn how to create awesome APIs with clear naming, proper status codes & more!
+      #API #RESTAPI #APIdesign"}], "model": "claude-3-haiku-20240307", "temperature":
+      0.1}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate, zstd
+      anthropic-version:
+      - '2023-06-01'
+      connection:
+      - keep-alive
+      content-length:
+      - '551'
+      content-type:
+      - application/json
+      host:
+      - api.anthropic.com
+      user-agent:
+      - Anthropic/Python 0.56.0
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - Linux
+      x-stainless-package-version:
+      - 0.56.0
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.3
+      x-stainless-timeout:
+      - NOT_GIVEN
+    method: POST
+    uri: https://api.anthropic.com/v1/messages
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAwAAAP//lFRNa9wwEP0rg87Ossnmg/qW0JYG0g/aHgpNWWalWVtEHimasTcm5L8X
+        KbuFtOTQk7HmzXvz3sh+NN6Z1gzSrZfHP4bjq09vP57fXFy+P5/SBm+uVmcXpjE6JyooEsGOTGNy
+        DOUARbwosprGDNFRMK2xAUdHR6ujHv3deHSyPDldrpaFxUZWYjXtz8cDo9JD6a2P1lyhkIPIoD1B
+        ynHyjhx43sY8oPrIDVzDLo7BQUalChOdA8HWOwpeZ4jbetoRU4E42IsCCiCcQhy1YM4Wt3zL33sC
+        jUwNVIVC0MAULW7GgHluANnBLnv13EFCVcosr0sI0QAaYUC1fcVk2lImtocx70evBDsKYQFF/NDp
+        pcooMXgGLOcTZameMdQxiDvsyhwDMlNuYJTyhinlmLKvcVAePMcQu7m2pD5jBW1jruNoTN6W+b++
+        +/YdLr9cgyPxHcOGRCFltOotyZ9sIocZCmUG57cHK9fAseBcGVt71Ffi8GzD6EhA4kDQo/SKnTSw
+        673tYcC58MCGQOfkLYZDsH+FtoAPcUdTsay9lyKK+6FK3Yt6C44U/XNQLpJU5uLMb71F1jAXRPEH
+        2xyHKhMnyhgCiOZYYy1L87wXLRF8fkY0r92olAizlI1vCBAmyjPYEKVYSJmEWOsGD8boIZEtDFWi
+        AYtJx1wWVKp3NAMFGoj1+Y7978VcmKdfjRGNaZ0JJbJpDbFb65jZ7AtC92OJ1rQ8htCYsX7P7aPx
+        nEZda7wjFtMen6waY9H2tLaZqon1S8TyUM+E7t9aHPUF3/mbxgjlyVtaq6dsWlP+Gw6zM09PvwEA
+        AP//AwBzNMHLhQQAAA==
+    headers:
+      CF-RAY:
+      - 95fb63078ec902df-CWB
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Tue, 15 Jul 2025 18:40:13 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Robots-Tag:
+      - none
+      anthropic-organization-id:
+      - f0936bfa-450b-40f8-99a7-bb701a404061
+      anthropic-ratelimit-input-tokens-limit:
+      - '50000'
+      anthropic-ratelimit-input-tokens-remaining:
+      - '50000'
+      anthropic-ratelimit-input-tokens-reset:
+      - '2025-07-15T18:40:12Z'
+      anthropic-ratelimit-output-tokens-limit:
+      - '10000'
+      anthropic-ratelimit-output-tokens-remaining:
+      - '10000'
+      anthropic-ratelimit-output-tokens-reset:
+      - '2025-07-15T18:40:14Z'
+      anthropic-ratelimit-requests-limit:
+      - '50'
+      anthropic-ratelimit-requests-remaining:
+      - '49'
+      anthropic-ratelimit-requests-reset:
+      - '2025-07-15T18:40:12Z'
+      anthropic-ratelimit-tokens-limit:
+      - '60000'
+      anthropic-ratelimit-tokens-remaining:
+      - '60000'
+      anthropic-ratelimit-tokens-reset:
+      - '2025-07-15T18:40:12Z'
+      cf-cache-status:
+      - DYNAMIC
+      request-id:
+      - req_011CR9HxwAoo49ZUGaXP9Kux
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      via:
+      - 1.1 google
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"max_tokens": 1024, "messages": [{"role": "user", "content": "You are
+      an expert evaluator assessing content preservation in style transfer.\nYour
+      task is to evaluate how well the core meaning and key information from the original
+      text is preserved in the style-transferred version.\n\nPlease evaluate the content
+      preservation on a scale of 0-5, where:\n- 5: Perfect preservation - all key
+      information, facts, and meaning preserved\n- 4: Good preservation - most key
+      information preserved, minor details may differ\n- 3: Moderate preservation
+      - some key information preserved, but significant omissions or changes\n- 2:
+      Poor preservation - most key information lost or significantly altered\n- 1:
+      Very poor preservation - significant information lost\n- 0: No preservation
+      - completely different meaning or content\n\nProvide your score (0-5) and a
+      brief explanation of your reasoning.\n\nOutput: REST API design best practices?
+      \ud83e\udd14 Learn how to create awesome APIs with clear naming, proper status
+      codes & more! #API #RESTAPI #APIdesign"}], "model": "claude-3-haiku-20240307",
+      "temperature": 0.1}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate, zstd
+      anthropic-version:
+      - '2023-06-01'
+      connection:
+      - keep-alive
+      content-length:
+      - '1088'
+      content-type:
+      - application/json
+      host:
+      - api.anthropic.com
+      user-agent:
+      - Anthropic/Python 0.56.0
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - Linux
+      x-stainless-package-version:
+      - 0.56.0
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.3
+      x-stainless-timeout:
+      - NOT_GIVEN
+    method: POST
+    uri: https://api.anthropic.com/v1/messages
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAwAAAP//fFPBbtswDP0VQmcnSNoCLXzrtgIrsEPQBNthHQJOoh0uMuWScjqj6L8P
+        ctKiQ4edDInvPVKPz0+Og6tdZ+12sVx/Gq/GQ3vX3jTrzaMO+OHrF/nlKpfHngqKzLAlVzlNsVyg
+        GVtGya5yXQoUXe18xCHQ7Hy2Q94Ps7PF2cXifHHpKueTZJLs6u9PL4qZfhfu9KndxyMAVkpGesDM
+        SWDtk1INF/dyL5sdgeUx0iwrijWkSgEOpFaQ/ZFGBnlHUGjQEQpLCygB9jQCS5O0Owo3mroJmZRb
+        FoxQxoCHgTPBI8U4h9sMPsmBxqNkhyzAgRBSA72mA4ci/pMsQ6/oM3syaJJCION26nx3s97A9erW
+        KmDxcZgYPhIqCHYsbVWUelIYjIru581mBZYxDwY+BbJqmj7lHSlw1ycthgNaTz5bYVyvbk8N5/Bt
+        x5HAUjdplaELjhv2ECgjR4MORwjcNKTvLaiOpwMpxginff/TPVQCahrymQ8UR/Cp6wZhj5kCsAAW
+        5zzbkU3SYlte3qEI6Rz+v8lidEaWo+1kRuJfH/S6rlOeKuhwX7Q5A0KbUgClKQuSj7OeiG8TMXfP
+        PypnOfVbJbQkrnYkYZsHFXcqGD0MpbGrZYixcsMU/vrJsfRD3ua0JzFXny0vK+fR72jrlaaO278R
+        i5e6Eob3tTTktzfL5VXlSpDZ0zYzqatd+ckCanDPz38AAAD//wMAaYY29bIDAAA=
+    headers:
+      CF-RAY:
+      - 95fb63163fec02df-CWB
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Tue, 15 Jul 2025 18:40:18 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Robots-Tag:
+      - none
+      anthropic-organization-id:
+      - f0936bfa-450b-40f8-99a7-bb701a404061
+      anthropic-ratelimit-input-tokens-limit:
+      - '50000'
+      anthropic-ratelimit-input-tokens-remaining:
+      - '50000'
+      anthropic-ratelimit-input-tokens-reset:
+      - '2025-07-15T18:40:16Z'
+      anthropic-ratelimit-output-tokens-limit:
+      - '10000'
+      anthropic-ratelimit-output-tokens-remaining:
+      - '10000'
+      anthropic-ratelimit-output-tokens-reset:
+      - '2025-07-15T18:40:18Z'
+      anthropic-ratelimit-requests-limit:
+      - '50'
+      anthropic-ratelimit-requests-remaining:
+      - '49'
+      anthropic-ratelimit-requests-reset:
+      - '2025-07-15T18:40:15Z'
+      anthropic-ratelimit-tokens-limit:
+      - '60000'
+      anthropic-ratelimit-tokens-remaining:
+      - '60000'
+      anthropic-ratelimit-tokens-reset:
+      - '2025-07-15T18:40:16Z'
+      cf-cache-status:
+      - DYNAMIC
+      request-id:
+      - req_011CR9Hy7Ze3JiBUHfygE555
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      via:
+      - 1.1 google
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"max_tokens": 1024, "messages": [{"role": "user", "content": "\nRate the
+      overall quality of this content (1-5 scale):\n\nGenerated Content: {outputs}\nPlatform:
+      {platform}\nIntent: {intent}\n\nConsider writing quality, engagement potential,
+      and value.\nScore 1-5 where 1=poor, 5=excellent.\n\n\nOutput: REST API design
+      best practices? \ud83e\udd14 Learn how to create awesome APIs with clear naming,
+      proper status codes & more! #API #RESTAPI #APIdesign"}], "model": "claude-3-haiku-20240307",
+      "temperature": 0.1}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate, zstd
+      anthropic-version:
+      - '2023-06-01'
+      connection:
+      - keep-alive
+      content-length:
+      - '495'
+      content-type:
+      - application/json
+      host:
+      - api.anthropic.com
+      user-agent:
+      - Anthropic/Python 0.56.0
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - Linux
+      x-stainless-package-version:
+      - 0.56.0
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.3
+      x-stainless-timeout:
+      - NOT_GIVEN
+    method: POST
+    uri: https://api.anthropic.com/v1/messages
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAwAAAP//ZFNdb9swDPwrhJ6dIOnHCvhtBQas2IANWwcM+0DASIzNRhZdibIbFP3v
+        g5wma9onwyLveLqjHg07U5suNavF8tN4TRfD2frnqHfD5uqX/ri27WdTGd31VLooJWzIVCaKLweY
+        EifFoKYynTjypjbWY3Y0O5+1yNs8O1ucXSzOF1emMlaCUlBT/348MCo9FOz0qc0NjJK9g4hKoC2B
+        DBTRe7jP6Fl3IBvQlhM8MwHCBUjWcn45/xP+hNuWoKFAhcEd2/ooAztKgGA9YQQMU9FyIki56zBO
+        3N8+fL+F919vwFHiJsCaUgGjVbaUKhhbti1w4RnQZ1x7ApWeLWwkgqOBvPQU0xyKjjGycmiO4jlB
+        0iihqWBkbYsYCQPFhMoS0E+qKDTYFJRKoD3P4RYtpsmUXsovowcVWBPcZ1b6DywsHDYSO1QeaJJW
+        YIqxIQXMjilYOtolwe9ecGIknDDcFduoK6P3sazLbQ9mAsKaFTqJBI56bWGyQJE9SJgmpp4sb9i+
+        8hFsiZXcHD7KSAPFCrBY2nLTznwxccp9YBqr07idlAwD0IMl78vJnaxLcAXquWknv8voLe2gjxws
+        955SaWlE3OuAJw++7HfsedQU7kjez0p8SuGNnz2TLduJL2zZR3DcidNtAC+y3Ud6MLVo5Phy1dKW
+        vU9z8/S3MkmlX0XCJMHUhoJbaY7BPBcS3ecSoKlD9r4yeXqS9aPh0GddqWwpJFMvl8vKWLQtrWyk
+        acVWpx2LQz0Surc1yXrCd/muMqnEYmmlTNHUpjx9h9GZp6d/AAAA//8DAJWJ0bhIBAAA
+    headers:
+      CF-RAY:
+      - 95fb6332aabc02df-CWB
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Tue, 15 Jul 2025 18:40:20 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Robots-Tag:
+      - none
+      anthropic-organization-id:
+      - f0936bfa-450b-40f8-99a7-bb701a404061
+      anthropic-ratelimit-input-tokens-limit:
+      - '50000'
+      anthropic-ratelimit-input-tokens-remaining:
+      - '50000'
+      anthropic-ratelimit-input-tokens-reset:
+      - '2025-07-15T18:40:19Z'
+      anthropic-ratelimit-output-tokens-limit:
+      - '10000'
+      anthropic-ratelimit-output-tokens-remaining:
+      - '10000'
+      anthropic-ratelimit-output-tokens-reset:
+      - '2025-07-15T18:40:21Z'
+      anthropic-ratelimit-requests-limit:
+      - '50'
+      anthropic-ratelimit-requests-remaining:
+      - '49'
+      anthropic-ratelimit-requests-reset:
+      - '2025-07-15T18:40:19Z'
+      anthropic-ratelimit-tokens-limit:
+      - '60000'
+      anthropic-ratelimit-tokens-remaining:
+      - '60000'
+      anthropic-ratelimit-tokens-reset:
+      - '2025-07-15T18:40:19Z'
+      cf-cache-status:
+      - DYNAMIC
+      request-id:
+      - req_011CR9HyTDphQ2XX3ZrRjLJr
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      via:
+      - 1.1 google
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"max_tokens": 1024, "messages": [{"role": "user", "content": "\nRate how
+      appropriate this content is for the target platform (1-5 scale):\n\nContent:
+      {outputs}\nPlatform: {platform}\n\nConsider platform-specific requirements and
+      conventions.\nScore 1-5 where 1=inappropriate, 5=perfect for platform.\n\n\nOutput:
+      REST API design best practices? \ud83e\udd14 Learn how to create awesome APIs
+      with clear naming, proper status codes & more! #API #RESTAPI #APIdesign"}],
+      "model": "claude-3-haiku-20240307", "temperature": 0.1}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate, zstd
+      anthropic-version:
+      - '2023-06-01'
+      connection:
+      - keep-alive
+      content-length:
+      - '505'
+      content-type:
+      - application/json
+      host:
+      - api.anthropic.com
+      user-agent:
+      - Anthropic/Python 0.56.0
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - Linux
+      x-stainless-package-version:
+      - 0.56.0
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.3
+      x-stainless-timeout:
+      - NOT_GIVEN
+    method: POST
+    uri: https://api.anthropic.com/v1/messages
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAA2xTwW7bMAz9FUK9bIATpE22Yr4VWNflFmw9bFiHgJEYm4ssuqLkLCj674OctmvX
+        nSyYj49P71F3hp2pTafNenb6/uO3K7daXC02l8P33fb8tDsc5h9MZdKhp4IiVWzIVCaKLz9QlTVh
+        SKYynTjypjbWY3Y0mU9a5F2enM3OFrP57NxUxkpIFJKpf9w9Mib6XXrHT20+SYTUEjQ8UIAHOGBw
+        0HtMW4ldBUvYS/YOIiYawdj3UfrImCiQKqACwgIkJ5AtvJvehJtw3dITXR9lYEcF1ZLvt9mDDBQH
+        pn1p+HL59RouVktwpNwE2JCWHrSJLWkF+5ZtC6zQctP6A0TyNOCDzAF9xo0n4FDUYmIJsJUIjgby
+        0lNU2EvccWhAQhkzieQxkSuyfpFNOoUitkVtEzYKWcnBm5OL1bKCk6LteLpYLY/63gJGAvQqz40Y
+        ZxZzHn0b1ZXrwp5TC47Vlkvjhj2nw5NHEvwBeik+MfpCjSMVd8U16op/drR/Q5AEOtwdQ3jKCjac
+        oJP4d/REe7K8ZVuBZtuWfEbruGlT8QHD4TUWmsyOPAdSkFjoh6JJggJGycE9i2gKn2VPA8XquDwU
+        KKL/JzgY70tutEsTe//fALPSNvsKVEau0SPvy7IVqaxwmznR2Do19z8ro0n6dSRUCaY2FNw65RjM
+        Q0HpNlOwZOqQva9MHp9PfWc49Dmtk+woqKlPZ+eVsWhbWttI49asXyJmj/VI6F7XJKcXfIt5ZbTs
+        tKV1YoqmNuWZOozO3N//AQAA//8DAKsD7M70AwAA
+    headers:
+      CF-RAY:
+      - 95fb6341bc1c02df-CWB
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Tue, 15 Jul 2025 18:40:23 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Robots-Tag:
+      - none
+      anthropic-organization-id:
+      - f0936bfa-450b-40f8-99a7-bb701a404061
+      anthropic-ratelimit-input-tokens-limit:
+      - '50000'
+      anthropic-ratelimit-input-tokens-remaining:
+      - '50000'
+      anthropic-ratelimit-input-tokens-reset:
+      - '2025-07-15T18:40:22Z'
+      anthropic-ratelimit-output-tokens-limit:
+      - '10000'
+      anthropic-ratelimit-output-tokens-remaining:
+      - '10000'
+      anthropic-ratelimit-output-tokens-reset:
+      - '2025-07-15T18:40:23Z'
+      anthropic-ratelimit-requests-limit:
+      - '50'
+      anthropic-ratelimit-requests-remaining:
+      - '49'
+      anthropic-ratelimit-requests-reset:
+      - '2025-07-15T18:40:22Z'
+      anthropic-ratelimit-tokens-limit:
+      - '60000'
+      anthropic-ratelimit-tokens-remaining:
+      - '60000'
+      anthropic-ratelimit-tokens-reset:
+      - '2025-07-15T18:40:22Z'
+      cf-cache-status:
+      - DYNAMIC
+      request-id:
+      - req_011CR9Hyd1w6JTQ2bC5WraCc
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      via:
+      - 1.1 google
+    status:
+      code: 200
+      message: OK
+version: 1
