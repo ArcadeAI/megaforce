@@ -94,47 +94,18 @@ export function TwitterDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchTweets = async () => {
+    const loadSampleData = () => {
       try {
         setLoading(true)
-        // Try to use the existing Twitter search endpoint
-        const searchResult = await apiClient.searchTwitter({
-          search_type: "keywords",
-          search_query: "AI OR social media OR automation",
-          limit: 10
-        })
-        
-        // Transform API response to our Tweet interface
-        const transformedTweets: Tweet[] = searchResult.data?.map((tweet: any, index: number) => ({
-          id: tweet.id || `tweet-${index}`,
-          text: tweet.text || tweet.full_text || "No content available",
-          author: {
-            username: tweet.author?.username || tweet.user?.screen_name || "unknown",
-            name: tweet.author?.name || tweet.user?.name || "Unknown User",
-            profile_image_url: tweet.author?.profile_image_url || tweet.user?.profile_image_url
-          },
-          public_metrics: {
-            retweet_count: tweet.public_metrics?.retweet_count || tweet.retweet_count || 0,
-            like_count: tweet.public_metrics?.like_count || tweet.favorite_count || 0,
-            reply_count: tweet.public_metrics?.reply_count || tweet.reply_count || 0,
-            quote_count: tweet.public_metrics?.quote_count || tweet.quote_count || 0
-          },
-          created_at: tweet.created_at || new Date().toISOString(),
-          search_query: "AI OR social media OR automation",
-          url: tweet.url || `https://twitter.com/${tweet.author?.username || 'unknown'}/status/${tweet.id}`
-        })) || []
-        
-        setTweets(transformedTweets)
-      } catch (error) {
-        console.error('Failed to fetch tweets:', error)
-        // Fallback to sample data for development
+        // Use sample data for now - real API calls will be made from dedicated search forms
+        // that include all required parameters (credentials, search params, etc.)
         setTweets(getSampleTweets())
       } finally {
         setLoading(false)
       }
     }
     
-    fetchTweets()
+    loadSampleData()
   }, [])
 
   if (selectedTweet) {

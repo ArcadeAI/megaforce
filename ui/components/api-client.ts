@@ -38,6 +38,8 @@ export interface TwitterSearchRequest {
   openai_api_key?: string
   anthropic_api_key?: string
   google_api_key?: string
+  arcade_user?: string
+  arcade_secret?: string
 }
 
 export interface CommentGenerationRequest {
@@ -72,20 +74,36 @@ export interface Persona {
   style_preferences: Record<string, any>
   owner_id: string
   created_at: string
+  style_references?: StyleReference[]
 }
 
 export interface StyleReference {
   id: string
-  persona_id: string
+  title: string
+  content: string
+  document_type: string
   reference_type: string
+  is_style_reference: boolean
+  url?: string
+  author?: string
+  owner_id: string
+  created_at: string
+  persona_ids?: string[]  // Array of persona IDs this style reference is linked to
+  // Legacy fields for backward compatibility
+  persona_id?: string
   content_url?: string
   content_text?: string
   meta_data?: Record<string, any>
-  created_at: string
 }
 
 export interface StyleReferenceCreate {
+  title: string
+  content: string
   reference_type: string
+  content_type?: string
+  source_url?: string
+  notes?: string
+  // Legacy fields for backward compatibility
   content_url?: string
   content_text?: string
   meta_data?: Record<string, any>
@@ -134,14 +152,30 @@ class ApiClient {
       },
     }
     
+    console.log(`🔄 API request: ${options.method || 'GET'} ${endpoint}`)
     const response = await fetch(`${this.baseURL}${endpoint}`, config)
+    console.log(`📥 API response status: ${response.status} ${response.statusText}`)
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`)
+      const errorMessage = typeof errorData.detail === 'string' 
+        ? errorData.detail 
+        : errorData.message || JSON.stringify(errorData) || `HTTP ${response.status}: ${response.statusText}`
+      throw new Error(errorMessage)
     }
     
-    return response.json()
+    // For DELETE requests or empty responses (204 No Content), return empty object
+    if (options.method === 'DELETE' || response.status === 204 || response.headers.get('content-length') === '0') {
+      console.log(`✅ Empty response handled correctly for ${options.method}`)
+      return {} as T
+    }
+    
+    try {
+      return await response.json()
+    } catch (error) {
+      console.warn('Failed to parse response as JSON, returning empty result', error)
+      return {} as T
+    }
   }
   
   // Authentication endpoints
@@ -229,28 +263,120 @@ class ApiClient {
   
   // Style Reference endpoints
   async getStyleReferences(personaId?: string): Promise<StyleReference[]> {
-    const params = personaId ? `?persona_id=${personaId}` : ''
-    return this.request(`/api/v1/style-references/${params}`)
+    const params = personaId ? `?persona_id=${personaId}&is_style_reference=true` : '?is_style_reference=true'
+    return this.request(`/api/v1/documents${params}`)
   }
 
   async createStyleReference(personaId: string, styleRef: StyleReferenceCreate): Promise<StyleReference> {
-    return this.request(`/api/v1/style-references/?persona_id=${personaId}`, {
+    const documentData = {
+      title: styleRef.title,
+      content: styleRef.content || styleRef.content_text || '',
+      document_type: 'style_reference',
+      reference_type: styleRef.reference_type || 'text',
+      is_style_reference: true,
+      url: styleRef.content_url || '',
+      meta_data: styleRef.meta_data || {},
+      persona_ids: [personaId]  // Link to persona during creation
+    }
+    
+    const document = await this.request(`/api/v1/documents/`, {
       method: 'POST',
-      body: JSON.stringify(styleRef)
-    })
+      body: JSON.stringify(documentData)
+    }) as StyleReference
+    
+    return document
   }
 
   async updateStyleReference(id: string, styleRef: Partial<StyleReferenceCreate>): Promise<StyleReference> {
-    return this.request(`/api/v1/style-references/${id}`, {
+    console.log('✏️ API Client: Updating style reference', id, 'with data:', styleRef)
+    
+    const updateData = {
+      title: styleRef.title,
+      content: styleRef.content || styleRef.content_text || '',
+      reference_type: styleRef.reference_type || 'text',
+      url: styleRef.content_url || '',
+      meta_data: styleRef.meta_data || {}
+    }
+    
+    console.log('📄 API Client: Updating document with data:', updateData)
+    
+    const result = await this.request(`/api/v1/documents/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(styleRef)
-    })
+      body: JSON.stringify(updateData)
+    }) as StyleReference
+    
+    console.log('✅ API Client: Successfully updated style reference:', result)
+    
+    return result
+  }
+
+  async linkStyleReference(documentId: string, personaId: string): Promise<void> {
+    console.log(`🔗 API Client: Linking document ${documentId} to persona ${personaId}`)
+    try {
+      // First, get the current document to see its current persona_ids
+      const currentDocument = await this.request(`/api/v1/documents/${documentId}`, {
+        method: 'GET'
+      }) as any
+      
+      console.log(`🔍 Current document persona_ids:`, currentDocument.persona_ids)
+      
+      // Add the persona to the list if not already present
+      const currentPersonaIds = currentDocument.persona_ids || []
+      const updatedPersonaIds = currentPersonaIds.includes(personaId) 
+        ? currentPersonaIds 
+        : [...currentPersonaIds, personaId]
+      
+      console.log(`🔍 Updated persona_ids after adding ${personaId}:`, updatedPersonaIds)
+      
+      // Update document with the new persona_ids list
+      await this.request(`/api/v1/documents/${documentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          persona_ids: updatedPersonaIds
+        })
+      })
+      
+      console.log(`✅ API Client: Successfully linked document to persona`)
+    } catch (error) {
+      console.error(`❌ API Client: Error linking document:`, error)
+      throw error
+    }
+  }
+
+  async unlinkStyleReference(documentId: string, personaId: string): Promise<void> {
+    try {
+      // First, get the current document to see its current persona_ids
+      const currentDocument = await this.request(`/api/v1/documents/${documentId}`, {
+        method: 'GET'
+      }) as any
+      
+      // Remove the specific persona from the list
+      const updatedPersonaIds = (currentDocument.persona_ids || []).filter((id: string) => id !== personaId)
+      
+      // Update document with the new persona_ids list
+      await this.request(`/api/v1/documents/${documentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          persona_ids: updatedPersonaIds
+        })
+      })
+    } catch (error) {
+      console.error('Error unlinking document:', error)
+      throw error
+    }
   }
 
   async deleteStyleReference(id: string): Promise<void> {
-    return this.request(`/api/v1/style-references/${id}`, {
-      method: 'DELETE'
-    })
+    console.log(`🗑️ API Client: Permanently deleting document: ${id}`)
+    try {
+      await this.request(`/api/v1/documents/${id}`, {
+        method: 'DELETE'
+      })
+      console.log(`✅ API Client: Successfully deleted document: ${id}`)
+    } catch (error) {
+      console.error(`❌ API Client: Error deleting document ${id}:`, error)
+      throw error
+    }
   }
   
   // Output/Approval endpoints
@@ -272,13 +398,61 @@ class ApiClient {
     })
   }
   
+  // Run endpoints
+  async getRuns(): Promise<any[]> {
+    return this.request('/api/v1/runs/')
+  }
+  
+  async getRun(id: string): Promise<any> {
+    return this.request(`/api/v1/runs/${id}`)
+  }
+  
   // Document endpoints
-  async getDocuments(): Promise<any[]> {
-    return this.request('/api/v1/documents/')
+  async getDocuments(params?: Record<string, any>): Promise<any> {
+    if (!params || Object.keys(params).length === 0) {
+      return this.request('/api/v1/documents/')
+    }
+    
+    // Convert params object to URL query string
+    const queryParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString())
+      }
+    })
+    
+    return this.request(`/api/v1/documents/?${queryParams.toString()}`)
   }
   
   async getDocument(id: string): Promise<any> {
     return this.request(`/api/v1/documents/${id}`)
+  }
+  
+  async updateDocument(id: string, updates: Partial<{title: string, content: string, reference_type: string, url: string, persona_ids: string[]}>): Promise<any> {
+    return this.request(`/api/v1/documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    })
+  }
+  
+  async deleteDocument(id: string): Promise<void> {
+    console.log(`🗑️ API Client: Sending DELETE request for document ${id}`)
+    try {
+      await this.request(`/api/v1/documents/${id}`, {
+        method: 'DELETE'
+      })
+      console.log(`✅ API Client: Successfully deleted document ${id}`)
+      return
+    } catch (error: any) {
+      // If the document was not found, consider it already deleted
+      if (error.message && error.message.includes('not found')) {
+        console.log(`⚠️ API Client: Document ${id} not found (already deleted)`)
+        return
+      }
+      
+      console.error(`❌ API Client: Error deleting document ${id}:`, error)
+      throw error
+    }
   }
 }
 

@@ -28,14 +28,51 @@ interface Persona extends BasePersona {
   style_references?: APIStyleReference[]
 }
 
+// Helper function to map reference types for display
+const getDisplayReferenceType = (referenceType: string): string => {
+  switch (referenceType.toLowerCase()) {
+    case 'pdf':
+    case 'markdown':
+      return 'Document'
+    case 'url':
+      return 'URL'
+    case 'tweet':
+      return 'Tweet'
+    default:
+      return referenceType.charAt(0).toUpperCase() + referenceType.slice(1)
+  }
+}
+
+// Helper function to map document types for display
+const getDisplayDocumentType = (documentType: string): string => {
+  switch (documentType.toLowerCase()) {
+    case 'source_material':
+      return 'Source Material'
+    case 'research':
+      return 'Research'
+    case 'article':
+      return 'Article'
+    case 'reference':
+      return 'Reference'
+    case 'note':
+      return 'Note'
+    default:
+      return documentType.charAt(0).toUpperCase() + documentType.slice(1)
+  }
+}
+
 export function Personas() {
+  const [mounted, setMounted] = useState(false)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null)
+  const [showDetails, setShowDetails] = useState(false) // New state to control details visibility
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isAddingStyleRef, setIsAddingStyleRef] = useState(false)
+  const [isEditingStyleRef, setIsEditingStyleRef] = useState(false)
+  const [editingStyleRefId, setEditingStyleRefId] = useState<string | null>(null)
 
   // Form state for creating/editing personas
   const [formData, setFormData] = useState({
@@ -53,34 +90,96 @@ export function Personas() {
 
   // Form state for creating style references
   const [styleRefFormData, setStyleRefFormData] = useState<StyleReferenceCreate>({
+    title: "",
+    content: "",
     reference_type: "url",
     content_url: "",
     content_text: "",
     meta_data: {}
   })
 
+  // Handle client-side mounting to prevent hydration errors
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Load personas on component mount
   useEffect(() => {
-    fetchPersonas()
-  }, [])
+    if (mounted) {
+      fetchPersonas()
+    }
+  }, [mounted])
 
   const fetchPersonas = async () => {
     try {
       setLoading(true)
+      setError("") // Clear any previous errors
+      
+      console.log('🔄 Starting to fetch personas...')
       const response = await apiClient.getPersonas()
-      setPersonas(response)
+      console.log('✅ Fetched personas successfully:', response)
+      
+      if (!response || response.length === 0) {
+        console.log('⚠️ No personas found in response')
+        setPersonas([])
+        setError('No personas found')
+        return
+      }
+      
+      // Fetch style references for each persona separately
+      console.log('🔄 Fetching style references for each persona...')
+      const personasWithStyleRefs = await Promise.all(
+        response.map(async (persona) => {
+          try {
+            console.log(`🔄 Fetching style refs for persona: ${persona.name} (${persona.id})`)
+            const styleRefs = await apiClient.getStyleReferences(persona.id)
+            console.log(`✅ Persona ${persona.name} has ${styleRefs.length} style references:`, styleRefs)
+            return { ...persona, style_references: styleRefs }
+          } catch (err) {
+            console.error(`❌ Error fetching style references for ${persona.name}:`, err)
+            return { ...persona, style_references: [] }
+          }
+        })
+      )
+      
+      console.log('✅ All personas with style references:', personasWithStyleRefs)
+      setPersonas(personasWithStyleRefs)
+      setError("") // Clear error on success
     } catch (err) {
+      console.error('❌ Error fetching personas:', err)
+      console.error('❌ Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace',
+        name: err instanceof Error ? err.name : 'Unknown error type'
+      })
       setError(err instanceof Error ? err.message : 'Failed to load personas')
+      setPersonas([]) // Clear personas on error
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreatePersona = async () => {
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setError('Persona name is required')
+      return
+    }
+    
     try {
-      const newPersona = await apiClient.createPersona(formData)
+      console.log(`➕ Creating new persona: ${formData.name}`)
+      const newPersona = await apiClient.createPersona({
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        style_preferences: formData.style_preferences
+      })
+      console.log(`✅ Successfully created persona:`, newPersona)
+      
+      // Update UI state
       setPersonas([...personas, newPersona])
       setIsCreating(false)
+      
+      // Reset form
       setFormData({ 
         name: "", 
         description: "", 
@@ -93,53 +192,164 @@ export function Personas() {
           avoid_phrases: ""
         }
       })
+      
+      // Clear any error state
+      setError("")
     } catch (err) {
+      console.error(`❌ Error creating persona:`, err)
       setError(err instanceof Error ? err.message : 'Failed to create persona')
     }
   }
 
   const handleDeletePersona = async (personaId: string) => {
+    const persona = personas.find(p => p.id === personaId)
+    if (!persona) return
+    
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete the persona "${persona.name}"? This action cannot be undone.`)) {
+      return
+    }
+    
     try {
+      console.log(`🗑️ Deleting persona: ${personaId}`)
       await apiClient.deletePersona(personaId)
+      console.log(`✅ Successfully deleted persona: ${personaId}`)
+      
+      // Update UI state
       setPersonas(personas.filter(p => p.id !== personaId))
       if (selectedPersona?.id === personaId) {
         setSelectedPersona(null)
+        setShowDetails(false)
       }
+      
+      // Clear any error state
+      setError("")
     } catch (err) {
+      console.error(`❌ Error deleting persona ${personaId}:`, err)
       setError(err instanceof Error ? err.message : 'Failed to delete persona')
     }
   }
 
   const handleCreateStyleReference = async () => {
-    if (!selectedPersona) return
+    console.log('🚀 Starting style reference creation process...')
+    console.log('📝 Selected persona:', selectedPersona)
+    console.log('📋 Form data:', styleRefFormData)
+    
+    if (!selectedPersona) {
+      console.log('❌ No persona selected')
+      setError('No persona selected')
+      return
+    }
+    
+    // Enhanced validation - check the correct title field
+    const title = styleRefFormData.title?.trim() || styleRefFormData.meta_data?.title?.trim()
+    console.log('🏷️ Extracted title:', title)
+    
+    if (!title) {
+      console.log('❌ Title validation failed')
+      setError('Title is required for style references')
+      return
+    }
+    
+    if (!styleRefFormData.content?.trim() && !styleRefFormData.content_text?.trim()) {
+      console.log('❌ Content validation failed')
+      setError('Content or content text is required for style references. This is what the AI learns your writing style from.')
+      return
+    }
+    
+    // Validate URL if reference type is URL
+    if (styleRefFormData.reference_type === 'url' && !styleRefFormData.content_url?.trim()) {
+      console.log('❌ URL validation failed')
+      setError('URL is required when reference type is URL')
+      return
+    }
+    
+    console.log('✅ All validations passed, proceeding with API call...')
     
     try {
-      const newStyleRef = await apiClient.createStyleReference(selectedPersona.id, styleRefFormData)
-      // Update the selected persona with the new style reference
-      const updatedPersona = {
-        ...selectedPersona,
-        style_references: [...(selectedPersona.style_references || []), newStyleRef]
+      const action = isEditingStyleRef ? 'update' : 'create'
+      console.log(`✏️ ${action.charAt(0).toUpperCase() + action.slice(1)}ing style reference for persona: ${selectedPersona.id}`)
+      console.log('Style reference data:', styleRefFormData)
+      
+      if (isEditingStyleRef && editingStyleRefId) {
+        // Update existing style reference
+        const updatedStyleRef = await apiClient.updateStyleReference(editingStyleRefId, {
+          ...styleRefFormData,
+          title: title,
+          content: styleRefFormData.content?.trim() || "",
+          content_text: styleRefFormData.content_text?.trim() || "",
+          content_url: styleRefFormData.content_url?.trim() || ""
+        })
+        console.log(`✅ Successfully updated style reference:`, updatedStyleRef)
+        
+        // Update the selected persona with the updated style reference
+        const updatedPersona = {
+          ...selectedPersona,
+          style_references: selectedPersona.style_references?.map(ref => 
+            ref.id === editingStyleRefId ? updatedStyleRef : ref
+          ) || []
+        }
+        setSelectedPersona(updatedPersona)
+        // Also update in the personas list
+        setPersonas(personas.map(p => p.id === selectedPersona.id ? updatedPersona : p))
+        setIsEditingStyleRef(false)
+        setEditingStyleRefId(null)
+      } else {
+        // Create new style reference
+        const newStyleRef = await apiClient.createStyleReference(selectedPersona.id, {
+          ...styleRefFormData,
+          title: title,
+          content: styleRefFormData.content?.trim() || "",
+          content_text: styleRefFormData.content_text?.trim() || "",
+          content_url: styleRefFormData.content_url?.trim() || ""
+        })
+        console.log(`✅ Successfully created style reference:`, newStyleRef)
+        
+        // Update the selected persona with the new style reference
+        const updatedPersona = {
+          ...selectedPersona,
+          style_references: [...(selectedPersona.style_references || []), newStyleRef]
+        }
+        setSelectedPersona(updatedPersona)
+        // Also update in the personas list
+        setPersonas(personas.map(p => p.id === selectedPersona.id ? updatedPersona : p))
+        setIsAddingStyleRef(false)
       }
-      setSelectedPersona(updatedPersona)
-      // Also update in the personas list
-      setPersonas(personas.map(p => p.id === selectedPersona.id ? updatedPersona : p))
-      setIsAddingStyleRef(false)
+      
+      // Reset form
       setStyleRefFormData({
+        title: "",
+        content: "",
         reference_type: "url",
         content_url: "",
         content_text: "",
         meta_data: {}
       })
+      
+      // Clear any error state
+      setError("")
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create style reference')
+      console.error(`❌ Error ${isEditingStyleRef ? 'updating' : 'creating'} style reference:`, err)
+      setError(err instanceof Error ? err.message : `Failed to ${isEditingStyleRef ? 'update' : 'create'} style reference`)
     }
   }
 
   const handleDeleteStyleReference = async (styleRefId: string) => {
     if (!selectedPersona) return
     
+    const styleRef = selectedPersona.style_references?.find(ref => ref.id === styleRefId)
+    if (!styleRef) return
+    
+    // Confirm unlinking
+    if (!confirm(`Are you sure you want to remove "${styleRef.title || 'Untitled'}" from this persona? The document will remain available but won't be linked to this persona.`)) {
+      return
+    }
+    
     try {
-      await apiClient.deleteStyleReference(styleRefId)
+      console.log(`🔗 Unlinking style reference: ${styleRefId} from persona: ${selectedPersona.id}`)
+      await apiClient.unlinkStyleReference(styleRefId, selectedPersona.id)
+      console.log(`✅ Successfully unlinked style reference: ${styleRefId}`)
+      
       // Update the selected persona by removing the deleted style reference
       const updatedPersona = {
         ...selectedPersona,
@@ -148,27 +358,61 @@ export function Personas() {
       setSelectedPersona(updatedPersona)
       // Also update in the personas list
       setPersonas(personas.map(p => p.id === selectedPersona.id ? updatedPersona : p))
+      
+      // Clear any error state
+      setError("")
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete style reference')
+      console.error(`❌ Error unlinking style reference ${styleRefId}:`, err)
+      setError(err instanceof Error ? err.message : 'Failed to unlink style reference')
     }
+  }
+
+  const handleEditStyleReference = (styleRef: APIStyleReference) => {
+    // Populate the form with existing style reference data
+    setStyleRefFormData({
+      reference_type: styleRef.reference_type,
+      title: styleRef.title || "",
+      content: styleRef.content || "",
+      content_url: styleRef.url || "",
+      content_text: styleRef.content || "",
+      meta_data: {
+        title: styleRef.title || "",
+        author: styleRef.author || ""
+      }
+    })
+    setEditingStyleRefId(styleRef.id)
+    setIsEditingStyleRef(true)
   }
 
   const handleEditPersona = async () => {
     if (!selectedPersona) return
     
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setError('Persona name is required')
+      return
+    }
+    
     try {
+      console.log(`✏️ Updating persona: ${selectedPersona.id}`)
       const updatedPersona = await apiClient.updatePersona(selectedPersona.id, {
-        name: formData.name,
-        description: formData.description,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
         style_preferences: formData.style_preferences
       })
+      console.log(`✅ Successfully updated persona: ${selectedPersona.id}`)
+      
       // Merge the updated data with existing persona data
       const mergedPersona = { ...selectedPersona, ...updatedPersona }
       setSelectedPersona(mergedPersona)
       // Also update in the personas list
       setPersonas(personas.map(p => p.id === selectedPersona.id ? mergedPersona : p))
       setIsEditing(false)
+      
+      // Clear any error state
+      setError("")
     } catch (err) {
+      console.error(`❌ Error updating persona ${selectedPersona.id}:`, err)
       setError(err instanceof Error ? err.message : 'Failed to update persona')
     }
   }
@@ -190,6 +434,17 @@ export function Personas() {
       }
     })
     setIsEditing(true)
+  }
+
+  // Prevent hydration errors by not rendering until mounted
+  if (!mounted) {
+    return (
+      <div className="flex-1 p-6 bg-gray-900 text-white">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -216,7 +471,26 @@ export function Personas() {
             </p>
           </div>
           <Button 
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              setIsCreating(true)
+              setSelectedPersona(null)
+              setShowDetails(false)
+              setIsEditing(false)
+              setError("")
+              // Reset form data
+              setFormData({ 
+                name: "", 
+                description: "", 
+                style_preferences: {
+                  tone: "",
+                  writing_style: "",
+                  target_audience: "",
+                  content_type: "",
+                  key_phrases: "",
+                  avoid_phrases: ""
+                }
+              })
+            }}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -230,7 +504,7 @@ export function Personas() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Personas List */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Your Personas</h2>
@@ -254,7 +528,16 @@ export function Personas() {
                       className={`bg-gray-800 border-gray-700 cursor-pointer transition-colors ${
                         selectedPersona?.id === persona.id ? 'border-blue-500' : 'hover:border-gray-600'
                       }`}
-                      onClick={() => setSelectedPersona(persona)}
+                      onClick={() => {
+                        // If clicking the same persona, toggle details visibility
+                        if (selectedPersona?.id === persona.id) {
+                          setShowDetails(!showDetails)
+                        } else {
+                          // If clicking a different persona, select it and show details
+                          setSelectedPersona(persona)
+                          setShowDetails(true)
+                        }
+                      }}
                     >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
@@ -483,7 +766,7 @@ export function Personas() {
                   </div>
                 </CardContent>
               </Card>
-            ) : selectedPersona ? (
+            ) : selectedPersona && showDetails ? (
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -491,30 +774,42 @@ export function Personas() {
                       <CardTitle>{isEditing ? "Edit Persona" : selectedPersona.name}</CardTitle>
                       <CardDescription>{isEditing ? "Update persona details and style preferences" : selectedPersona.description}</CardDescription>
                     </div>
-                    {isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsEditing(false)
-                          // Reset form data
-                          setFormData({
-                            name: "",
-                            description: "",
-                            style_preferences: {
-                              tone: "",
-                              writing_style: "",
-                              target_audience: "",
-                              content_type: "",
-                              key_phrases: "",
-                              avoid_phrases: ""
-                            }
-                          })
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <div className="flex space-x-2">
+                      {!isEditing && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={startEditingPersona}
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {isEditing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIsEditing(false)
+                            // Reset form data
+                            setFormData({
+                              name: "",
+                              description: "",
+                              style_preferences: {
+                                tone: "",
+                                writing_style: "",
+                                target_audience: "",
+                                content_type: "",
+                                key_phrases: "",
+                                avoid_phrases: ""
+                              }
+                            })
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -733,36 +1028,46 @@ export function Personas() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline">
-                                  {ref.reference_type.charAt(0).toUpperCase() + ref.reference_type.slice(1)}
+                                  {getDisplayReferenceType(ref.reference_type)}
                                 </Badge>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteStyleReference(ref.id)}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditStyleReference(ref)}
+                                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteStyleReference(ref.id)}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
-                            {ref.meta_data?.title && (
+                            {ref.title && !ref.title.startsWith('Style Reference') && (
                               <p className="text-sm font-medium text-gray-300 mt-2">
-                                {ref.meta_data.title}
+                                {ref.title}
                               </p>
                             )}
-                            {ref.meta_data?.author && (
+                            {ref.author && (
                               <p className="text-xs text-gray-400 mt-1">
-                                by {ref.meta_data.author}
+                                by {ref.author}
                               </p>
                             )}
-                            {ref.content_text && (
+                            {ref.content && (
                               <p className="text-sm text-gray-400 mt-2 truncate">
-                                {ref.content_text.substring(0, 150)}...
+                                {ref.content.substring(0, 150)}...
                               </p>
                             )}
-                            {ref.content_url && (
+                            {ref.url && (
                               <p className="text-sm text-blue-400 mt-1 truncate">
-                                {ref.content_url}
+                                {ref.url}
                               </p>
                             )}
                           </div>
@@ -773,21 +1078,27 @@ export function Personas() {
                     )}
                   </div>
                   
-                  {/* Add Style Reference Form */}
-                  {isAddingStyleRef ? (
+                  {/* Add/Edit Style Reference Form */}
+                  {(isAddingStyleRef || isEditingStyleRef) ? (
                     <div className="space-y-4 p-4 bg-gray-700 rounded border">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-gray-300">Add Style Reference</h4>
+                        <h4 className="font-medium text-gray-300">
+                          {isEditingStyleRef ? 'Edit Style Reference' : 'Add Style Reference'}
+                        </h4>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => {
                             setIsAddingStyleRef(false)
+                            setIsEditingStyleRef(false)
+                            setEditingStyleRefId(null)
                             setStyleRefFormData({
                               reference_type: "url",
                               content_url: "",
                               content_text: "",
-                              meta_data: {}
+                              meta_data: {},
+                              title: "",
+                              content: ""
                             })
                           }}
                         >
@@ -809,8 +1120,7 @@ export function Personas() {
                           >
                             <option value="url">URL</option>
                             <option value="tweet">Tweet</option>
-                            <option value="pdf">PDF</option>
-                            <option value="markdown">Markdown</option>
+                            <option value="document">Document</option>
                           </select>
                         </div>
                         
@@ -834,7 +1144,7 @@ export function Personas() {
                         
                         <div>
                           <Label htmlFor="content_text" className="text-sm font-medium">
-                            Content Text {(styleRefFormData.reference_type === "markdown" || styleRefFormData.reference_type === "pdf" || styleRefFormData.reference_type === "tweet") ? "*" : "(Optional)"}
+                            Content Text *
                           </Label>
                           <Textarea
                             id="content_text"
@@ -858,7 +1168,7 @@ export function Personas() {
                         </div>
                         
                         <div>
-                          <Label htmlFor="meta_title" className="text-sm font-medium">Title (Optional)</Label>
+                          <Label htmlFor="meta_title" className="text-sm font-medium">Title *</Label>
                           <Input
                             id="meta_title"
                             value={styleRefFormData.meta_data?.title || ""}
@@ -902,7 +1212,7 @@ export function Personas() {
                           className="flex-1 bg-blue-600 hover:bg-blue-700"
                         >
                           <Save className="w-4 h-4 mr-2" />
-                          Add Reference
+                          {isEditingStyleRef ? 'Update Reference' : 'Add Reference'}
                         </Button>
                         <Button 
                           variant="outline" 
@@ -912,7 +1222,9 @@ export function Personas() {
                               reference_type: "url",
                               content_url: "",
                               content_text: "",
-                              meta_data: {}
+                              meta_data: {},
+                              title: "",
+                              content: ""
                             })
                           }}
                           className="px-6"
@@ -943,17 +1255,7 @@ export function Personas() {
                   )}
                 </CardContent>
               </Card>
-            ) : (
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-6 text-center">
-                  <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">Select a persona to view details</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Click on a persona from the list to see its style guides and settings
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

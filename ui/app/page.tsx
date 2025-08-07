@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { TwitterDashboard } from "@/components/twitter-dashboard"
 import { Personas } from "@/components/personas"
+import SourceMaterials from "@/components/source-materials"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/components/auth-context"
 
@@ -53,8 +54,7 @@ export default function HomePage() {
       case "sources":
         return (
           <div className="flex-1 p-6 bg-gray-900 text-white">
-            <h1 className="text-2xl font-bold mb-4">Source Materials</h1>
-            <p className="text-gray-400">Coming soon...</p>
+            <SourceMaterials />
           </div>
         )
       default:
