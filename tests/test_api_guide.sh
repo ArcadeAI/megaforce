@@ -65,17 +65,19 @@ PERSONA_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/personas/" \
 PERSONA_ID=$(echo "$PERSONA_RESPONSE" | jq -r '.id')
 echo "[SUCCESS] Persona created with ID: $PERSONA_ID"
 
-echo "[INFO] Step 2.2: Creating Style Reference..."
-STYLE_REF_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/style-references/?persona_id=${PERSONA_ID}" \
+echo "[INFO] Step 2.2: Creating Style Reference (using unified document system)..."
+STYLE_REF_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/documents/" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d "{\
-    \"reference_type\": \"text\", \
     \"title\": \"Tech Blog Example\", \
-    \"content_text\": \"Artificial intelligence is revolutionizing how we approach software development. By leveraging machine learning algorithms, developers can now automate complex tasks that previously required extensive manual effort. This breakthrough technology enables teams to focus on innovation rather than repetitive processes.\", \
-    \"content_type\": \"text\", \
-    \"source_url\": \"https://example.com/tech-blog\", \
-    \"notes\": \"Example of professional tech writing style\"
+    \"content\": \"Artificial intelligence is revolutionizing how we approach software development. By leveraging machine learning algorithms, developers can now automate complex tasks that previously required extensive manual effort. This breakthrough technology enables teams to focus on innovation rather than repetitive processes.\", \
+    \"url\": \"https://example.com/tech-blog\", \
+    \"document_type\": \"style_reference\", \
+    \"reference_type\": \"text\", \
+    \"is_style_reference\": true, \
+    \"persona_ids\": [\"${PERSONA_ID}\"], \
+    \"run_id\": null
   }")
 STYLE_REF_ID=$(echo "$STYLE_REF_RESPONSE" | jq -r '.id')
 echo "[SUCCESS] Style reference created with ID: $STYLE_REF_ID"
@@ -85,7 +87,7 @@ echo "[INFO] Step 3.1: Searching Twitter..."
 TWITTER_SEARCH_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/twitter/search" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
-  -d "{\"search_type\": \"keywords\", \"search_query\": \"artificial intelligence startup\", \"limit\": 10, \"rank_tweets\": false, \"llm_provider\": \"openai\", \"llm_model\": \"gpt-4o-mini\", \"arcade_api_key\": \"${ARCADE_API_KEY}\"}")
+  -d '{"search_type": "keywords", "search_query": "artificial intelligence startup", "limit": 10, "rank_tweets": false, "llm_provider": "openai", "llm_model": "gpt-4o-mini", "arcade_api_key": "'${ARCADE_API_KEY}'"}')
 RUN_ID=$(echo "$TWITTER_SEARCH_RESPONSE" | jq -r '.run_id')
 DOCUMENT_ID=$(echo "$TWITTER_SEARCH_RESPONSE" | jq -r '.documents[0].id')
 echo "[SUCCESS] Twitter search completed. Run ID: $RUN_ID, First Document ID: $DOCUMENT_ID"

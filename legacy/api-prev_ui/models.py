@@ -75,7 +75,23 @@ class Persona(Base):
 
     # Relationships
     owner = relationship("User", back_populates="personas")
+    style_document_links = relationship("PersonaStyleLink", back_populates="persona", cascade="all, delete-orphan")
     output_schemas = relationship("OutputSchema", back_populates="persona")
+
+
+class PersonaStyleLink(Base):
+    """Links documents to personas as style references (many-to-many)."""
+    __tablename__ = "persona_style_links"
+    
+    id = Column(String, primary_key=True, index=True)
+    persona_id = Column(String, ForeignKey("personas.id"), nullable=False)
+    document_id = Column(String, ForeignKey("documents.id"), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
+    notes = Column(Text)  # Why this document represents the persona's style
+    
+    # Relationships
+    persona = relationship("Persona", back_populates="style_document_links")
+    document = relationship("Document", back_populates="persona_style_links")
 
 
 class InputSource(Base):
@@ -132,7 +148,6 @@ class Document(Base):
     reference_type = Column(String)  # url, tweet, document, pdf, markdown
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # Direct user ownership
     is_style_reference = Column(Boolean, default=False)  # Quick filter flag
-    persona_ids = Column(JSON, default=list)  # Array of persona IDs for style references
     
     # Optional run relationship (null for manually added style references)
     run_id = Column(String, ForeignKey("runs.id"), nullable=True)
@@ -142,6 +157,7 @@ class Document(Base):
     owner = relationship("User", back_populates="documents")
     run = relationship("Run", back_populates="documents")
     output_schemas = relationship("OutputSchema", back_populates="source_document")
+    persona_style_links = relationship("PersonaStyleLink", back_populates="document", cascade="all, delete-orphan")
 
 
 class OutputSchema(Base):

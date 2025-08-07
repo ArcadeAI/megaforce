@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..auth import get_current_active_user
-from ..models import User, Persona, Document, OutputSchema as DBOutputSchema, ApprovalHistory, OutputType, OutputStatus, Run
+from ..models import User, Persona, Document, OutputSchema as DBOutputSchema, ApprovalHistory, OutputType, OutputStatus, Run, PersonaStyleLink
 from ..schemas import CommentResponse, Comment
 
 # Import the style agent and its schemas
@@ -113,8 +113,8 @@ async def generate_comments(
             raise HTTPException(status_code=404, detail="Document not found")
         target_docs = [SchemaDocument(url=doc.url, type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=doc.content, title=doc.title)]
         source_document_ids = [doc.id]
-    elif request.post_content:
-        target_docs = [SchemaDocument(url="http://example.com/custom", type=ContentType.LINKEDIN, category=DocumentCategory.PROFESSIONAL, content=request.post_content, title=request.post_title)]
+    elif request.custom_content:
+        target_docs = [SchemaDocument(url="http://example.com/custom", type=ContentType.LINKEDIN, category=DocumentCategory.PROFESSIONAL, content=request.custom_content, title=request.post_title)]
 
     if not target_docs:
         raise HTTPException(status_code=400, detail="No content source provided.")
@@ -127,11 +127,14 @@ async def generate_comments(
         if not persona:
             raise HTTPException(status_code=404, detail="Persona not found or access denied")
         
-        ref_docs_db = db.query(StyleReference).filter(StyleReference.persona_id == persona.id).all()
-        ref_docs_schema = [SchemaDocument(url=ref.content_url or "https://example.com/style-reference", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=ref.content_text) for ref in ref_docs_db if ref.content_text]
+        # Get style reference documents for this persona using the unified model
+        ref_docs_db = db.query(Document).join(PersonaStyleLink).filter(
+            PersonaStyleLink.persona_id == persona.id,
+            Document.is_style_reference == True
+        ).all()
+        ref_docs_schema = [SchemaDocument(url=ref.url, type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=ref.content) for ref in ref_docs_db]
 
-        if ref_docs_schema:  # Only add if we have reference documents
-            reference_styles.append(ReferenceStyle(name=persona.name, description=persona.description, documents=ref_docs_schema))
+        reference_styles.append(ReferenceStyle(name=persona.name, description=persona.description, documents=ref_docs_schema))
     else: # Create default persona if none provided
         default_persona = db.query(Persona).filter(Persona.name == "Default", Persona.owner_id == current_user.id).first()
         if not default_persona:
@@ -140,30 +143,12 @@ async def generate_comments(
             db.commit()
             db.refresh(default_persona)
         persona_id = default_persona.id
-        
-    # Ensure we always have at least one reference style with a style definition
-    if not reference_styles:
-        from common.schemas import WritingStyle
-        # Create a default style definition if no reference documents are available
-        default_style = WritingStyle(
-            tone="professional",
-            formality_level=0.7,
-            sentence_structure="varied",
-            vocabulary_level="moderate"
-        )
-        reference_styles.append(ReferenceStyle(
-            name="Default Style",
-            description="A professional style for general use",
-            style_definition=default_style
-        ))
 
     # Define the output schema for the agent
     output_schemas = [OutputSchema(name="linkedin_comment", description="A professional LinkedIn comment", output_type=CommonOutputType.LINKEDIN_COMMENT)]
 
     # Construct the request for the style agent
-    from common.schemas import StyleTransferRequest as AgentStyleTransferRequest
-    
-    agent_request = AgentStyleTransferRequest(
+    agent_request = StyleTransferRequest(
         reference_style=reference_styles,
         intent=request.comment_style,
         focus="Engage the author and provide a thoughtful response.",
@@ -197,8 +182,8 @@ async def generate_comments(
         content_type=OutputType.LINKEDIN_COMMENT,
         generated_content=generated_comment, # Save the JSON string
         status=OutputStatus.PENDING_REVIEW,
-        score=confidence,
-        publish_config={
+        confidence_score=confidence,
+        metadata={
             "comment_style": request.comment_style,
             "llm_provider": request.llm_provider,
             "applied_style": result.applied_style,

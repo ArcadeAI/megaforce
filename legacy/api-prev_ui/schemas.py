@@ -68,6 +68,7 @@ class PersonaResponse(PersonaBase):
         from_attributes = True
 
 
+# Style Reference schemas
 # Input Source schemas
 class InputSourceBase(BaseModel):
     name: str
@@ -131,8 +132,8 @@ class DocumentBase(BaseModel):
 
 class DocumentCreate(DocumentBase):
     run_id: Optional[str] = None  # Optional for manually added style references
-    owner_id: Optional[str] = None  # Will be set to current user if not provided
-    persona_ids: Optional[List[str]] = []  # Array of persona IDs for style references
+    owner_id: Optional[str] = None  # Will be set from current user if not provided
+    persona_ids: Optional[List[str]] = []  # List of persona IDs to link this document to
 
 
 class DocumentUpdate(BaseModel):
@@ -146,7 +147,7 @@ class DocumentUpdate(BaseModel):
     document_type: Optional[str] = None
     reference_type: Optional[str] = None
     is_style_reference: Optional[bool] = None
-    persona_ids: Optional[List[str]] = None
+    persona_ids: Optional[List[str]] = None  # Update persona associations
 
 
 class DocumentResponse(DocumentBase):
@@ -154,9 +155,32 @@ class DocumentResponse(DocumentBase):
     owner_id: str
     run_id: Optional[str] = None
     created_at: datetime
-    persona_count: Optional[int] = 0  # Number of linked personas
-    persona_ids: Optional[List[str]] = []  # Array of linked persona IDs
+    persona_count: Optional[int] = 0  # Number of personas linked to this document
+    persona_ids: Optional[List[str]] = []  # List of linked persona IDs
 
+    class Config:
+        from_attributes = True
+
+
+# PersonaStyleLink schemas
+class PersonaStyleLinkBase(BaseModel):
+    persona_id: str
+    document_id: str
+    notes: Optional[str] = None
+
+
+class PersonaStyleLinkCreate(PersonaStyleLinkBase):
+    pass
+
+
+class PersonaStyleLinkUpdate(BaseModel):
+    notes: Optional[str] = None
+
+
+class PersonaStyleLinkResponse(PersonaStyleLinkBase):
+    id: str
+    added_at: datetime
+    
     class Config:
         from_attributes = True
 
