@@ -199,6 +199,9 @@ async def search_twitter(
                 score=getattr(doc, 'score', 0),
                 priority=getattr(doc, 'priority', 0),
                 platform_data=getattr(doc, 'metadata', {}),
+                document_type="source_material",
+                reference_type="tweet",
+                is_style_reference=False,
                 run_id=run.id,
                 owner_id=current_user.id
             )

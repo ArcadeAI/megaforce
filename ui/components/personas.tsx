@@ -64,7 +64,7 @@ export default function Personas() {
   const [styleRefFormData, setStyleRefFormData] = useState<DocumentCreate>({
     title: "",
     content: "",
-    reference_type: "url",
+    reference_type: "text",
     url: "",
     document_type: "style_reference",
     is_style_reference: true,
@@ -279,7 +279,7 @@ export default function Personas() {
       setStyleRefFormData({
         title: "",
         content: "",
-        reference_type: "url",
+        reference_type: "text",
         url: "",
         document_type: "style_reference",
         is_style_reference: true,
@@ -382,6 +382,15 @@ export default function Personas() {
 
   const startEditingPersona = (persona: Persona) => {
     console.log('✏️ Starting to edit persona:', persona.id)
+    
+    // Set the selected persona and clear other states
+    setSelectedPersona(persona)
+    setShowDetails(false)
+    setIsCreating(false)
+    setIsCreatingStyleRef(false)
+    setEditingStyleRefId(null)
+    
+    // Populate the form with persona data
     setPersonaFormData({
       name: persona.name,
       description: persona.description || "",
@@ -395,7 +404,9 @@ export default function Personas() {
         avoid_phrases: (persona.style_preferences as any)?.avoid_phrases || ""
       }
     })
+    
     setIsEditing(true)
+    setError(null)
   }
 
   const startEditingStyleRef = (styleRef: Document) => {
@@ -403,7 +414,7 @@ export default function Personas() {
     setStyleRefFormData({
       title: styleRef.title,
       content: styleRef.content,
-      reference_type: styleRef.reference_type || "url",
+      reference_type: styleRef.reference_type || "text",
       url: styleRef.url || "",
       document_type: styleRef.document_type || "style_reference",
       is_style_reference: true,
@@ -419,6 +430,12 @@ export default function Personas() {
     setIsCreating(false)
     setIsCreatingStyleRef(false)
     setError(null)
+    
+    // If there's a selected persona, show details view
+    if (selectedPersona) {
+      setShowDetails(true)
+    }
+    
     // Reset forms
     setPersonaFormData({
       name: "",
@@ -436,7 +453,7 @@ export default function Personas() {
     setStyleRefFormData({
       title: "",
       content: "",
-      reference_type: "url",
+      reference_type: "text",
       url: "",
       document_type: "style_reference",
       is_style_reference: true,
@@ -828,6 +845,23 @@ export default function Personas() {
                     </div>
 
                     <div>
+                      <Label htmlFor="styleref-type">Reference Type</Label>
+                      <select
+                        id="styleref-type"
+                        value={styleRefFormData.reference_type || 'text'}
+                        onChange={(e) => setStyleRefFormData(prev => ({ ...prev, reference_type: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="text">Text Content</option>
+                        <option value="url">Web URL</option>
+                        <option value="tweet">Twitter/X Post</option>
+                        <option value="document">Document</option>
+                        <option value="pdf">PDF</option>
+                        <option value="markdown">Markdown</option>
+                      </select>
+                    </div>
+
+                    <div>
                       <Label htmlFor="styleref-url">Source URL (optional)</Label>
                       <Input
                         id="styleref-url"
@@ -886,6 +920,23 @@ export default function Personas() {
                         className="mt-1"
                         rows={6}
                       />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-styleref-type">Reference Type</Label>
+                      <select
+                        id="edit-styleref-type"
+                        value={styleRefFormData.reference_type || 'text'}
+                        onChange={(e) => setStyleRefFormData(prev => ({ ...prev, reference_type: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="text">Text Content</option>
+                        <option value="url">Web URL</option>
+                        <option value="tweet">Twitter/X Post</option>
+                        <option value="document">Document</option>
+                        <option value="pdf">PDF</option>
+                        <option value="markdown">Markdown</option>
+                      </select>
                     </div>
 
                     <div>
