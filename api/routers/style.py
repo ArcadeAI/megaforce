@@ -127,8 +127,13 @@ async def generate_comments(
         if not persona:
             raise HTTPException(status_code=404, detail="Persona not found or access denied")
         
-        ref_docs_db = db.query(StyleReference).filter(StyleReference.persona_id == persona.id).all()
-        ref_docs_schema = [SchemaDocument(url=ref.content_url or "https://example.com/style-reference", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=ref.content_text) for ref in ref_docs_db if ref.content_text]
+        # Query style reference documents from unified documents table
+        from sqlalchemy import text
+        ref_docs_db = db.query(Document).filter(
+            Document.is_style_reference == True,
+            text(f"persona_ids @> '[\"{ persona.id }\"]'")
+        ).all()
+        ref_docs_schema = [SchemaDocument(url=ref.url or "https://example.com/style-reference", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=ref.content) for ref in ref_docs_db if ref.content]
 
         if ref_docs_schema:  # Only add if we have reference documents
             reference_styles.append(ReferenceStyle(name=persona.name, description=persona.description, documents=ref_docs_schema))

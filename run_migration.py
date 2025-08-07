@@ -42,6 +42,13 @@ def run_migration():
     with open(migration_file, 'r') as f:
         migration_sql = f.read()
     
+    # Also read the owner_id fix SQL
+    fix_file = os.path.join(os.path.dirname(__file__), 'fix_owner_id_constraint.sql')
+    fix_sql = ""
+    if os.path.exists(fix_file):
+        with open(fix_file, 'r') as f:
+            fix_sql = f.read()
+    
     # Get database URL
     try:
         database_url = get_database_url()
@@ -58,6 +65,13 @@ def run_migration():
                 connection.execute(text(migration_sql))
                 connection.commit()
                 print("✅ Migration executed successfully!")
+                
+                # Also run the owner_id constraint fix if available
+                if fix_sql:
+                    print("\nRunning owner_id constraint fix...")
+                    connection.execute(text(fix_sql))
+                    connection.commit()
+                    print("✅ Owner_id constraint fix executed successfully!")
                 
                 # Now run a verification query
                 print("\nRunning verification query...")

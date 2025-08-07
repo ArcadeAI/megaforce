@@ -199,7 +199,8 @@ async def search_twitter(
                 score=getattr(doc, 'score', 0),
                 priority=getattr(doc, 'priority', 0),
                 platform_data=getattr(doc, 'metadata', {}),
-                run_id=run.id
+                run_id=run.id,
+                owner_id=current_user.id
             )
             db.add(db_document)
             saved_documents.append(db_document)
@@ -227,6 +228,7 @@ async def search_twitter(
                 priority=doc.priority,
                 platform_data=doc.platform_data,
                 run_id=doc.run_id,
+                owner_id=doc.owner_id,
                 created_at=doc.created_at
             )
             for doc in saved_documents
