@@ -60,8 +60,9 @@ async def list_documents(
         if is_style_reference is not None:
             query = query.filter(Document.is_style_reference == is_style_reference)
         if persona_id:
-            # Filter by persona_id in the JSON array
-            query = query.filter(Document.persona_ids.contains([persona_id]))
+            # Filter by persona_id in the JSON array using JSONB contains operator
+            from sqlalchemy import text
+            query = query.filter(text(f"persona_ids @> '[\"{ persona_id }\"]'"))
         
         # Apply pagination
         documents = query.offset(offset).limit(limit).all()

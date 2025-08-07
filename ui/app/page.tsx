@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { TwitterDashboard } from "@/components/twitter-dashboard"
-import { Personas } from "@/components/personas"
+import Personas from "@/components/personas"
 import SourceMaterials from "@/components/source-materials"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/components/auth-context"

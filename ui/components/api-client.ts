@@ -74,39 +74,42 @@ export interface Persona {
   style_preferences: Record<string, any>
   owner_id: string
   created_at: string
-  style_references?: StyleReference[]
+  is_active?: boolean
+  updated_at?: string
 }
 
-export interface StyleReference {
+export interface Document {
   id: string
   title: string
   content: string
-  document_type: string
-  reference_type: string
-  is_style_reference: boolean
   url?: string
   author?: string
+  score: number
+  priority: number
+  platform_data?: Record<string, any>
+  document_type: string
+  reference_type?: string
   owner_id: string
+  is_style_reference: boolean
+  persona_ids: string[]
+  run_id?: string
   created_at: string
-  persona_ids?: string[]  // Array of persona IDs this style reference is linked to
-  // Legacy fields for backward compatibility
-  persona_id?: string
-  content_url?: string
-  content_text?: string
-  meta_data?: Record<string, any>
+  persona_count?: number
 }
 
-export interface StyleReferenceCreate {
+export interface DocumentCreate {
   title: string
   content: string
-  reference_type: string
-  content_type?: string
-  source_url?: string
-  notes?: string
-  // Legacy fields for backward compatibility
-  content_url?: string
-  content_text?: string
-  meta_data?: Record<string, any>
+  url?: string
+  author?: string
+  score?: number
+  priority?: number
+  platform_data?: Record<string, any>
+  document_type?: string
+  reference_type?: string
+  is_style_reference?: boolean
+  persona_ids?: string[]
+  run_id?: string
 }
 
 // Token management
@@ -261,41 +264,41 @@ class ApiClient {
     })
   }
   
-  // Style Reference endpoints
-  async getStyleReferences(personaId?: string): Promise<StyleReference[]> {
+  // Document endpoints (including style references)
+  async getStyleReferences(personaId?: string): Promise<Document[]> {
     const params = personaId ? `?persona_id=${personaId}&is_style_reference=true` : '?is_style_reference=true'
     return this.request(`/api/v1/documents${params}`)
   }
 
-  async createStyleReference(personaId: string, styleRef: StyleReferenceCreate): Promise<StyleReference> {
+  async createStyleReference(personaId: string, styleRef: DocumentCreate): Promise<Document> {
     const documentData = {
       title: styleRef.title,
-      content: styleRef.content || styleRef.content_text || '',
+      content: styleRef.content,
       document_type: 'style_reference',
       reference_type: styleRef.reference_type || 'text',
       is_style_reference: true,
-      url: styleRef.content_url || '',
-      meta_data: styleRef.meta_data || {},
+      url: styleRef.url || '',
+      platform_data: styleRef.platform_data || {},
       persona_ids: [personaId]  // Link to persona during creation
     }
     
     const document = await this.request(`/api/v1/documents/`, {
       method: 'POST',
       body: JSON.stringify(documentData)
-    }) as StyleReference
+    }) as Document
     
     return document
   }
 
-  async updateStyleReference(id: string, styleRef: Partial<StyleReferenceCreate>): Promise<StyleReference> {
+  async updateStyleReference(id: string, styleRef: Partial<DocumentCreate>): Promise<Document> {
     console.log('✏️ API Client: Updating style reference', id, 'with data:', styleRef)
     
     const updateData = {
       title: styleRef.title,
-      content: styleRef.content || styleRef.content_text || '',
+      content: styleRef.content || '',
       reference_type: styleRef.reference_type || 'text',
-      url: styleRef.content_url || '',
-      meta_data: styleRef.meta_data || {}
+      url: styleRef.url || '',
+      platform_data: styleRef.platform_data || {}
     }
     
     console.log('📄 API Client: Updating document with data:', updateData)
@@ -303,7 +306,7 @@ class ApiClient {
     const result = await this.request(`/api/v1/documents/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData)
-    }) as StyleReference
+    }) as Document
     
     console.log('✅ API Client: Successfully updated style reference:', result)
     
