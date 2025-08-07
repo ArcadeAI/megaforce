@@ -60,9 +60,9 @@ async def list_documents(
         if is_style_reference is not None:
             query = query.filter(Document.is_style_reference == is_style_reference)
         if persona_id:
-            # Filter by persona_id in the JSON array using SQLAlchemy JSONB contains
-            from sqlalchemy.dialects.postgresql import JSONB
-            query = query.filter(Document.persona_ids.op('@>')([persona_id]))
+            # Filter by persona_id in the JSON array using raw SQL with proper casting
+            from sqlalchemy import text
+            query = query.filter(text(f"persona_ids @> '[\"{ persona_id }\"]'::jsonb"))
         
         # Apply pagination
         documents = query.offset(offset).limit(limit).all()
