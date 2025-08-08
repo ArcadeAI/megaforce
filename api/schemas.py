@@ -124,8 +124,8 @@ class DocumentBase(BaseModel):
     score: int = 0
     priority: int = 0
     platform_data: Optional[Dict[str, Any]] = None
+    reference_type: Optional[str] = None  # "tweet", "url", "document", etc.
     document_type: str = "source_material"  # "source_material" or "style_reference"
-    reference_type: Optional[str] = None  # url, tweet, document, pdf, markdown
     is_style_reference: bool = False
 
 
@@ -143,9 +143,7 @@ class DocumentUpdate(BaseModel):
     score: Optional[int] = None
     priority: Optional[int] = None
     platform_data: Optional[Dict[str, Any]] = None
-    document_type: Optional[str] = None
     reference_type: Optional[str] = None
-    is_style_reference: Optional[bool] = None
     persona_ids: Optional[List[str]] = None
 
 

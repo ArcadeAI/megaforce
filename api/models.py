@@ -123,15 +123,8 @@ class Document(Base):
     content = Column(Text, nullable=False)
     url = Column(String)
     author = Column(String)
-    score = Column(Integer, default=0)  # Ranking/relevance score
-    priority = Column(Integer, default=0)  # Priority for processing
-    platform_data = Column(JSON)  # Platform-specific metadata
-    
-    # Enhanced fields for unified model
-    document_type = Column(String, default="source_material")  # "source_material" or "style_reference"
-    reference_type = Column(String)  # url, tweet, document, pdf, markdown
+    reference_type = Column(String, nullable=True)  # "tweet", "url", "document", etc.
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # Direct user ownership
-    is_style_reference = Column(Boolean, default=False)  # Quick filter flag
     persona_ids = Column(JSON, default=list)  # Array of persona IDs for style references
     
     # Optional run relationship (null for manually added style references)

@@ -19,11 +19,8 @@ interface Document {
   author?: string
   score: number
   priority: number
-  platform_data?: any
-  document_type: string
   reference_type?: string
   owner_id: string
-  is_style_reference: boolean
   run_id?: string
   created_at: string
   persona_id?: string
@@ -96,6 +93,13 @@ export default function SourceMaterials() {
   // Edit document modal state
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingDocument, setEditingDocument] = useState<any | null>(null)
+  
+  // Search modal state
+  const [searchModal, setSearchModal] = useState<{show: boolean, type: string, title: string}>({show: false, type: '', title: ''})
+  const [searchInput, setSearchInput] = useState('')
+  
+  // Reference type filter state
+  const [referenceTypeFilter, setReferenceTypeFilter] = useState('all')
   const [editForm, setEditForm] = useState({
     title: '',
     content: '',
@@ -104,40 +108,39 @@ export default function SourceMaterials() {
   })
   const [editLoading, setEditLoading] = useState(false)
 
-  // Fetch data based on current filter
+  // Fetch data based on current filters
   const fetchData = async () => {
-    if (filterType === 'none') {
-      setDocuments([])
-      return
-    }
-
     try {
       setLoading(true)
       setError('')
       
-      let params: any = {}
+      let params: any = { limit: 100, offset: 0 }
       
-      if (filterType === 'all') {
-        // Load all documents with pagination
-        params = { limit: 100, offset: 0 }
-      } else if (filterType === 'documents') {
-        // Filter by document type = source_material and reference_type != tweet
-        params = { document_type: 'source_material', limit: 100 }
-      } else if (filterType === 'tweets') {
-        // Filter by reference_type = tweet
-        params = { reference_type: 'tweet', limit: 100 }
-      } else if (filterType === 'urls') {
-        // Filter by reference_type = url
-        params = { reference_type: 'url', limit: 100 }
-      } else if (filterType === 'run' && filterRunId) {
-        params = { run_id: filterRunId }
+      // Apply reference type filter
+      if (referenceTypeFilter !== 'all') {
+        if (referenceTypeFilter === 'tweet') {
+          // Tweets now have reference_type = 'tweet' in the database
+          params.reference_type = 'tweet'
+        } else if (referenceTypeFilter === 'document') {
+          // Documents have reference_type = null or other values, exclude tweets
+          // Load all documents and filter client-side since backend doesn't support exclusion
+          // Don't set params.reference_type so we get all documents
+        } else if (referenceTypeFilter === 'url') {
+          params.reference_type = 'url'
+        } else if (referenceTypeFilter === 'none') {
+          // Documents with reference_type = null
+          params.reference_type = null
+        }
+      }
+      
+      // Apply search filters
+      if (filterType === 'run' && filterRunId) {
+        params.run_id = filterRunId
       } else if (filterType === 'persona' && filterPersonaId) {
-        params = { persona_id: filterPersonaId }
+        params.persona_id = filterPersonaId
       } else if (filterType === 'content' && searchTerm) {
-        params = { search: searchTerm, limit: 50 }
-      } else {
-        setDocuments([])
-        return
+        params.search = searchTerm
+        params.limit = 50
       }
       
       console.log('🔍 Fetching documents with params:', params)
@@ -147,11 +150,32 @@ export default function SourceMaterials() {
       // Handle both array response and object with documents property
       const docsResponse = Array.isArray(response) ? response : (response.documents || [])
       
+      // Debug: Log reference types of first few documents
+      console.log('🔍 Reference types in response:', docsResponse.slice(0, 5).map((doc: any) => ({
+        id: doc.id,
+        title: doc.title?.substring(0, 30),
+        reference_type: doc.reference_type
+      })))
+      
       // Filter out any null or undefined documents
-      const validDocs = docsResponse.filter((doc: any) => doc && doc.id)
+      let validDocs = docsResponse.filter((doc: any) => doc && doc.id)
+      
+      // Apply client-side filtering for document type (since backend doesn't support exclusion)
+      if (referenceTypeFilter === 'document') {
+        const beforeFilter = validDocs.length
+        // Show only documents (NOT tweets and NOT URLs) - normalize to lowercase for comparison
+        validDocs = validDocs.filter((doc: any) => {
+          const refType = (doc.reference_type || '').toLowerCase()
+          const isNotTweet = refType !== 'tweet'
+          const isNotUrl = refType !== 'url'
+          return isNotTweet && isNotUrl
+        })
+        console.log(`📄 Document filter: ${validDocs.length} documents found (was ${beforeFilter})`)
+        console.log(`🔍 Sample filtered documents:`, validDocs.slice(0, 3).map((doc: any) => `${doc.title?.substring(0, 30)} | ref_type: ${doc.reference_type}`))
+      }
       
       if (validDocs.length !== docsResponse.length) {
-        console.warn(`⚠️ Filtered out ${docsResponse.length - validDocs.length} invalid documents`)
+        console.warn(`⚠️ Filtered out ${docsResponse.length - validDocs.length} invalid/excluded documents`)
       }
       
       console.log(`✅ Loaded ${validDocs.length} documents from server`)
@@ -171,7 +195,7 @@ export default function SourceMaterials() {
   // Effect to fetch data when filters change
   useEffect(() => {
     fetchData()
-  }, [filterType, filterRunId, filterPersonaId, searchTerm])
+  }, [referenceTypeFilter, filterType, filterRunId, filterPersonaId, searchTerm])
 
   // Handle new run creation
   const handleCreateNewRun = async () => {
@@ -267,7 +291,11 @@ export default function SourceMaterials() {
   // Handle persona badge click
   const handlePersonaClick = (personaId: string | undefined) => {
     if (!personaId) return;
-    router.push(`/personas?highlight=${personaId}`)
+    // Navigate to personas section and highlight the specific persona
+    // Since this is a single-page app, we need to communicate with the parent component
+    // For now, let's use a simple approach - store in localStorage and navigate
+    localStorage.setItem('highlightPersonaId', personaId)
+    router.push('/?section=personas')
   }
 
   // Handle edit document
@@ -367,6 +395,33 @@ export default function SourceMaterials() {
     setDeleteConfirmation({show: false, docId: '', title: ''})
   }
 
+  // Handle immediate reference type change
+  const handleReferenceTypeChange = async (docId: string, newReferenceType: string) => {
+    try {
+      console.log(`🔄 Updating reference_type for document ${docId} to: ${newReferenceType}`)
+      
+      // Update the document via API
+      await apiClient.updateDocument(docId, {
+        reference_type: newReferenceType || null
+      })
+      
+      // Update the local state immediately for better UX
+      setDocuments(prevDocs => 
+        prevDocs.map(doc => 
+          doc.id === docId 
+            ? { ...doc, reference_type: newReferenceType }
+            : doc
+        )
+      )
+      
+      console.log(`✅ Reference type updated successfully for document ${docId}`)
+    } catch (error: any) {
+      console.error(`❌ Failed to update reference type for document ${docId}:`, error)
+      setError(`Failed to update reference type: ${error.message || String(error)}`)
+      setTimeout(() => setError(''), 3000)
+    }
+  }
+
   // Handle persona linking
   const handleLinkPersonas = async (docId: string, docTitle: string) => {
     try {
@@ -382,40 +437,77 @@ export default function SourceMaterials() {
 
   const linkDocumentToPersona = async (personaId: string) => {
     const { docId } = personaLinking
+    console.log('🔗 Linking document to persona:', { docId, personaId })
     try {
       // Get current document
       const currentDoc = documents.find(doc => doc.id === docId)
-      if (!currentDoc) return
+      if (!currentDoc) {
+        console.error('❌ Document not found:', docId)
+        return
+      }
 
       // Get current persona_ids and add the new one if not already linked
       const currentPersonaIds = currentDoc.persona_style_links?.map(link => link.persona_id) || []
+      console.log('📋 Current persona IDs:', currentPersonaIds)
+      
       if (currentPersonaIds.includes(personaId)) {
+        console.log('⚠️ Already linked to this persona')
         setError('Document is already linked to this persona')
         return
       }
 
       const updatedPersonaIds = [...currentPersonaIds, personaId]
+      console.log('📝 Updating with persona IDs:', updatedPersonaIds)
       
       // Update document with new persona_ids
       await apiClient.updateDocument(docId, { persona_ids: updatedPersonaIds })
+      console.log('✅ Document updated successfully')
       
       // Refresh the documents list to show the new link
       fetchData()
       
       // Close the modal and show success message
+      console.log('🚪 Closing persona linking modal')
       setPersonaLinking({show: false, docId: '', docTitle: ''})
       setAvailablePersonas([])
       setError('Document linked to persona successfully')
       setTimeout(() => setError(''), 3000)
     } catch (error) {
-      console.error('Error linking document to persona:', error)
+      console.error('❌ Error linking document to persona:', error)
       setError('Failed to link document to persona')
     }
   }
 
   const cancelPersonaLinking = () => {
+    console.log('🚫 Canceling persona linking')
     setPersonaLinking({show: false, docId: '', docTitle: ''})
     setAvailablePersonas([])
+  }
+
+  // Handle search modal
+  const handleSearchSubmit = () => {
+    const trimmedInput = searchInput.trim()
+    if (!trimmedInput) return
+    
+    if (searchModal.type === 'run_id') {
+      setFilterRunId(trimmedInput)
+      setFilterType('run')
+    } else if (searchModal.type === 'persona_id') {
+      setFilterPersonaId(trimmedInput)
+      setFilterType('persona')
+    } else if (searchModal.type === 'content') {
+      setSearchTerm(trimmedInput)
+      setFilterType('content')
+    }
+    
+    // Close modal and clear input
+    setSearchModal({show: false, type: '', title: ''})
+    setSearchInput('')
+  }
+
+  const cancelSearchModal = () => {
+    setSearchModal({show: false, type: '', title: ''})
+    setSearchInput('')
   }
 
   if (!user) {
@@ -428,9 +520,9 @@ export default function SourceMaterials() {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      {/* Left Pane - Create New Run */}
+      {/* Left Pane - Create New Search Run */}
       <div className="w-1/3 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto">
-        <h2 className="text-xl font-bold text-white mb-6">🚀 Create New Run</h2>
+        <h2 className="text-xl font-bold text-white mb-6">🚀 Create New Search Run</h2>
         
         <div className="space-y-4">
           <div>
@@ -568,70 +660,58 @@ export default function SourceMaterials() {
           </div>
         </div>
 
-        {/* Filter Controls */}
-        <div className="space-y-4 mb-6">
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Reference Type
+          </label>
           <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value as any)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white"
+            value={referenceTypeFilter}
+            onChange={(e) => {
+              setReferenceTypeFilter(e.target.value)
+              fetchData()
+            }}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="none">Select Filter</option>
-            <option value="documents">Documents</option>
-            <option value="tweets">Tweets</option>
-            <option value="urls">URLs</option>
-            <option value="all">See All</option>
-            <option value="run">Search by Run ID</option>
-            <option value="persona">Search by Persona ID</option>
-            <option value="content">Search by Content</option>
+            <option value="all">All</option>
+            <option value="tweet">Tweet</option>
+            <option value="document">Document</option>
+            <option value="url">URL</option>
+            <option value="none">None</option>
           </select>
-          
-          {filterType === 'run' && (
-            <div>
-              <Input
-                placeholder="Enter Run ID..."
-                value={filterRunId}
-                onChange={(e) => setFilterRunId(e.target.value)}
-                className="bg-gray-800 border-gray-600 text-white"
-              />
-            </div>
-          )}
-          
-          {filterType === 'persona' && (
-            <div>
-              <Input
-                placeholder="Enter Persona ID..."
-                value={filterPersonaId}
-                onChange={(e) => setFilterPersonaId(e.target.value)}
-                className="bg-gray-800 border-gray-600 text-white"
-              />
-            </div>
-          )}
-          
-          {filterType === 'content' && (
-            <div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by content..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-            </div>
-          )}
+        </div>
+
+        {/* Search buttons */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Search By
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              onClick={() => setSearchModal({show: true, type: 'run_id', title: 'Search by Run ID'})}
+              variant="outline"
+              className="border-gray-500 text-white bg-gray-700 hover:bg-gray-600 hover:text-white"
+            >
+              Run ID
+            </Button>
+            <Button 
+              onClick={() => setSearchModal({show: true, type: 'persona_id', title: 'Search by Persona ID'})}
+              variant="outline"
+              className="border-gray-500 text-white bg-gray-700 hover:bg-gray-600 hover:text-white"
+            >
+              Persona ID
+            </Button>
+            <Button 
+              onClick={() => setSearchModal({show: true, type: 'content', title: 'Search by Content'})}
+              variant="outline"
+              className="border-gray-500 text-white bg-gray-700 hover:bg-gray-600 hover:text-white"
+            >
+              Content
+            </Button>
+          </div>
         </div>
         
         {/* Results */}
-        {filterType === 'none' ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center text-gray-400">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Select a filter to view source materials</p>
-              <p className="text-sm mt-2">Use the left pane to create a new run or choose a filter above</p>
-            </div>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-gray-400">Loading source materials...</div>
           </div>
@@ -666,6 +746,19 @@ export default function SourceMaterials() {
                           View Source
                         </a>
                       )}
+                      <select
+                        value={(doc.reference_type || '').toLowerCase()}
+                        onChange={(e) => handleReferenceTypeChange(doc.id, e.target.value)}
+                        className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs text-white hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="">none</option>
+                        <option value="document">document</option>
+                        <option value="tweet">tweet</option>
+                        <option value="url">url</option>
+                        <option value="markdown">markdown</option>
+                        <option value="text">text</option>
+                      </select>
                       <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -833,7 +926,7 @@ export default function SourceMaterials() {
                     {selectedRun.documents.map((doc) => (
                       <div key={doc.id} className="bg-gray-700 rounded p-2">
                         <p className="text-white text-sm font-medium">{doc.title}</p>
-                        <p className="text-gray-300 text-xs">{doc.reference_type} • {doc.document_type}</p>
+                        <p className="text-gray-300 text-xs">{doc.reference_type}</p>
                       </div>
                     ))}
                   </div>
@@ -908,9 +1001,9 @@ export default function SourceMaterials() {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
                 >
                   <option value="">None</option>
-                  <option value="URL">URL</option>
-                  <option value="Tweet">Tweet</option>
-                  <option value="Document">Document</option>
+                  <option value="url">URL</option>
+                  <option value="tweet">Tweet</option>
+                  <option value="document">Document</option>
                 </select>
               </div>
               
@@ -1008,6 +1101,40 @@ export default function SourceMaterials() {
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search Modal */}
+      {searchModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">{searchModal.title}</h3>
+            <Input
+              type="text"
+              placeholder={`Enter ${searchModal.type.replace('_', ' ')}...`}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit()}
+              className="bg-gray-700 border-gray-600 text-white mb-4"
+              autoFocus
+            />
+            <div className="flex gap-3 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={cancelSearchModal}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSearchSubmit}
+                disabled={!searchInput.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Search
               </Button>
             </div>
           </div>

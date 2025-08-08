@@ -19,13 +19,8 @@ def populate_document_response(document: Document) -> dict:
         "content": document.content,
         "url": document.url,
         "author": document.author,
-        "score": document.score,
-        "priority": document.priority,
-        "platform_data": document.platform_data,
-        "document_type": document.document_type,
         "reference_type": document.reference_type,
         "owner_id": document.owner_id,
-        "is_style_reference": document.is_style_reference,
         "run_id": document.run_id,
         "created_at": document.created_at,
         "persona_count": len(document.persona_ids) if document.persona_ids else 0,
@@ -38,9 +33,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[DocumentResponse])
 async def list_documents(
-    document_type: str = None,  # Filter by "source_material" or "style_reference"
     reference_type: str = None,  # Filter by reference type (tweet, url, document, etc.)
-    is_style_reference: bool = None,  # Filter by style reference flag
     persona_id: str = None,  # Filter by linked persona
     run_id: str = None,  # Filter by run ID
     limit: int = 100,  # Limit number of results (default 100)
@@ -51,18 +44,14 @@ async def list_documents(
     """List all documents for the current user with optional filtering."""
     try:
         print(f"📋 Backend: Listing documents for user {current_user.id}")
-        print(f"🔍 Backend: Filters - document_type: {document_type}, reference_type: {reference_type}, is_style_reference: {is_style_reference}, persona_id: {persona_id}, run_id: {run_id}")
+        print(f"🔍 Backend: Filters - reference_type: {reference_type}, persona_id: {persona_id}, run_id: {run_id}")
         
         # Base query: all documents owned by current user
         query = db.query(Document).filter(Document.owner_id == current_user.id)
         
         # Apply filters
-        if document_type:
-            query = query.filter(Document.document_type == document_type)
         if reference_type:
             query = query.filter(Document.reference_type == reference_type)
-        if is_style_reference is not None:
-            query = query.filter(Document.is_style_reference == is_style_reference)
         if persona_id:
             # Filter by persona_id in the JSON array using raw SQL with proper casting
             from sqlalchemy import text
