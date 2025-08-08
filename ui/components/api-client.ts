@@ -1,7 +1,9 @@
 // API Client for Megaforce Backend Integration
 // Connects the Next.js frontend to the existing FastAPI backend
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+// Force using Next.js API proxy to avoid CORS issues
+const API_BASE_URL = '/api/proxy'
+console.log('🔧 FORCED API_BASE_URL:', API_BASE_URL)
 
 // Types for API responses (based on existing backend schemas)
 export interface User {
@@ -140,6 +142,18 @@ class ApiClient {
     this.baseURL = baseURL
   }
   
+  async get<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, body: any, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -160,11 +174,15 @@ class ApiClient {
     console.log(`📥 API response status: ${response.status} ${response.statusText}`)
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage = typeof errorData.detail === 'string' 
-        ? errorData.detail 
-        : errorData.message || JSON.stringify(errorData) || `HTTP ${response.status}: ${response.statusText}`
-      throw new Error(errorMessage)
+      let errorData: any;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+      }
+      const errorMessage = errorData?.detail || JSON.stringify(errorData) || `HTTP ${response.status}: ${response.statusText}`;
+      console.error('💥 API Error Details:', errorData);
+      throw new Error(errorMessage);
     }
     
     // For DELETE requests or empty responses (204 No Content), return empty object
@@ -265,6 +283,28 @@ class ApiClient {
   }
   
   // Document endpoints (including style references)
+  async getDocuments(params: any): Promise<any> {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/api/v1/documents?${queryString}`);
+  }
+
+  async getRun(runId: string): Promise<any> {
+    return this.request(`/api/v1/runs/${runId}`);
+  }
+
+  async updateDocument(id: string, data: any): Promise<any> {
+    return this.request(`/api/v1/documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDocument(id: string): Promise<void> {
+    return this.request(`/api/v1/documents/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getStyleReferences(personaId?: string): Promise<Document[]> {
     const params = personaId ? `?persona_id=${personaId}&is_style_reference=true` : '?is_style_reference=true'
     return this.request(`/api/v1/documents${params}`)

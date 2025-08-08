@@ -116,21 +116,11 @@ export default function SourceMaterials() {
       
       let params: any = { limit: 100, offset: 0 }
       
-      // Apply reference type filter
+      // Apply reference type filter - always get all documents and filter client-side for consistency
+      // This handles case sensitivity issues and null values properly
       if (referenceTypeFilter !== 'all') {
-        if (referenceTypeFilter === 'tweet') {
-          // Tweets now have reference_type = 'tweet' in the database
-          params.reference_type = 'tweet'
-        } else if (referenceTypeFilter === 'document') {
-          // Documents have reference_type = null or other values, exclude tweets
-          // Load all documents and filter client-side since backend doesn't support exclusion
-          // Don't set params.reference_type so we get all documents
-        } else if (referenceTypeFilter === 'url') {
-          params.reference_type = 'url'
-        } else if (referenceTypeFilter === 'none') {
-          // Documents with reference_type = null
-          params.reference_type = null
-        }
+        // Don't set backend params, we'll filter everything client-side for consistency
+        console.log(`🎯 Will filter client-side for: ${referenceTypeFilter}`)
       }
       
       // Apply search filters
@@ -145,32 +135,65 @@ export default function SourceMaterials() {
       
       console.log('🔍 Fetching documents with params:', params)
       const response = await apiClient.getDocuments(params)
+      setDocuments(response.documents || []);
       console.log('📄 Documents fetched:', response)
       
       // Handle both array response and object with documents property
       const docsResponse = Array.isArray(response) ? response : (response.documents || [])
       
       // Debug: Log reference types of first few documents
-      console.log('🔍 Reference types in response:', docsResponse.slice(0, 5).map((doc: any) => ({
+      const sampleDocs = docsResponse.slice(0, 5).map((doc: any) => ({
         id: doc.id,
         title: doc.title?.substring(0, 30),
         reference_type: doc.reference_type
-      })))
+      }))
+      console.log('🔍 Reference types in response:', sampleDocs)
+      
+      // Also log a summary of all reference types
+      const refTypeCounts = docsResponse.reduce((acc: any, doc: any) => {
+        const refType = doc.reference_type || 'null/empty'
+        acc[refType] = (acc[refType] || 0) + 1
+        return acc
+      }, {})
+      console.log('📊 Reference type distribution:', refTypeCounts)
       
       // Filter out any null or undefined documents
       let validDocs = docsResponse.filter((doc: any) => doc && doc.id)
       
-      // Apply client-side filtering for document type (since backend doesn't support exclusion)
-      if (referenceTypeFilter === 'document') {
+      // Apply client-side filtering for all reference types (handles case sensitivity)
+      if (referenceTypeFilter !== 'all') {
         const beforeFilter = validDocs.length
-        // Show only documents (NOT tweets and NOT URLs) - normalize to lowercase for comparison
-        validDocs = validDocs.filter((doc: any) => {
-          const refType = (doc.reference_type || '').toLowerCase()
-          const isNotTweet = refType !== 'tweet'
-          const isNotUrl = refType !== 'url'
-          return isNotTweet && isNotUrl
-        })
-        console.log(`📄 Document filter: ${validDocs.length} documents found (was ${beforeFilter})`)
+        
+        if (referenceTypeFilter === 'tweet') {
+          // Show only tweets (case-insensitive)
+          validDocs = validDocs.filter((doc: any) => {
+            const refType = (doc.reference_type || '').toLowerCase()
+            return refType === 'tweet'
+          })
+          console.log(`🐦 Tweet filter: ${validDocs.length} documents found (was ${beforeFilter})`)
+        } else if (referenceTypeFilter === 'document') {
+          // Show only documents (NOT tweets and NOT URLs) - case-insensitive
+          validDocs = validDocs.filter((doc: any) => {
+            const refType = (doc.reference_type || '').toLowerCase()
+            return refType === 'document'
+          })
+          console.log(`📄 Document filter: ${validDocs.length} documents found (was ${beforeFilter})`)
+        } else if (referenceTypeFilter === 'url') {
+          // Show only URLs (case-insensitive)
+          validDocs = validDocs.filter((doc: any) => {
+            const refType = (doc.reference_type || '').toLowerCase()
+            return refType === 'url'
+          })
+          console.log(`🔗 URL filter: ${validDocs.length} documents found (was ${beforeFilter})`)
+        } else if (referenceTypeFilter === 'none') {
+          // Show only documents with null/empty reference_type
+          validDocs = validDocs.filter((doc: any) => {
+            const refType = doc.reference_type
+            return !refType || refType === '' || refType === null
+          })
+          console.log(`❓ None filter: ${validDocs.length} documents found (was ${beforeFilter})`)
+        }
+        
         console.log(`🔍 Sample filtered documents:`, validDocs.slice(0, 3).map((doc: any) => `${doc.title?.substring(0, 30)} | ref_type: ${doc.reference_type}`))
       }
       
@@ -304,7 +327,7 @@ export default function SourceMaterials() {
     setEditForm({
       title: doc.title || '',
       content: doc.content || '',
-      reference_type: doc.reference_type || '',
+      reference_type: (doc.reference_type || '').toLowerCase(),
       url: doc.url || ''
     })
     setShowEditModal(true)
@@ -395,32 +418,7 @@ export default function SourceMaterials() {
     setDeleteConfirmation({show: false, docId: '', title: ''})
   }
 
-  // Handle immediate reference type change
-  const handleReferenceTypeChange = async (docId: string, newReferenceType: string) => {
-    try {
-      console.log(`🔄 Updating reference_type for document ${docId} to: ${newReferenceType}`)
-      
-      // Update the document via API
-      await apiClient.updateDocument(docId, {
-        reference_type: newReferenceType || null
-      })
-      
-      // Update the local state immediately for better UX
-      setDocuments(prevDocs => 
-        prevDocs.map(doc => 
-          doc.id === docId 
-            ? { ...doc, reference_type: newReferenceType }
-            : doc
-        )
-      )
-      
-      console.log(`✅ Reference type updated successfully for document ${docId}`)
-    } catch (error: any) {
-      console.error(`❌ Failed to update reference type for document ${docId}:`, error)
-      setError(`Failed to update reference type: ${error.message || String(error)}`)
-      setTimeout(() => setError(''), 3000)
-    }
-  }
+
 
   // Handle persona linking
   const handleLinkPersonas = async (docId: string, docTitle: string) => {
@@ -721,8 +719,20 @@ export default function SourceMaterials() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {documents.map((doc) => (
-              <div key={doc.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            {documents.map((doc) => {
+              // Check if this document is associated with the filtered persona
+              const isPersonaMatch = filterPersonaId && (
+                doc.persona_id === filterPersonaId ||
+                doc.persona_ids?.includes(filterPersonaId) ||
+                doc.persona_style_links?.some(link => link.persona_id === filterPersonaId)
+              )
+              
+              return (
+              <div key={doc.id} className={`bg-gray-800 rounded-lg p-4 border ${
+                isPersonaMatch 
+                  ? 'border-purple-500 bg-purple-900/20 shadow-lg shadow-purple-500/20' 
+                  : 'border-gray-700'
+              }`}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="font-medium text-white mb-2 line-clamp-2">{doc.title}</h3>
@@ -746,19 +756,6 @@ export default function SourceMaterials() {
                           View Source
                         </a>
                       )}
-                      <select
-                        value={(doc.reference_type || '').toLowerCase()}
-                        onChange={(e) => handleReferenceTypeChange(doc.id, e.target.value)}
-                        className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs text-white hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="">none</option>
-                        <option value="document">document</option>
-                        <option value="tweet">tweet</option>
-                        <option value="url">url</option>
-                        <option value="markdown">markdown</option>
-                        <option value="text">text</option>
-                      </select>
                       <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -803,14 +800,13 @@ export default function SourceMaterials() {
                       )}
                       {/* Check for persona_ids array (from backend) */}
                       {doc.persona_ids && doc.persona_ids.length > 0 && doc.persona_ids.map((personaId) => {
-                        const persona = availablePersonas.find(p => p.id === personaId)
-                        const personaName = persona?.name || `Persona: ${personaId.slice(0, 8)}...`
+                         const persona = availablePersonas.find(p => p.id === personaId)
+                         const personaName = persona?.name || `Unknown Persona`
                         return (
                           <button
                             key={personaId}
                             onClick={() => handlePersonaClick(personaId)}
                             className="inline-flex items-center gap-1 px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full hover:bg-purple-700 transition-colors"
-                            title={`Linked to persona: ${personaName}`}
                           >
                             👤 {personaName}
                           </button>
@@ -833,14 +829,14 @@ export default function SourceMaterials() {
                           onClick={() => handlePersonaClick(doc.persona_id)}
                           className="inline-flex items-center gap-1 px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full hover:bg-purple-700 transition-colors"
                         >
-                          👤 Persona: {doc.persona_id.slice(0, 8)}...
+                          👤 {(availablePersonas.find(p => p.id === doc.persona_id)?.name) || 'Unknown Persona'}
                         </button>
                       )}
                     </div>
                   </div>
                 )}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
@@ -1001,9 +997,9 @@ export default function SourceMaterials() {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
                 >
                   <option value="">None</option>
-                  <option value="url">URL</option>
-                  <option value="tweet">Tweet</option>
                   <option value="document">Document</option>
+                  <option value="tweet">Tweet</option>
+                  <option value="url">URL</option>
                 </select>
               </div>
               

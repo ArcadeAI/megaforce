@@ -492,34 +492,35 @@ export default function Personas() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Personas</h1>
-          <p className="text-gray-600 mt-2">Manage your AI personas and their style references</p>
-        </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Personas</h1>
+            <p className="text-gray-400 mt-2">Manage your AI personas and their style references</p>
+          </div>
         <Button onClick={startCreating} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Create Persona
         </Button>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="bg-red-900/20 border border-red-600 text-red-400 px-4 py-3 rounded-md">
+            {error}
+          </div>
+        )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Personas List */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <Users className="h-5 w-5" />
                 Your Personas ({personas.length})
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-400">
                 Click on a persona to view details and manage style references
               </CardDescription>
             </CardHeader>
@@ -527,7 +528,7 @@ export default function Personas() {
               <ScrollArea className="h-96">
                 <div className="space-y-2">
                   {personas.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-400">
                       <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p>No personas yet</p>
                       <p className="text-sm">Create your first persona to get started</p>
@@ -536,26 +537,26 @@ export default function Personas() {
                     personas.map((persona) => (
                       <div
                         key={persona.id}
-                        className={`p-3 rounded-lg border transition-colors ${
+                        className={`p-3 rounded-lg border transition-colors cursor-pointer ${
                           selectedPersona?.id === persona.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'border-blue-500 bg-blue-900/20'
+                            : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/50'
                         }`}
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1" onClick={() => handlePersonaClick(persona)}>
-                            <h3 className="font-medium text-gray-900">{persona.name}</h3>
+                            <h3 className="font-medium text-white">{persona.name}</h3>
                             {persona.description && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              <p className="text-sm text-gray-400 mt-1 line-clamp-2">
                                 {persona.description}
                               </p>
                             )}
                             <div className="flex items-center gap-2 mt-2">
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge className="text-xs bg-blue-600 text-white">
                                 {persona.style_references?.length || 0} references
                               </Badge>
                               {persona.is_active !== false && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge className="text-xs bg-green-600 text-white">
                                   Active
                                 </Badge>
                               )}
@@ -598,36 +599,36 @@ export default function Personas() {
         {/* Details Panel */}
         <div className="lg:col-span-2">
           {isCreating ? (
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   <Plus className="h-5 w-5" />
                   Create New Persona
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-400">
                   Define a new AI persona with specific style preferences
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name" className="text-gray-300">Name *</Label>
                   <Input
                     id="name"
                     value={personaFormData.name}
                     onChange={(e) => setPersonaFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Professional Tech Expert"
-                    className="mt-1"
+                    className="mt-1 bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description" className="text-gray-300">Description</Label>
                   <Textarea
                     id="description"
                     value={personaFormData.description}
                     onChange={(e) => setPersonaFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe this persona's role and characteristics..."
-                    className="mt-1"
+                    className="mt-1 bg-gray-700 border-gray-600 text-white"
                     rows={3}
                   />
                 </div>
@@ -645,36 +646,36 @@ export default function Personas() {
               </CardContent>
             </Card>
           ) : isEditing && selectedPersona ? (
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   <Edit className="h-5 w-5" />
                   Edit Persona: {selectedPersona.name}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-400">
                   Update this persona's information and style preferences
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="edit-name">Name *</Label>
+                  <Label htmlFor="edit-name" className="text-gray-300">Name *</Label>
                   <Input
                     id="edit-name"
                     value={personaFormData.name}
                     onChange={(e) => setPersonaFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Professional Tech Expert"
-                    className="mt-1"
+                    className="mt-1 bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="edit-description">Description</Label>
+                  <Label htmlFor="edit-description" className="text-gray-300">Description</Label>
                   <Textarea
                     id="edit-description"
                     value={personaFormData.description}
                     onChange={(e) => setPersonaFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe this persona's role and characteristics..."
-                    className="mt-1"
+                    className="mt-1 bg-gray-700 border-gray-600 text-white"
                     rows={3}
                   />
                 </div>
@@ -694,15 +695,15 @@ export default function Personas() {
           ) : showDetails && selectedPersona ? (
             <div className="space-y-6">
               {/* Persona Details */}
-              <Card>
+              <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-white">
                         <User className="h-5 w-5" />
                         {selectedPersona.name}
                       </CardTitle>
-                      <CardDescription className="mt-2">
+                      <CardDescription className="mt-2 text-gray-400">
                         {selectedPersona.description || "No description provided"}
                       </CardDescription>
                     </div>
@@ -729,15 +730,15 @@ export default function Personas() {
               </Card>
 
               {/* Style References */}
-              <Card>
+              <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-white">
                         <FileText className="h-5 w-5" />
                         Style References ({selectedPersona.style_references?.length || 0})
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-gray-400">
                         Example content that defines this persona's writing style
                       </CardDescription>
                     </div>
@@ -1005,6 +1006,7 @@ export default function Personas() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
