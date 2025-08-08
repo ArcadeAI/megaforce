@@ -29,17 +29,31 @@ class OutputStatus(str, enum.Enum):
 
 
 class OutputType(str, enum.Enum):
-    TWEET_SINGLE = "tweet_single"  # Match common schema format
-    TWEET_THREAD = "tweet_thread"  # Match common schema format
-    SOCIAL_COMMENT = "social_comment"  # Match common schema format
-    TWITTER_REPLY = "twitter_reply"  # Match common schema format
-    LINKEDIN_POST = "linkedin_post"  # Match common schema format
-    LINKEDIN_COMMENT = "linkedin_comment"  # Match common schema format
-    BLOG_POST = "blog_post"  # Match common schema format
-    REDDIT_COMMENT = "reddit_comment"  # Match common schema format
-    FACEBOOK_COMMENT = "facebook_comment"  # Match common schema format
-    INSTAGRAM_COMMENT = "instagram_comment"  # Match common schema format
-    YOUTUBE_COMMENT = "youtube_comment"  # Match common schema format
+    # New lowercase format (preferred)
+    TWEET_SINGLE = "tweet_single"
+    TWEET_THREAD = "tweet_thread"
+    SOCIAL_COMMENT = "social_comment"
+    TWITTER_REPLY = "twitter_reply"
+    LINKEDIN_POST = "linkedin_post"
+    LINKEDIN_COMMENT = "linkedin_comment"
+    BLOG_POST = "blog_post"
+    REDDIT_COMMENT = "reddit_comment"
+    FACEBOOK_COMMENT = "facebook_comment"
+    INSTAGRAM_COMMENT = "instagram_comment"
+    YOUTUBE_COMMENT = "youtube_comment"
+    
+    # Legacy uppercase format (for backward compatibility)
+    TWEET_SINGLE_LEGACY = "TWEET_SINGLE"
+    TWITTER_THREAD_LEGACY = "TWITTER_THREAD"
+    SOCIAL_COMMENT_LEGACY = "SOCIAL_COMMENT"
+    TWITTER_REPLY_LEGACY = "TWITTER_REPLY"
+    LINKEDIN_POST_LEGACY = "LINKEDIN_POST"
+    LINKEDIN_COMMENT_LEGACY = "LINKEDIN_COMMENT"
+    BLOG_POST_LEGACY = "BLOG_POST"
+    REDDIT_COMMENT_LEGACY = "REDDIT_COMMENT"
+    FACEBOOK_COMMENT_LEGACY = "FACEBOOK_COMMENT"
+    INSTAGRAM_COMMENT_LEGACY = "INSTAGRAM_COMMENT"
+    YOUTUBE_COMMENT_LEGACY = "YOUTUBE_COMMENT"
 
 
 class User(Base):
