@@ -39,6 +39,7 @@ router = APIRouter()
 @router.get("/", response_model=List[DocumentResponse])
 async def list_documents(
     document_type: str = None,  # Filter by "source_material" or "style_reference"
+    reference_type: str = None,  # Filter by reference type (tweet, url, document, etc.)
     is_style_reference: bool = None,  # Filter by style reference flag
     persona_id: str = None,  # Filter by linked persona
     run_id: str = None,  # Filter by run ID
@@ -50,7 +51,7 @@ async def list_documents(
     """List all documents for the current user with optional filtering."""
     try:
         print(f"📋 Backend: Listing documents for user {current_user.id}")
-        print(f"🔍 Backend: Filters - document_type: {document_type}, is_style_reference: {is_style_reference}, persona_id: {persona_id}, run_id: {run_id}")
+        print(f"🔍 Backend: Filters - document_type: {document_type}, reference_type: {reference_type}, is_style_reference: {is_style_reference}, persona_id: {persona_id}, run_id: {run_id}")
         
         # Base query: all documents owned by current user
         query = db.query(Document).filter(Document.owner_id == current_user.id)
@@ -58,6 +59,8 @@ async def list_documents(
         # Apply filters
         if document_type:
             query = query.filter(Document.document_type == document_type)
+        if reference_type:
+            query = query.filter(Document.reference_type == reference_type)
         if is_style_reference is not None:
             query = query.filter(Document.is_style_reference == is_style_reference)
         if persona_id:

@@ -27,6 +27,7 @@ interface Document {
   run_id?: string
   created_at: string
   persona_id?: string
+  persona_ids?: string[]
   persona?: {
     id: string
     name: string
@@ -66,7 +67,7 @@ export default function SourceMaterials() {
   const [error, setError] = useState('')
   
   // Filter state
-  const [filterType, setFilterType] = useState<'none' | 'all' | 'run' | 'persona' | 'content'>('none')
+  const [filterType, setFilterType] = useState<'none' | 'documents' | 'tweets' | 'urls' | 'all' | 'run' | 'persona' | 'content'>('none')
   const [filterRunId, setFilterRunId] = useState('')
   const [filterPersonaId, setFilterPersonaId] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -78,6 +79,7 @@ export default function SourceMaterials() {
     limit: 20,
     rank_tweets: true,
     llm_provider: 'openai',
+    llm_model: 'gpt-4o-mini',
     api_key: '',
     arcade_user: '',
     arcade_secret: ''
@@ -118,6 +120,15 @@ export default function SourceMaterials() {
       if (filterType === 'all') {
         // Load all documents with pagination
         params = { limit: 100, offset: 0 }
+      } else if (filterType === 'documents') {
+        // Filter by document type = source_material and reference_type != tweet
+        params = { document_type: 'source_material', limit: 100 }
+      } else if (filterType === 'tweets') {
+        // Filter by reference_type = tweet
+        params = { reference_type: 'tweet', limit: 100 }
+      } else if (filterType === 'urls') {
+        // Filter by reference_type = url
+        params = { reference_type: 'url', limit: 100 }
       } else if (filterType === 'run' && filterRunId) {
         params = { run_id: filterRunId }
       } else if (filterType === 'persona' && filterPersonaId) {
@@ -187,6 +198,7 @@ export default function SourceMaterials() {
         limit: newRunForm.limit,
         rank_tweets: newRunForm.rank_tweets,
         llm_provider: newRunForm.llm_provider,
+        llm_model: newRunForm.llm_model,
         arcade_user: newRunForm.arcade_user || undefined,
         arcade_secret: newRunForm.arcade_secret || undefined
       }
@@ -224,6 +236,7 @@ export default function SourceMaterials() {
         limit: 20,
         rank_tweets: true,
         llm_provider: 'openai',
+        llm_model: 'gpt-4o-mini',
         api_key: '',
         arcade_user: '',
         arcade_secret: ''
@@ -388,6 +401,10 @@ export default function SourceMaterials() {
       
       // Refresh the documents list to show the new link
       fetchData()
+      
+      // Close the modal and show success message
+      setPersonaLinking({show: false, docId: '', docTitle: ''})
+      setAvailablePersonas([])
       setError('Document linked to persona successfully')
       setTimeout(() => setError(''), 3000)
     } catch (error) {
@@ -553,29 +570,20 @@ export default function SourceMaterials() {
 
         {/* Filter Controls */}
         <div className="space-y-4 mb-6">
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search by content..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-600 text-white"
-              />
-            </div>
-            
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
-              className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white"
-            >
-              <option value="none">Select Filter</option>
-              <option value="all">See All</option>
-              <option value="run">Search by Run ID</option>
-              <option value="persona">Search by Persona ID</option>
-              <option value="content">Search by Content</option>
-            </select>
-          </div>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as any)}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white"
+          >
+            <option value="none">Select Filter</option>
+            <option value="documents">Documents</option>
+            <option value="tweets">Tweets</option>
+            <option value="urls">URLs</option>
+            <option value="all">See All</option>
+            <option value="run">Search by Run ID</option>
+            <option value="persona">Search by Persona ID</option>
+            <option value="content">Search by Content</option>
+          </select>
           
           {filterType === 'run' && (
             <div>
@@ -596,6 +604,20 @@ export default function SourceMaterials() {
                 onChange={(e) => setFilterPersonaId(e.target.value)}
                 className="bg-gray-800 border-gray-600 text-white"
               />
+            </div>
+          )}
+          
+          {filterType === 'content' && (
+            <div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by content..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -675,7 +697,7 @@ export default function SourceMaterials() {
                 </div>
                 
                 {/* Badges at bottom */}
-                {(doc.run_id || doc.persona_id || (doc.persona_style_links && doc.persona_style_links.length > 0)) && (
+                {(doc.run_id || doc.persona_id || doc.persona_ids?.length || (doc.persona_style_links && doc.persona_style_links.length > 0)) && (
                   <div className="border-t border-gray-700 pt-3 mt-3">
                     <div className="flex gap-2 flex-wrap">
                       {doc.run_id && (
@@ -686,23 +708,39 @@ export default function SourceMaterials() {
                           🏃 Run: {doc.run_id.slice(0, 8)}...
                         </button>
                       )}
-                      {/* Check for persona_style_links array first */}
+                      {/* Check for persona_ids array (from backend) */}
+                      {doc.persona_ids && doc.persona_ids.length > 0 && doc.persona_ids.map((personaId) => {
+                        const persona = availablePersonas.find(p => p.id === personaId)
+                        const personaName = persona?.name || `Persona: ${personaId.slice(0, 8)}...`
+                        return (
+                          <button
+                            key={personaId}
+                            onClick={() => handlePersonaClick(personaId)}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full hover:bg-purple-700 transition-colors"
+                            title={`Linked to persona: ${personaName}`}
+                          >
+                            👤 {personaName}
+                          </button>
+                        )
+                      })}
+                      {/* Check for persona_style_links array (legacy) */}
                       {doc.persona_style_links && doc.persona_style_links.length > 0 && doc.persona_style_links.map((link) => (
                         <button
                           key={link.persona_id}
                           onClick={() => handlePersonaClick(link.persona_id)}
                           className="inline-flex items-center gap-1 px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full hover:bg-purple-700 transition-colors"
+                          title={`Linked to persona: ${link.persona.name}`}
                         >
-                          🎨 Persona: {link.persona_id.slice(0, 8)}...
+                          👤 {link.persona.name}
                         </button>
                       ))}
-                      {/* Also check for direct persona_id */}
-                      {doc.persona_id && !doc.persona_style_links && (
+                      {/* Also check for direct persona_id (legacy) */}
+                      {doc.persona_id && !doc.persona_ids && !doc.persona_style_links && (
                         <button
                           onClick={() => handlePersonaClick(doc.persona_id)}
                           className="inline-flex items-center gap-1 px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full hover:bg-purple-700 transition-colors"
                         >
-                          🎨 Persona: {doc.persona_id.slice(0, 8)}...
+                          👤 Persona: {doc.persona_id.slice(0, 8)}...
                         </button>
                       )}
                     </div>
@@ -934,16 +972,34 @@ export default function SourceMaterials() {
               Link "{personaLinking.docTitle}" to personas:
             </p>
             <div className="space-y-2 mb-6">
-              {availablePersonas.map((persona) => (
-                <button
-                  key={persona.id}
-                  onClick={() => linkDocumentToPersona(persona.id)}
-                  className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 transition-colors"
-                >
-                  <div className="font-medium text-white">{persona.name}</div>
-                  <div className="text-sm text-gray-400">{persona.id.slice(0, 8)}...</div>
-                </button>
-              ))}
+              {availablePersonas.map((persona) => {
+                // Check if this persona is already linked to the document
+                const currentDoc = documents.find(doc => doc.id === personaLinking.docId)
+                const currentPersonaIds = currentDoc?.persona_style_links?.map(link => link.persona_id) || []
+                const isLinked = currentPersonaIds.includes(persona.id)
+                
+                return (
+                  <button
+                    key={persona.id}
+                    onClick={() => linkDocumentToPersona(persona.id)}
+                    className={`w-full text-left p-3 rounded border transition-colors ${
+                      isLinked 
+                        ? 'bg-green-800 border-green-600 hover:bg-green-700' 
+                        : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-white">{persona.name}</div>
+                        <div className="text-sm text-gray-400">{persona.id.slice(0, 8)}...</div>
+                      </div>
+                      {isLinked && (
+                        <div className="text-green-400 text-sm font-medium">✓ Linked</div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
             <div className="flex gap-3 justify-end">
               <Button 
