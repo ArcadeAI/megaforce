@@ -1,9 +1,9 @@
 // API Client for Megaforce Backend Integration
 // Connects the Next.js frontend to the existing FastAPI backend
 
-// Force using Next.js API proxy to avoid CORS issues
-const API_BASE_URL = '/api/proxy'
-console.log('🔧 FORCED API_BASE_URL:', API_BASE_URL)
+// Use deployed Heroku API directly
+const API_BASE_URL = 'https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com'
+console.log('🔧 Using deployed API:', API_BASE_URL)
 
 // Types for API responses (based on existing backend schemas)
 export interface User {
@@ -315,7 +315,7 @@ class ApiClient {
       title: styleRef.title,
       content: styleRef.content,
       document_type: 'style_reference',
-      reference_type: styleRef.reference_type || 'text',
+      reference_type: styleRef.reference_type || 'document',
       is_style_reference: true,
       url: styleRef.url || '',
       platform_data: styleRef.platform_data || {},
@@ -336,7 +336,7 @@ class ApiClient {
     const updateData = {
       title: styleRef.title,
       content: styleRef.content || '',
-      reference_type: styleRef.reference_type || 'text',
+      reference_type: styleRef.reference_type || 'document',
       url: styleRef.url || '',
       platform_data: styleRef.platform_data || {}
     }
@@ -438,6 +438,12 @@ class ApiClient {
     return this.request(`/api/v1/outputs/${id}/reject`, {
       method: 'POST',
       body: JSON.stringify({ score, feedback }),
+    })
+  }
+  
+  async deleteOutput(id: string): Promise<void> {
+    return this.request(`/api/v1/outputs/${id}`, {
+      method: 'DELETE',
     })
   }
   

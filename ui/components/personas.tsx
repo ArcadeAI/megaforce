@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   Plus, 
@@ -56,7 +57,8 @@ export default function Personas() {
       target_audience: "",
       content_type: "",
       key_phrases: "",
-      avoid_phrases: ""
+      avoid_phrases: "",
+      use_emojis: false
     }
   })
 
@@ -64,7 +66,7 @@ export default function Personas() {
   const [styleRefFormData, setStyleRefFormData] = useState<DocumentCreate>({
     title: "",
     content: "",
-    reference_type: "text",
+    reference_type: "document",
     url: "",
     document_type: "style_reference",
     is_style_reference: true,
@@ -279,7 +281,7 @@ export default function Personas() {
       setStyleRefFormData({
         title: "",
         content: "",
-        reference_type: "text",
+        reference_type: "document",
         url: "",
         document_type: "style_reference",
         is_style_reference: true,
@@ -401,7 +403,8 @@ export default function Personas() {
         target_audience: (persona.style_preferences as any)?.target_audience || "",
         content_type: (persona.style_preferences as any)?.content_type || "",
         key_phrases: (persona.style_preferences as any)?.key_phrases || "",
-        avoid_phrases: (persona.style_preferences as any)?.avoid_phrases || ""
+        avoid_phrases: (persona.style_preferences as any)?.avoid_phrases || "",
+        use_emojis: (persona.style_preferences as any)?.use_emojis || false
       }
     })
     
@@ -447,13 +450,14 @@ export default function Personas() {
         target_audience: "",
         content_type: "",
         key_phrases: "",
-        avoid_phrases: ""
+        avoid_phrases: "",
+        use_emojis: false
       }
     })
     setStyleRefFormData({
       title: "",
       content: "",
-      reference_type: "text",
+      reference_type: "document",
       url: "",
       document_type: "style_reference",
       is_style_reference: true,
@@ -633,6 +637,153 @@ export default function Personas() {
                   />
                 </div>
 
+                {/* Style Preferences */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-white">Style Preferences</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="create-tone" className="text-gray-300">Tone</Label>
+                      <Input
+                        id="create-tone"
+                        value={personaFormData.style_preferences.tone}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            tone: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Professional, Casual, Friendly"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="create-voice" className="text-gray-300">Voice</Label>
+                      <Input
+                        id="create-voice"
+                        value={personaFormData.style_preferences.voice}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            voice: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Authoritative, Conversational"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="create-writing-style" className="text-gray-300">Writing Style</Label>
+                      <Input
+                        id="create-writing-style"
+                        value={personaFormData.style_preferences.writing_style}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            writing_style: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Concise, Detailed, Storytelling"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="create-target-audience" className="text-gray-300">Target Audience</Label>
+                      <Input
+                        id="create-target-audience"
+                        value={personaFormData.style_preferences.target_audience}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            target_audience: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Tech professionals, General audience"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="create-content-type" className="text-gray-300">Content Type</Label>
+                      <Input
+                        id="create-content-type"
+                        value={personaFormData.style_preferences.content_type}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            content_type: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Social media, Blog posts, Comments"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="create-key-phrases" className="text-gray-300">Key Phrases</Label>
+                    <Textarea
+                      id="create-key-phrases"
+                      value={personaFormData.style_preferences.key_phrases}
+                      onChange={(e) => setPersonaFormData(prev => ({
+                        ...prev,
+                        style_preferences: {
+                          ...prev.style_preferences,
+                          key_phrases: e.target.value
+                        }
+                      }))}
+                      placeholder="Phrases this persona commonly uses (comma-separated)"
+                      className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="create-avoid-phrases" className="text-gray-300">Avoid Phrases</Label>
+                    <Textarea
+                      id="create-avoid-phrases"
+                      value={personaFormData.style_preferences.avoid_phrases}
+                      onChange={(e) => setPersonaFormData(prev => ({
+                        ...prev,
+                        style_preferences: {
+                          ...prev.style_preferences,
+                          avoid_phrases: e.target.value
+                        }
+                      }))}
+                      placeholder="Phrases this persona should avoid (comma-separated)"
+                      className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="create-use-emojis"
+                      checked={personaFormData.style_preferences.use_emojis}
+                      onCheckedChange={(checked) => 
+                        setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            use_emojis: checked === true
+                          }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="create-use-emojis" className="text-gray-300">
+                      Use emojis in generated content 🎭
+                    </Label>
+                  </div>
+                </div>
+
                 <div className="flex gap-2 pt-4">
                   <Button onClick={handleCreatePersona} className="flex items-center gap-2">
                     <Save className="h-4 w-4" />
@@ -680,6 +831,153 @@ export default function Personas() {
                   />
                 </div>
 
+                {/* Style Preferences */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-white">Style Preferences</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="edit-tone" className="text-gray-300">Tone</Label>
+                      <Input
+                        id="edit-tone"
+                        value={personaFormData.style_preferences.tone}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            tone: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Professional, Casual, Friendly"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-voice" className="text-gray-300">Voice</Label>
+                      <Input
+                        id="edit-voice"
+                        value={personaFormData.style_preferences.voice}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            voice: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Authoritative, Conversational"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-writing-style" className="text-gray-300">Writing Style</Label>
+                      <Input
+                        id="edit-writing-style"
+                        value={personaFormData.style_preferences.writing_style}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            writing_style: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Concise, Detailed, Storytelling"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-target-audience" className="text-gray-300">Target Audience</Label>
+                      <Input
+                        id="edit-target-audience"
+                        value={personaFormData.style_preferences.target_audience}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            target_audience: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Tech professionals, General audience"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-content-type" className="text-gray-300">Content Type</Label>
+                      <Input
+                        id="edit-content-type"
+                        value={personaFormData.style_preferences.content_type}
+                        onChange={(e) => setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            content_type: e.target.value
+                          }
+                        }))}
+                        placeholder="e.g., Social media, Blog posts, Comments"
+                        className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-key-phrases" className="text-gray-300">Key Phrases</Label>
+                    <Textarea
+                      id="edit-key-phrases"
+                      value={personaFormData.style_preferences.key_phrases}
+                      onChange={(e) => setPersonaFormData(prev => ({
+                        ...prev,
+                        style_preferences: {
+                          ...prev.style_preferences,
+                          key_phrases: e.target.value
+                        }
+                      }))}
+                      placeholder="Phrases this persona commonly uses (comma-separated)"
+                      className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-avoid-phrases" className="text-gray-300">Avoid Phrases</Label>
+                    <Textarea
+                      id="edit-avoid-phrases"
+                      value={personaFormData.style_preferences.avoid_phrases}
+                      onChange={(e) => setPersonaFormData(prev => ({
+                        ...prev,
+                        style_preferences: {
+                          ...prev.style_preferences,
+                          avoid_phrases: e.target.value
+                        }
+                      }))}
+                      placeholder="Phrases this persona should avoid (comma-separated)"
+                      className="mt-1 bg-gray-700 border-gray-600 text-white"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-use-emojis"
+                      checked={personaFormData.style_preferences.use_emojis}
+                      onCheckedChange={(checked) => 
+                        setPersonaFormData(prev => ({
+                          ...prev,
+                          style_preferences: {
+                            ...prev.style_preferences,
+                            use_emojis: checked === true
+                          }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="edit-use-emojis" className="text-gray-300">
+                      Use emojis in generated content 🎭
+                    </Label>
+                  </div>
+                </div>
+
                 <div className="flex gap-2 pt-4">
                   <Button onClick={handleUpdatePersona} className="flex items-center gap-2">
                     <Save className="h-4 w-4" />
@@ -716,10 +1014,10 @@ export default function Personas() {
                         {Object.entries(selectedPersona.style_preferences).map(([key, value]) => (
                           value && (
                             <div key={key}>
-                              <Label className="text-sm font-medium text-gray-700">
+                              <Label className="text-sm font-medium text-gray-300">
                                 {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </Label>
-                              <p className="text-sm text-gray-900 mt-1">{value}</p>
+                              <p className="text-sm text-white mt-1">{value}</p>
                             </div>
                           )
                         ))}
@@ -756,11 +1054,11 @@ export default function Personas() {
                   <div className="space-y-4">
                     {selectedPersona.style_references && selectedPersona.style_references.length > 0 ? (
                       selectedPersona.style_references.map((styleRef) => (
-                        <div key={styleRef.id} className="p-4 border rounded-lg">
+                        <div key={styleRef.id} className="p-4 border border-gray-600 rounded-lg bg-gray-700/30">
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-medium">{styleRef.title}</h4>
+                            <h4 className="font-medium text-white">{styleRef.title}</h4>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs bg-gray-600 text-gray-200 border-gray-500">
                                 {styleRef.reference_type || 'text'}
                               </Badge>
                               <Button
@@ -781,7 +1079,7 @@ export default function Personas() {
                               </Button>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">
+                          <p className="text-sm text-gray-300 mb-2">
                             {styleRef.content.length > 200 
                               ? `${styleRef.content.substring(0, 200)}...` 
                               : styleRef.content}
@@ -791,7 +1089,7 @@ export default function Personas() {
                               href={styleRef.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm"
+                              className="text-blue-400 hover:text-blue-300 text-sm"
                             >
                               View Source
                             </a>
@@ -799,10 +1097,10 @@ export default function Personas() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-gray-400">
                         <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No style references yet</p>
-                        <p className="text-sm">Add style references to define this persona's writing style</p>
+                        <p className="text-white">No style references yet</p>
+                        <p className="text-sm text-gray-400">Add style references to define this persona's writing style</p>
                       </div>
                     )}
                   </div>
@@ -811,65 +1109,62 @@ export default function Personas() {
 
               {/* Create Style Reference Form */}
               {isCreatingStyleRef && (
-                <Card>
+                <Card className="bg-gray-800 border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-white">
                       <Plus className="h-5 w-5" />
                       Add Style Reference
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-400">
                       Add example content that defines this persona's writing style
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="styleref-title">Title *</Label>
+                      <Label htmlFor="styleref-title" className="text-gray-300">Title *</Label>
                       <Input
                         id="styleref-title"
                         value={styleRefFormData.title}
                         onChange={(e) => setStyleRefFormData(prev => ({ ...prev, title: e.target.value }))}
                         placeholder="e.g., Professional LinkedIn Post Example"
-                        className="mt-1"
+                        className="mt-1 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="styleref-content">Content *</Label>
+                      <Label htmlFor="styleref-content" className="text-gray-300">Content *</Label>
                       <Textarea
                         id="styleref-content"
                         value={styleRefFormData.content}
                         onChange={(e) => setStyleRefFormData(prev => ({ ...prev, content: e.target.value }))}
                         placeholder="Paste example content that represents this persona's style..."
-                        className="mt-1"
+                        className="mt-1 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                         rows={6}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="styleref-type">Reference Type</Label>
+                      <Label htmlFor="styleref-type" className="text-gray-300">Reference Type</Label>
                       <select
                         id="styleref-type"
-                        value={styleRefFormData.reference_type || 'text'}
+                        value={styleRefFormData.reference_type || 'document'}
                         onChange={(e) => setStyleRefFormData(prev => ({ ...prev, reference_type: e.target.value }))}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="text">Text Content</option>
-                        <option value="url">Web URL</option>
-                        <option value="tweet">Twitter/X Post</option>
                         <option value="document">Document</option>
-                        <option value="pdf">PDF</option>
-                        <option value="markdown">Markdown</option>
+                        <option value="url">URL</option>
+                        <option value="tweet">Tweet</option>
                       </select>
                     </div>
 
                     <div>
-                      <Label htmlFor="styleref-url">Source URL (optional)</Label>
+                      <Label htmlFor="styleref-url" className="text-gray-300">Source URL (optional)</Label>
                       <Input
                         id="styleref-url"
                         value={styleRefFormData.url || ''}
                         onChange={(e) => setStyleRefFormData(prev => ({ ...prev, url: e.target.value }))}
                         placeholder="https://example.com/source"
-                        className="mt-1"
+                        className="mt-1 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                       />
                     </div>
 
@@ -966,12 +1261,12 @@ export default function Personas() {
               )}
             </div>
           ) : (
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="flex items-center justify-center h-64">
-                <div className="text-center text-gray-500">
+                <div className="text-center text-gray-400">
                   <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Select a persona to view details</p>
-                  <p className="text-sm">or create a new persona to get started</p>
+                  <p className="text-white">Select a persona to view details</p>
+                  <p className="text-sm text-gray-400">or create a new persona to get started</p>
                 </div>
               </CardContent>
             </Card>
