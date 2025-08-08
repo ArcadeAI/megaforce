@@ -105,7 +105,7 @@ async def generate_comments(
         docs = db.query(Document).filter(Document.run_id == request.run_id).all()
         if not docs:
             raise HTTPException(status_code=404, detail="No documents found for run_id")
-        target_docs = [SchemaDocument(url=d.url, type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
+        target_docs = [SchemaDocument(url=d.url or "https://example.com", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
         source_document_ids = [d.id for d in docs]
     elif request.document_ids:
         docs = db.query(Document).filter(Document.id.in_(request.document_ids)).all()
@@ -117,7 +117,7 @@ async def generate_comments(
         doc = db.query(Document).filter(Document.id == request.document_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
-        target_docs = [SchemaDocument(url=doc.url, type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=doc.content, title=doc.title)]
+        target_docs = [SchemaDocument(url=doc.url or "https://example.com", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=doc.content, title=doc.title)]
         source_document_ids = [doc.id]
     elif request.post_content:
         target_docs = [SchemaDocument(url="http://example.com/custom", type=ContentType.LINKEDIN, category=DocumentCategory.PROFESSIONAL, content=request.post_content, title=request.post_title)]
