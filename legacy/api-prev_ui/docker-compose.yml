@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+      - /app/.venv
+    env_file:
+      - .env
+    environment:
+      - USER_ID=${USER_ID}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ARCADE_API_KEY=${ARCADE_API_KEY}
+      - ARCADE_PROVIDER_ID=${ARCADE_PROVIDER_ID}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-2024-08-06}
+      - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - SQL_DEBUG=${SQL_DEBUG:-false}
+    command: uv run uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # Optional: Local PostgreSQL for development (if not using Supabase)
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: megaforce
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   postgres_data:

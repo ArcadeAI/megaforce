@@ -46,18 +46,11 @@ async def list_outputs(
     current_user = Depends(get_current_user)
 ):
     """List all output schemas for the current user."""
-    try:
-        # Filter through persona relationship since OutputSchema doesn't have user_id
-        from api.models import Persona
-        outputs = db.query(OutputSchema).join(Persona).filter(
-            Persona.owner_id == current_user.id
-        ).all()
-        return outputs
-    except Exception as e:
-        print(f"ERROR in list_outputs: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to fetch outputs: {str(e)}")
+    # Filter through persona relationship since OutputSchema doesn't have user_id
+    outputs = db.query(OutputSchema).join(OutputSchema.persona).filter(
+        OutputSchema.persona.has(owner_id=current_user.id)
+    ).all()
+    return outputs
 
 @router.get("/{output_id}", response_model=OutputSchemaResponse)
 async def get_output(

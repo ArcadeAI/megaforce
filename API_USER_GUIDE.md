@@ -195,47 +195,59 @@ curl -X POST "http://localhost:8000/api/v1/personas/" \
 
 ### 2.3 Create a Style Reference
 
-**Endpoint:** `POST /api/v1/style-references/?persona_id={PERSONA_ID}`
+**Endpoint:** `POST /api/v1/documents/`
 
 **Working curl command:**
 ```bash
-curl -X POST "http://localhost:8000/api/v1/style-references/?persona_id=YOUR_PERSONA_ID" \
+curl -X POST "http://localhost:8000/api/v1/documents/" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
-    "reference_type": "text",
     "title": "Tech Blog Example",
-    "content_text": "Artificial intelligence is revolutionizing how we approach software development. By leveraging machine learning algorithms, developers can now automate complex tasks that previously required extensive manual effort. This breakthrough technology enables teams to focus on innovation rather than repetitive processes.",
-    "content_type": "text",
-    "source_url": "https://example.com/tech-blog",
-    "notes": "Example of professional tech writing style"
+    "content": "Artificial intelligence is revolutionizing how we approach software development. By leveraging machine learning algorithms, developers can now automate complex tasks that previously required extensive manual effort. This breakthrough technology enables teams to focus on innovation rather than repetitive processes.",
+    "url": "https://example.com/tech-blog",
+    "document_type": "style_reference",
+    "reference_type": "text",
+    "is_style_reference": true,
+    "persona_ids": ["YOUR_PERSONA_ID"]
   }'
 ```
 
 **Expected Response:**
 ```json
 {
-  "id": "style-ref-uuid-here",
-  "persona_id": "d56a6beb-c9dc-4f0b-81f2-12f340d9bf70",
-  "reference_type": "text",
+  "id": "dd77ef77-01b4-4a72-8d7e-d2bf21b4bea4",
   "title": "Tech Blog Example",
-  "content_text": "Artificial intelligence is revolutionizing how we approach software development...",
-  "content_type": "text",
-  "source_url": "https://example.com/tech-blog",
-  "notes": "Example of professional tech writing style",
-  "created_at": "2025-08-05T17:43:48.123456"
+  "content": "Artificial intelligence is revolutionizing how we approach software development...",
+  "url": "https://example.com/tech-blog",
+  "author": null,
+  "score": 0,
+  "priority": 0,
+  "platform_data": {},
+  "document_type": "style_reference",
+  "reference_type": "text",
+  "owner_id": "c9cdeeaa-de8b-45a0-b6c1-01b493faaa3f",
+  "is_style_reference": true,
+  "persona_ids": ["d56a6beb-c9dc-4f0b-81f2-12f340d9bf70"],
+  "run_id": null,
+  "created_at": "2025-08-05T17:43:48.123456",
+  "persona_count": 1
 }
 ```
 
-**📝 Note:** The style reference is now linked to your persona and will be used for AI comment generation!
+**📝 Note:** The style reference is now linked to your persona via `persona_ids` and will be used for AI comment generation!
 
 ### 2.4 List Style References
 
-**Endpoint:** `GET /api/v1/style-references`
+**Endpoint:** `GET /api/v1/documents/?is_style_reference=true`
 
-1. Find `GET /api/v1/style-references` and click **"Try it out"**
-2. Click **Execute**
-3. **Expected Response:** Array of your style references
+**Working curl command:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/documents/?is_style_reference=true" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**Expected Response:** Array of your style reference documents
 
 ## Step 3: Twitter Search & Content Discovery
 
@@ -252,9 +264,11 @@ curl -X POST "http://localhost:8000/api/v1/twitter/search" \
     "search_type": "keywords",
     "search_query": "artificial intelligence startup",
     "limit": 10,
+    "target_number": 5,
+    "audience_specification": "All audiences",
     "rank_tweets": false,
     "llm_provider": "openai",
-    "llm_model": "gpt-4o-mini",
+    "llm_model": "gpt-4o-2024-08-06",
     "arcade_api_key": "YOUR_ARCADE_API_KEY"
   }'
 ```
@@ -398,11 +412,7 @@ curl -X POST "http://localhost:8000/api/v1/outputs/YOUR_OUTPUT_ID_FROM_STEP_4/ap
 **Expected Response:**
 ```json
 {
-  "message": "Comment approved successfully",
-  "output_id": "179bf9d6-e579-4e6e-8e54-69ac0b211f49",
-  "approved": true,
-  "score": 9,
-  "feedback": "Excellent comment! Very engaging and on-brand."
+  "message": "Output approved successfully"
 }
 ```
 
@@ -430,10 +440,9 @@ curl -X POST "http://localhost:8000/api/v1/twitter/post" \
 {
   "success": true,
   "tweet_id": "1952778100464308402",
-  "tweet_url": "https://x.com/username/status/1952778100464308402",
-  "content": "In the ever-evolving landscape of AI startups...",
-  "posted_at": "2025-08-05T17:43:50.123456",
-  "message": "Tweet posted successfully!"
+  "tweet_url": "https://x.com/x/status/1952778100464308402",
+  "message": "Tweet posted successfully!",
+  "posted_at": "2025-08-05T17:43:50.123456"
 }
 ```
 

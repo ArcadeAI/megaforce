@@ -166,14 +166,9 @@ async def search_twitter(
             )
         except Exception as e:
             # Update run status and raise error
-            import traceback
-            error_details = traceback.format_exc()
-            print(f"DEBUG: Twitter search failed with error: {str(e)}")
-            print(f"DEBUG: Full traceback: {error_details}")
-            
             run.status = "failed"
             run.completed_at = datetime.now()
-            run.metadata = {"error": str(e), "traceback": error_details}
+            run.metadata = {"error": str(e)}
             db.commit()
             raise HTTPException(
                 status_code=500,
@@ -197,9 +192,14 @@ async def search_twitter(
                 url=doc_url,
                 author=getattr(doc, 'author', None),
                 score=getattr(doc, 'score', 0),
-                reference_type="tweet",
+                priority=getattr(doc, 'priority', 0),
+                platform_data=getattr(doc, 'metadata', {}),
                 run_id=run.id,
-                owner_id=current_user.id
+                # Unified model fields
+                owner_id=current_user.id,
+                document_type="source_material",
+                reference_type="tweet",
+                is_style_reference=False
             )
             db.add(db_document)
             saved_documents.append(db_document)
@@ -227,7 +227,6 @@ async def search_twitter(
                 priority=doc.priority,
                 platform_data=doc.platform_data,
                 run_id=doc.run_id,
-                owner_id=doc.owner_id,
                 created_at=doc.created_at
             )
             for doc in saved_documents

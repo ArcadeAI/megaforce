@@ -29,31 +29,17 @@ class OutputStatus(str, enum.Enum):
 
 
 class OutputType(str, enum.Enum):
-    # New lowercase format (preferred)
-    TWEET_SINGLE = "tweet_single"
-    TWEET_THREAD = "tweet_thread"
-    SOCIAL_COMMENT = "social_comment"
-    TWITTER_REPLY = "twitter_reply"
-    LINKEDIN_POST = "linkedin_post"
-    LINKEDIN_COMMENT = "linkedin_comment"
-    BLOG_POST = "blog_post"
-    REDDIT_COMMENT = "reddit_comment"
-    FACEBOOK_COMMENT = "facebook_comment"
-    INSTAGRAM_COMMENT = "instagram_comment"
-    YOUTUBE_COMMENT = "youtube_comment"
-    
-    # Legacy uppercase format (for backward compatibility with existing database records)
-    TWEET_SINGLE_UPPER = "TWEET_SINGLE"
-    TWITTER_THREAD_UPPER = "TWITTER_THREAD"
-    SOCIAL_COMMENT_UPPER = "SOCIAL_COMMENT"
-    TWITTER_REPLY_UPPER = "TWITTER_REPLY"
-    LINKEDIN_POST_UPPER = "LINKEDIN_POST"
-    LINKEDIN_COMMENT_UPPER = "LINKEDIN_COMMENT"
-    BLOG_POST_UPPER = "BLOG_POST"
-    REDDIT_COMMENT_UPPER = "REDDIT_COMMENT"
-    FACEBOOK_COMMENT_UPPER = "FACEBOOK_COMMENT"
-    INSTAGRAM_COMMENT_UPPER = "INSTAGRAM_COMMENT"
-    YOUTUBE_COMMENT_UPPER = "YOUTUBE_COMMENT"
+    TWEET_SINGLE = "TWEET_SINGLE"  # Match database values
+    TWEET_THREAD = "TWITTER_THREAD"  # Match database values
+    SOCIAL_COMMENT = "SOCIAL_COMMENT"  # Will add to database
+    TWITTER_REPLY = "TWITTER_REPLY"  # Match database values
+    LINKEDIN_POST = "LINKEDIN_POST"  # Will add to database
+    LINKEDIN_COMMENT = "LINKEDIN_COMMENT"  # Will add to database
+    BLOG_POST = "BLOG_POST"  # Match database values
+    REDDIT_COMMENT = "REDDIT_COMMENT"  # Match database values
+    FACEBOOK_COMMENT = "FACEBOOK_COMMENT"  # Will add to database
+    INSTAGRAM_COMMENT = "INSTAGRAM_COMMENT"  # Will add to database
+    YOUTUBE_COMMENT = "YOUTUBE_COMMENT"  # Will add to database
 
 
 class User(Base):
@@ -89,7 +75,23 @@ class Persona(Base):
 
     # Relationships
     owner = relationship("User", back_populates="personas")
+    style_document_links = relationship("PersonaStyleLink", back_populates="persona", cascade="all, delete-orphan")
     output_schemas = relationship("OutputSchema", back_populates="persona")
+
+
+class PersonaStyleLink(Base):
+    """Links documents to personas as style references (many-to-many)."""
+    __tablename__ = "persona_style_links"
+    
+    id = Column(String, primary_key=True, index=True)
+    persona_id = Column(String, ForeignKey("personas.id"), nullable=False)
+    document_id = Column(String, ForeignKey("documents.id"), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
+    notes = Column(Text)  # Why this document represents the persona's style
+    
+    # Relationships
+    persona = relationship("Persona", back_populates="style_document_links")
+    document = relationship("Document", back_populates="persona_style_links")
 
 
 class InputSource(Base):
@@ -137,9 +139,15 @@ class Document(Base):
     content = Column(Text, nullable=False)
     url = Column(String)
     author = Column(String)
-    reference_type = Column(String, nullable=True)  # "tweet", "url", "document", etc.
+    score = Column(Integer, default=0)  # Ranking/relevance score
+    priority = Column(Integer, default=0)  # Priority for processing
+    platform_data = Column(JSON)  # Platform-specific metadata
+    
+    # Enhanced fields for unified model
+    document_type = Column(String, default="source_material")  # "source_material" or "style_reference"
+    reference_type = Column(String)  # url, tweet, document, pdf, markdown
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # Direct user ownership
-    persona_ids = Column(JSON, default=list)  # Array of persona IDs for style references
+    is_style_reference = Column(Boolean, default=False)  # Quick filter flag
     
     # Optional run relationship (null for manually added style references)
     run_id = Column(String, ForeignKey("runs.id"), nullable=True)
@@ -149,6 +157,7 @@ class Document(Base):
     owner = relationship("User", back_populates="documents")
     run = relationship("Run", back_populates="documents")
     output_schemas = relationship("OutputSchema", back_populates="source_document")
+    persona_style_links = relationship("PersonaStyleLink", back_populates="document", cascade="all, delete-orphan")
 
 
 class OutputSchema(Base):

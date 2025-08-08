@@ -1,15 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { TwitterDashboard } from "@/components/twitter-dashboard"
-import { Personas } from "@/components/personas"
+import Personas from "@/components/personas"
+import SourceMaterials from "@/components/source-materials"
+import GenerateContent from "@/components/generate-content"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/components/auth-context"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
+  const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState("dashboard")
+
+  // Handle URL section parameter
+  useEffect(() => {
+    const section = searchParams.get('section')
+    if (section && ['dashboard', 'personas', 'approval', 'generate', 'source-materials'].includes(section)) {
+      setActiveSection(section)
+    }
+  }, [searchParams])
 
   if (loading) {
     return (
@@ -44,17 +56,11 @@ export default function HomePage() {
           </div>
         )
       case "generate":
-        return (
-          <div className="flex-1 p-6 bg-gray-900 text-white">
-            <h1 className="text-2xl font-bold mb-4">Generate Content</h1>
-            <p className="text-gray-400">Coming soon...</p>
-          </div>
-        )
+        return <GenerateContent />
       case "sources":
         return (
           <div className="flex-1 p-6 bg-gray-900 text-white">
-            <h1 className="text-2xl font-bold mb-4">Source Materials</h1>
-            <p className="text-gray-400">Coming soon...</p>
+            <SourceMaterials />
           </div>
         )
       default:
