@@ -134,11 +134,18 @@ async def generate_comments(
             raise HTTPException(status_code=404, detail="Persona not found or access denied")
         
         # Query style reference documents from unified documents table
-        from sqlalchemy import text
-        ref_docs_db = db.query(Document).filter(
-            Document.is_style_reference == True,
-            text(f"persona_ids @> '[\"{ persona.id }\"]'")
-        ).all()
+        # Documents with persona_ids are automatically style references
+        try:
+            from sqlalchemy import text
+            # Try PostgreSQL JSON query first
+            ref_docs_db = db.query(Document).filter(
+                text(f"persona_ids @> '[\"{persona.id}\"]'")
+            ).all()
+        except Exception:
+            # Fallback for other databases or if JSON query fails
+            ref_docs_db = db.query(Document).all()
+            # Filter in Python if JSON query doesn't work
+            ref_docs_db = [doc for doc in ref_docs_db if doc.persona_ids and persona.id in doc.persona_ids]
         ref_docs_schema = [SchemaDocument(url=ref.url or "https://example.com/style-reference", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=ref.content) for ref in ref_docs_db if ref.content]
 
         if ref_docs_schema:  # Only add if we have reference documents
