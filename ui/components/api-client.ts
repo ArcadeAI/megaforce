@@ -282,28 +282,9 @@ class ApiClient {
     })
   }
   
-  // Document endpoints (including style references)
-  async getDocuments(params: any): Promise<any> {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/v1/documents?${queryString}`);
-  }
 
-  async getRun(runId: string): Promise<any> {
-    return this.request(`/api/v1/runs/${runId}`);
-  }
 
-  async updateDocument(id: string, data: any): Promise<any> {
-    return this.request(`/api/v1/documents/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
 
-  async deleteDocument(id: string): Promise<void> {
-    return this.request(`/api/v1/documents/${id}`, {
-      method: 'DELETE',
-    });
-  }
 
   async getStyleReferences(personaId?: string): Promise<Document[]> {
     const params = personaId ? `?persona_id=${personaId}&is_style_reference=true` : '?is_style_reference=true'

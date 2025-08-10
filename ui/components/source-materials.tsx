@@ -85,6 +85,7 @@ export default function SourceMaterials() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{show: boolean, docId: string, title: string}>({show: false, docId: '', title: ''})
   const [personaLinking, setPersonaLinking] = useState<{show: boolean, docId: string, docTitle: string}>({show: false, docId: '', docTitle: ''})
   const [availablePersonas, setAvailablePersonas] = useState<Array<{id: string, name: string}>>([])
+  const [selectedPersonaIds, setSelectedPersonaIds] = useState<string[]>([])
   
   // Run details modal state
   const [showRunDetails, setShowRunDetails] = useState(false)
@@ -426,6 +427,14 @@ export default function SourceMaterials() {
       // Fetch available personas
       const personas = await apiClient.getPersonas()
       setAvailablePersonas(personas)
+      
+      // Get current document and its linked personas
+      const currentDoc = documents.find(doc => doc.id === docId)
+      const currentPersonaIds = currentDoc?.persona_ids || 
+                               currentDoc?.persona_style_links?.map(link => link.persona_id) || []
+      
+      // Set currently selected personas
+      setSelectedPersonaIds(currentPersonaIds)
       setPersonaLinking({show: true, docId, docTitle})
     } catch (error) {
       console.error('Error fetching personas:', error)
@@ -433,46 +442,39 @@ export default function SourceMaterials() {
     }
   }
 
-  const linkDocumentToPersona = async (personaId: string) => {
+  const togglePersonaSelection = (personaId: string) => {
+    setSelectedPersonaIds(prev => {
+      if (prev.includes(personaId)) {
+        // Remove if already selected
+        return prev.filter(id => id !== personaId)
+      } else {
+        // Add if not selected
+        return [...prev, personaId]
+      }
+    })
+  }
+
+  const savePersonaLinks = async () => {
     const { docId } = personaLinking
-    console.log('🔗 Linking document to persona:', { docId, personaId })
+    console.log('🔗 Saving persona links:', { docId, selectedPersonaIds })
     try {
-      // Get current document
-      const currentDoc = documents.find(doc => doc.id === docId)
-      if (!currentDoc) {
-        console.error('❌ Document not found:', docId)
-        return
-      }
-
-      // Get current persona_ids and add the new one if not already linked
-      const currentPersonaIds = currentDoc.persona_style_links?.map(link => link.persona_id) || []
-      console.log('📋 Current persona IDs:', currentPersonaIds)
-      
-      if (currentPersonaIds.includes(personaId)) {
-        console.log('⚠️ Already linked to this persona')
-        setError('Document is already linked to this persona')
-        return
-      }
-
-      const updatedPersonaIds = [...currentPersonaIds, personaId]
-      console.log('📝 Updating with persona IDs:', updatedPersonaIds)
-      
-      // Update document with new persona_ids
-      await apiClient.updateDocument(docId, { persona_ids: updatedPersonaIds })
+      // Update document with selected persona_ids
+      await apiClient.updateDocument(docId, { persona_ids: selectedPersonaIds })
       console.log('✅ Document updated successfully')
       
-      // Refresh the documents list to show the new link
+      // Refresh the documents list to show the new links
       fetchData()
       
       // Close the modal and show success message
       console.log('🚪 Closing persona linking modal')
       setPersonaLinking({show: false, docId: '', docTitle: ''})
       setAvailablePersonas([])
-      setError('Document linked to persona successfully')
+      setSelectedPersonaIds([])
+      setError('Document persona links updated successfully')
       setTimeout(() => setError(''), 3000)
     } catch (error) {
-      console.error('❌ Error linking document to persona:', error)
-      setError('Failed to link document to persona')
+      console.error('❌ Error updating persona links:', error)
+      setError('Failed to update persona links')
     }
   }
 
@@ -480,6 +482,7 @@ export default function SourceMaterials() {
     console.log('🚫 Canceling persona linking')
     setPersonaLinking({show: false, docId: '', docTitle: ''})
     setAvailablePersonas([])
+    setSelectedPersonaIds([])
   }
 
   // Handle search modal
@@ -517,9 +520,9 @@ export default function SourceMaterials() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-900">
+    <div className="flex h-screen bg-gray-900 overflow-hidden">
       {/* Left Pane - Create New Search Run */}
-      <div className="w-1/3 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto">
+      <div className="w-1/3 min-w-0 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-6">🚀 Create New Search Run</h2>
         
         <div className="space-y-4">
@@ -650,7 +653,7 @@ export default function SourceMaterials() {
       </div>
       
       {/* Right Pane - Search Results */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 min-w-0 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Source Materials</h2>
           <div className="text-sm text-gray-400">
@@ -732,57 +735,55 @@ export default function SourceMaterials() {
                 isPersonaMatch 
                   ? 'border-purple-500 bg-purple-900/20 shadow-lg shadow-purple-500/20' 
                   : 'border-gray-700'
-              }`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-white mb-2 line-clamp-2">{doc.title}</h3>
-                    <p className="text-gray-300 text-sm mb-3 line-clamp-3">{doc.content}</p>
-                    
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                      {doc.author && (
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {doc.author}
-                        </span>
-                      )}
-                      {doc.url && (
-                        <a 
-                          href={doc.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-blue-400 hover:text-blue-300"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          View Source
-                        </a>
-                      )}
-                      <span>{new Date(doc.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
+              } relative`}>
+                {/* Action buttons - positioned at top right */}
+                <div className="absolute top-3 right-3 flex gap-1">
+                  <button
+                    onClick={() => handleEditDocument(doc)}
+                    className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded transition-colors"
+                    title="Edit document"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleLinkPersonas(doc.id, doc.title)}
+                    className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-gray-700 rounded transition-colors"
+                    title="Link to personas"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteDocument(doc.id, doc.title)}
+                    className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded transition-colors"
+                    title="Delete document"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="pr-24 mb-3">
+                  <h3 className="font-medium text-white mb-2 line-clamp-2">{doc.title}</h3>
+                  <p className="text-gray-300 text-sm mb-3 line-clamp-3">{doc.content}</p>
                   
-                  {/* Action buttons */}
-                  <div className="flex gap-2 ml-4">
-                    <button
-                      onClick={() => handleEditDocument(doc)}
-                      className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded transition-colors"
-                      title="Edit document"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleLinkPersonas(doc.id, doc.title)}
-                      className="p-2 text-gray-400 hover:text-green-400 hover:bg-gray-700 rounded transition-colors"
-                      title="Link to personas"
-                    >
-                      <User className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDocument(doc.id, doc.title)}
-                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded transition-colors"
-                      title="Delete document"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-4 text-xs text-gray-400">
+                    {doc.author && (
+                      <span className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {doc.author}
+                      </span>
+                    )}
+                    {doc.url && (
+                      <a 
+                        href={doc.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View Source
+                      </a>
+                    )}
+                    <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
                 
@@ -885,6 +886,66 @@ export default function SourceMaterials() {
                   <p className="text-white text-sm">{new Date(selectedRun.completed_at).toLocaleString()}</p>
                 </div>
               )}
+
+              {/* Search Parameters Section */}
+              <div>
+                <label className="text-sm font-medium text-gray-300">Search Parameters</label>
+                <div className="bg-gray-700 rounded p-3 mt-1">
+                  {selectedRun.meta_data?.search_query && (
+                    <p className="text-white text-sm mb-2">
+                      <strong>Query:</strong> "{selectedRun.meta_data.search_query}"
+                    </p>
+                  )}
+                  {selectedRun.meta_data?.search_type && (
+                    <p className="text-white text-sm mb-2">
+                      <strong>Search Type:</strong> {selectedRun.meta_data.search_type}
+                    </p>
+                  )}
+                  {selectedRun.meta_data?.limit && (
+                    <p className="text-white text-sm mb-2">
+                      <strong>Limit:</strong> {selectedRun.meta_data.limit} results
+                    </p>
+                  )}
+                  {selectedRun.meta_data?.rank_tweets !== undefined && (
+                    <p className="text-white text-sm mb-2">
+                      <strong>Ranked:</strong> {selectedRun.meta_data.rank_tweets ? 'Yes' : 'No'}
+                    </p>
+                  )}
+                  {selectedRun.meta_data?.llm_provider && (
+                    <p className="text-white text-sm mb-2">
+                      <strong>LLM:</strong> {selectedRun.meta_data.llm_provider} ({selectedRun.meta_data.llm_model || 'default model'})
+                    </p>
+                  )}
+                  
+                  {/* Show raw metadata for debugging */}
+                  {selectedRun.meta_data && (
+                    <details className="mt-3">
+                      <summary className="text-gray-300 text-xs cursor-pointer hover:text-white">
+                        Raw Metadata (Debug)
+                      </summary>
+                      <pre className="text-xs text-gray-400 mt-2 overflow-x-auto">
+                        {JSON.stringify(selectedRun.meta_data, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                  
+                  {/* Show input source for debugging */}
+                  {selectedRun.input_source && (
+                    <details className="mt-3">
+                      <summary className="text-gray-300 text-xs cursor-pointer hover:text-white">
+                        Input Source (Debug)
+                      </summary>
+                      <pre className="text-xs text-gray-400 mt-2 overflow-x-auto">
+                        {JSON.stringify(selectedRun.input_source, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                  
+                  {!selectedRun.meta_data && !selectedRun.input_source && (
+                    <p className="text-gray-400 text-sm italic">No search parameters available</p>
+                  )}
+                </div>
+              </div>
               
               {selectedRun.input_source && (
                 <div>
@@ -1058,35 +1119,31 @@ export default function SourceMaterials() {
           <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
             <h3 className="text-lg font-semibold text-white mb-4">Link to Personas</h3>
             <p className="text-gray-300 mb-4">
-              Link "{personaLinking.docTitle}" to personas:
+              Select personas to link with "{personaLinking.docTitle}":
             </p>
-            <div className="space-y-2 mb-6">
+            <div className="space-y-3 mb-6">
               {availablePersonas.map((persona) => {
-                // Check if this persona is already linked to the document
-                const currentDoc = documents.find(doc => doc.id === personaLinking.docId)
-                const currentPersonaIds = currentDoc?.persona_style_links?.map(link => link.persona_id) || []
-                const isLinked = currentPersonaIds.includes(persona.id)
+                const isSelected = selectedPersonaIds.includes(persona.id)
                 
                 return (
-                  <button
+                  <label
                     key={persona.id}
-                    onClick={() => linkDocumentToPersona(persona.id)}
-                    className={`w-full text-left p-3 rounded border transition-colors ${
-                      isLinked 
-                        ? 'bg-green-800 border-green-600 hover:bg-green-700' 
-                        : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                    }`}
+                    className="flex items-center p-3 rounded border border-gray-600 hover:bg-gray-700 cursor-pointer transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-white">{persona.name}</div>
-                        <div className="text-sm text-gray-400">{persona.id.slice(0, 8)}...</div>
-                      </div>
-                      {isLinked && (
-                        <div className="text-green-400 text-sm font-medium">✓ Linked</div>
-                      )}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => togglePersonaSelection(persona.id)}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-white">{persona.name}</div>
+                      <div className="text-sm text-gray-400">{persona.id.slice(0, 8)}...</div>
                     </div>
-                  </button>
+                    {isSelected && (
+                      <div className="text-green-400 text-sm font-medium">✓ Selected</div>
+                    )}
+                  </label>
                 )
               })}
             </div>
@@ -1097,6 +1154,12 @@ export default function SourceMaterials() {
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
+              </Button>
+              <Button 
+                onClick={savePersonaLinks}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Save Links
               </Button>
             </div>
           </div>

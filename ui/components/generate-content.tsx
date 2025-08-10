@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
-import { Loader2, Sparkles, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { apiClient, TokenManager } from './api-client';
 
 interface Persona {
@@ -40,6 +40,10 @@ interface Output {
   status: string;
   score?: number;
   created_at: string;
+  content_type: string;
+  persona_id: string;
+  source_document_id: string;
+  publish_config?: any;
 }
 
 export default function GenerateContent() {
@@ -50,6 +54,14 @@ export default function GenerateContent() {
   const [outputs, setOutputs] = useState<Output[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   // Form state
   const [commentType, setCommentType] = useState<'reply' | 'new_content'>('new_content');
@@ -58,6 +70,7 @@ export default function GenerateContent() {
   const [selectedRun, setSelectedRun] = useState('');
   const [selectedPersona, setSelectedPersona] = useState('');
   const [commentStyle, setCommentStyle] = useState('insightful');
+  const [outputType, setOutputType] = useState('tweet_single');
   const [customContent, setCustomContent] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [llmProvider, setLlmProvider] = useState<'anthropic' | 'openai' | 'google'>('anthropic');
@@ -118,6 +131,29 @@ export default function GenerateContent() {
     }
   };
 
+  const handleDeleteOutput = async (outputId: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Output',
+      message: 'Are you sure you want to delete this generated output? This action cannot be undone.',
+      onConfirm: () => confirmDeleteOutput(outputId)
+    })
+  }
+
+  const confirmDeleteOutput = async (outputId: string) => {
+    setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+    
+    try {
+      console.log('🗑️ Deleting output:', outputId)
+      await apiClient.deleteOutput(outputId)
+      console.log('✅ Output deleted')
+      await fetchOutputs() // Refresh the list
+    } catch (error) {
+      console.error('❌ Error deleting output:', error)
+      alert('Failed to delete output. Please try again.')
+    }
+  };
+
   const handleDocumentSelection = (documentId: string) => {
     console.log('📝 Document selected:', documentId);
     if (commentType === 'reply') {
@@ -161,6 +197,7 @@ export default function GenerateContent() {
     
     const requestBody: any = {
       comment_type: commentType,
+      content_type: outputType,
       persona_id: selectedPersona,
       comment_style: commentStyle,
       llm_provider: llmProvider,
@@ -263,6 +300,29 @@ export default function GenerateContent() {
               <SelectContent className="bg-gray-700 border-gray-600">
                 <SelectItem value="new_content" className="text-white hover:bg-gray-600">New Content</SelectItem>
                 <SelectItem value="reply" className="text-white hover:bg-gray-600">Reply</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Output Type */}
+          <div>
+            <Label className="text-gray-300">Output Type</Label>
+            <Select value={outputType} onValueChange={setOutputType}>
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectItem value="tweet_single" className="text-white hover:bg-gray-600">Single Tweet</SelectItem>
+                <SelectItem value="tweet_thread" className="text-white hover:bg-gray-600">Tweet Thread</SelectItem>
+                <SelectItem value="twitter_reply" className="text-white hover:bg-gray-600">Twitter Reply</SelectItem>
+                <SelectItem value="linkedin_post" className="text-white hover:bg-gray-600">LinkedIn Post</SelectItem>
+                <SelectItem value="linkedin_comment" className="text-white hover:bg-gray-600">LinkedIn Comment</SelectItem>
+                <SelectItem value="social_comment" className="text-white hover:bg-gray-600">Social Comment</SelectItem>
+                <SelectItem value="blog_post" className="text-white hover:bg-gray-600">Blog Post</SelectItem>
+                <SelectItem value="reddit_comment" className="text-white hover:bg-gray-600">Reddit Comment</SelectItem>
+                <SelectItem value="facebook_comment" className="text-white hover:bg-gray-600">Facebook Comment</SelectItem>
+                <SelectItem value="instagram_comment" className="text-white hover:bg-gray-600">Instagram Comment</SelectItem>
+                <SelectItem value="youtube_comment" className="text-white hover:bg-gray-600">YouTube Comment</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -394,6 +454,7 @@ export default function GenerateContent() {
                 <SelectItem value="professional" className="text-white hover:bg-gray-600">Professional</SelectItem>
                 <SelectItem value="casual" className="text-white hover:bg-gray-600">Casual</SelectItem>
                 <SelectItem value="thoughtful" className="text-white hover:bg-gray-600">Thoughtful</SelectItem>
+                <SelectItem value="funny" className="text-white hover:bg-gray-600">Funny</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -480,11 +541,38 @@ export default function GenerateContent() {
                 <p>No generated outputs yet. Use the left panel to generate content.</p>
               </div>
             ) : (
-              outputs.map((output) => (
+              outputs.map((output) => {
+                console.log('🏷️ Output data structure:', output);
+                return (
                 <Card key={output.id} className="bg-gray-700 border-gray-600 p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center space-x-2">
                       {getStatusBadge(output.status)}
+                      {/* Content Type Badge */}
+                      {output.content_type && (
+                        <Badge variant="outline" className="bg-blue-600 text-white border-blue-500">
+                          {output.content_type.replace('_', ' ').split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
+                        </Badge>
+                      )}
+                      {/* Persona Badge */}
+                      {output.persona_id && (() => {
+                        const persona = personas.find(p => p.id === output.persona_id);
+                        return persona ? (
+                          <Badge variant="outline" className="bg-green-600 text-white border-green-500">
+                            👤 {persona.name}
+                          </Badge>
+                        ) : null;
+                      })()}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteOutput(output.id)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   
@@ -511,7 +599,7 @@ export default function GenerateContent() {
                           <>
                             <span className="text-sm text-gray-400">Score:</span>
                             <Badge className="bg-blue-100 text-blue-800">
-                              {output.score}/10
+                              {(output.score / 10).toFixed(1)}/10
                             </Badge>
                           </>
                         )}
@@ -522,11 +610,40 @@ export default function GenerateContent() {
                     </div>
                   </div>
                 </Card>
-              ))
+                );
+              })
             )}
           </div>
         </ScrollArea>
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {confirmDialog.title}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {confirmDialog.message}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDialog.onConfirm}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
