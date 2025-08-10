@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
-import { Loader2, Sparkles, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, CheckCircle, XCircle, Info, Eye } from 'lucide-react';
 import { apiClient, TokenManager } from './api-client';
 
 interface Persona {
@@ -32,6 +32,15 @@ interface Run {
   id: string;
   name: string;
   created_at: string;
+  status?: string;
+  input_source?: {
+    source_type?: string;
+    search_query?: string;
+    query?: string;
+  };
+  document_count?: number;
+  documents?: any[];
+  meta_data?: any;
 }
 
 interface Output {
@@ -76,6 +85,10 @@ export default function GenerateContent() {
   const [llmProvider, setLlmProvider] = useState<'anthropic' | 'openai' | 'google'>('anthropic');
   const [temperature, setTemperature] = useState(0.7);
   const [apiKey, setApiKey] = useState('');
+  
+  // Run details modal state
+  const [showRunDetails, setShowRunDetails] = useState(false);
+  const [selectedRunDetails, setSelectedRunDetails] = useState<any>(null);
 
   // Fetch data on mount
   useEffect(() => {
@@ -380,23 +393,104 @@ export default function GenerateContent() {
 
           {/* Run Selection */}
           {contentSource === 'run' && (
-            <div>
+            <div className="space-y-3">
               <Label className="text-gray-300">Select Search Run</Label>
-              <Select value={selectedRun} onValueChange={setSelectedRun}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Select a search run..." />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  {runs.map((run) => (
-                    <SelectItem key={run.id} value={run.id} className="text-white hover:bg-gray-600">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{run.name}</span>
-                        <span className="text-xs text-gray-400">ID: {run.id} • {run.created_at ? new Date(run.created_at).toLocaleDateString() : 'No date'}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={selectedRun} onValueChange={setSelectedRun}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white flex-1">
+                    <SelectValue placeholder="Select a search run..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {runs
+                      .filter(run => {
+                        const status = run.status || 'completed';
+                        return status !== 'failed'; // Filter out failed runs
+                      })
+                      .map((run) => {
+                        // Extract search details from run metadata with robust fallbacks
+                        const searchType = run.input_source?.source_type || 
+                                         (run.meta_data?.source_type) || 
+                                         'Twitter'; // Default to Twitter since most runs seem to be Twitter searches
+                        
+                        // Try to extract actual search query, avoiding the run name
+                        let searchQuery = run.input_source?.search_query || 
+                                        run.input_source?.query || 
+                                        (run.meta_data?.query) ||
+                                        (run.meta_data?.search_query) ||
+                                        (run.meta_data?.search_terms) ||
+                                        'No query available';
+                        
+                        // If the search query is the same as the run name, try to extract from name
+                        if (searchQuery === run.name || searchQuery === 'No query available') {
+                          // Try to extract search terms from run name pattern like "Twitter Search - 2025-07-29 05:27"
+                          const nameMatch = run.name.match(/Twitter Search.*?(\d{4}-\d{2}-\d{2})/);
+                          if (nameMatch) {
+                            searchQuery = 'Twitter content search';
+                          } else {
+                            searchQuery = 'Search query not available';
+                          }
+                        }
+                        
+                        // Truncate long queries for display
+                        const displayQuery = searchQuery.length > 50 ? 
+                                           searchQuery.substring(0, 50) + '...' : 
+                                           searchQuery;
+                        
+                        return (
+                          <SelectItem key={run.id} value={run.id} className="text-white hover:bg-gray-600 py-3">
+                            <div className="flex flex-col space-y-1 w-full">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-white truncate">{run.name}</span>
+                                <span className="text-xs text-gray-400">
+                                  {(() => {
+                                    // Try multiple date field locations and formats
+                                    const dateStr = run.created_at || run.started_at || run.date || run.timestamp;
+                                    if (dateStr) {
+                                      try {
+                                        return new Date(dateStr).toLocaleDateString();
+                                      } catch (e) {
+                                        // If date parsing fails, try to extract from run name
+                                        const nameMatch = run.name.match(/(\d{4}-\d{2}-\d{2})/);
+                                        if (nameMatch) {
+                                          return new Date(nameMatch[1]).toLocaleDateString();
+                                        }
+                                      }
+                                    }
+                                    // Try to extract date from run name as last resort
+                                    const nameMatch = run.name.match(/(\d{4}-\d{2}-\d{2})/);
+                                    return nameMatch ? new Date(nameMatch[1]).toLocaleDateString() : 'No date';
+                                  })()}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-300">
+                                <span className="font-medium capitalize">{searchType}</span> • "{displayQuery}"
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                  </SelectContent>
+                </Select>
+                {selectedRun && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const runDetails = await apiClient.getRun(selectedRun);
+                        setSelectedRunDetails(runDetails);
+                        setShowRunDetails(true);
+                      } catch (error) {
+                        console.error('Failed to fetch run details:', error);
+                      }
+                    }}
+                    className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white px-3"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -640,6 +734,100 @@ export default function GenerateContent() {
               >
                 Delete
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Run Details Modal */}
+      {showRunDetails && selectedRunDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white">Run Details</h3>
+              <Button 
+                onClick={() => setShowRunDetails(false)}
+                variant="outline"
+                size="sm"
+                className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Basic Run Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Run ID</label>
+                  <p className="text-white font-mono text-sm">{selectedRunDetails.id}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Name</label>
+                  <p className="text-white">{selectedRunDetails.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
+                  <Badge variant={selectedRunDetails.status === 'completed' ? 'default' : 'secondary'}>
+                    {selectedRunDetails.status}
+                  </Badge>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Started</label>
+                  <p className="text-white text-sm">{new Date(selectedRunDetails.started_at).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Search Query */}
+              {selectedRunDetails.search_query && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Search Query</label>
+                  <div className="bg-gray-700 rounded-lg p-3">
+                    <p className="text-white">{selectedRunDetails.search_query}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Parameters */}
+              {selectedRunDetails.search_params && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Search Parameters</label>
+                  <div className="bg-gray-700 rounded-lg p-3">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {Object.entries(selectedRunDetails.search_params).map(([key, value]) => (
+                        <div key={key}>
+                          <span className="text-gray-400">{key}:</span>
+                          <span className="text-white ml-2">{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Results Summary */}
+              {selectedRunDetails.results_count !== undefined && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Results</label>
+                  <div className="bg-gray-700 rounded-lg p-3">
+                    <p className="text-white">{selectedRunDetails.results_count} documents found</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata (expandable) */}
+              {selectedRunDetails.meta_data && (
+                <details className="bg-gray-700 rounded-lg">
+                  <summary className="p-3 cursor-pointer text-gray-300 hover:text-white">
+                    View Raw Metadata
+                  </summary>
+                  <div className="px-3 pb-3">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">
+                      {JSON.stringify(selectedRunDetails.meta_data, null, 2)}
+                    </pre>
+                  </div>
+                </details>
+              )}
             </div>
           </div>
         </div>

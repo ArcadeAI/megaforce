@@ -180,7 +180,22 @@ class ApiClient {
       } catch (e) {
         errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
       }
-      const errorMessage = errorData?.detail || JSON.stringify(errorData) || `HTTP ${response.status}: ${response.statusText}`;
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      if (errorData?.detail) {
+        if (Array.isArray(errorData.detail)) {
+          // Handle FastAPI validation errors
+          const validationErrors = errorData.detail.map((err: any) => 
+            `${err.loc?.join('.') || 'field'}: ${err.msg || err.message || 'validation error'}`
+          ).join(', ');
+          errorMessage = `Validation error: ${validationErrors}`;
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else {
+          errorMessage = JSON.stringify(errorData.detail);
+        }
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
       console.error('💥 API Error Details:', errorData);
       throw new Error(errorMessage);
     }
@@ -242,10 +257,15 @@ class ApiClient {
     })
   }
   
-  async postToTwitter(content: string): Promise<any> {
+  async postToTwitter(content: string, credentials?: { arcade_user_id: string; arcade_api_key: string }): Promise<any> {
+    const payload: any = { tweet_text: content }
+    if (credentials) {
+      payload.arcade_user_id = credentials.arcade_user_id
+      payload.arcade_api_key = credentials.arcade_api_key
+    }
     return this.request('/api/v1/twitter/post', {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(payload),
     })
   }
   

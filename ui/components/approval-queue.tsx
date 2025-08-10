@@ -106,6 +106,17 @@ export default function ApprovalQueue() {
     score: 8,
     feedback: ''
   })
+  
+  // Twitter credential modal
+  const [twitterModal, setTwitterModal] = useState<{
+    show: boolean
+    output: OutputSchema | null
+  }>({ show: false, output: null })
+  
+  const [twitterCredentials, setTwitterCredentials] = useState({
+    arcade_user_id: '',
+    arcade_api_key: ''
+  })
 
   // Fetch data
   const fetchData = async () => {
@@ -141,10 +152,17 @@ export default function ApprovalQueue() {
   const getOutputsForColumn = (columnId: string) => {
     return filteredOutputs.filter(output => {
       if (columnId === 'scheduled') {
-        return output.status === 'approved' && output.publish_config
+        // Only show items that are actually scheduled for future posting
+        // This would require a specific "scheduled" status or scheduled_at timestamp
+        return false // For now, no items go to scheduled automatically
       }
       if (columnId === 'approved') {
-        return output.status === 'approved' && !output.publish_config
+        // ALL approved items stay in approved column until posted
+        return output.status === 'approved'
+      }
+      if (columnId === 'published') {
+        // Only items with published status go to posted column
+        return output.status === 'published'
       }
       return output.status === columnId
     })
@@ -179,6 +197,43 @@ export default function ApprovalQueue() {
     }
   }
 
+  // Handle posting to Twitter
+  const handlePostToTwitter = (output: OutputSchema) => {
+    // Show credential modal first
+    setTwitterModal({ show: true, output })
+    setTwitterCredentials({ arcade_user_id: '', arcade_api_key: '' })
+  }
+  
+  const submitTwitterPost = async () => {
+    if (!twitterModal.output) return
+    
+    try {
+      // Extract content from JSON if needed
+      let content = twitterModal.output.generated_content
+      try {
+        if (typeof content === 'string' && content.startsWith('{')) {
+          const parsed = JSON.parse(content)
+          content = parsed.text || parsed.content || content
+        }
+      } catch {
+        // Use original content if JSON parsing fails
+      }
+
+      const result = await apiClient.postToTwitter(content, twitterCredentials)
+      await fetchData() // Refresh data to show updated status
+      setError(`Content posted to X successfully! Tweet ID: ${result.tweet_id || 'N/A'}`)
+      setTwitterModal({ show: false, output: null })
+    } catch (err: any) {
+      console.error('❌ Error posting to X:', err)
+      // Try to extract more specific error details
+      let errorMessage = 'Failed to post to X. Please try again.'
+      if (err.message && err.message !== '[object Object]') {
+        errorMessage = `Failed to post to X: ${err.message}`
+      }
+      setError(errorMessage)
+    }
+  }
+
   // Handle delete
   const handleDelete = async (outputId: string) => {
     if (!confirm('Are you sure you want to delete this output?')) return
@@ -195,8 +250,22 @@ export default function ApprovalQueue() {
 
   // Format content preview
   const formatContentPreview = (content: string, maxLength: number = 150) => {
-    if (content.length <= maxLength) return content
-    return content.substring(0, maxLength) + '...'
+    try {
+      // Try to parse JSON and extract readable text
+      if (typeof content === 'string' && content.startsWith('{')) {
+        const parsed = JSON.parse(content);
+        const text = parsed.text || parsed.content || content;
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+      }
+      // Handle regular text content
+      if (content.length <= maxLength) return content;
+      return content.substring(0, maxLength) + '...';
+    } catch {
+      // If JSON parsing fails, treat as regular text
+      if (content.length <= maxLength) return content;
+      return content.substring(0, maxLength) + '...';
+    }
   }
 
   // Get persona badge color
@@ -225,14 +294,14 @@ export default function ApprovalQueue() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 bg-gray-900 text-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Approval Queue</h1>
           <p className="text-gray-400">Manage and approve generated content</p>
         </div>
-        <Button onClick={fetchData} variant="outline">
+        <Button onClick={fetchData} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
           Refresh
         </Button>
       </div>
@@ -249,8 +318,8 @@ export default function ApprovalQueue() {
             onChange={(e) => setSelectedPersona(e.target.value)}
             className="bg-gray-700 border border-gray-600 text-white rounded px-3 py-1 text-sm"
           >
-            <option value="all">All Personas</option>
-            {personas.map(persona => (
+            <option value="">All Personas</option>
+            {personas.map((persona) => (
               <option key={persona.id} value={persona.id}>
                 {persona.name}
               </option>
@@ -266,66 +335,61 @@ export default function ApprovalQueue() {
             onChange={(e) => setSelectedContentType(e.target.value)}
             className="bg-gray-700 border border-gray-600 text-white rounded px-3 py-1 text-sm"
           >
-            <option value="all">All Types</option>
-            <option value="SOCIAL_COMMENT">Social Comment</option>
-            <option value="LINKEDIN_COMMENT">LinkedIn Comment</option>
+            <option value="">All Types</option>
+            <option value="linkedin_comment">LinkedIn Comment</option>
+            <option value="twitter_reply">Twitter Reply</option>
+            <option value="social_comment">Social Comment</option>
           </select>
         </div>
 
-        <div className="ml-auto text-sm text-gray-400">
-          {filteredOutputs.length} items
-        </div>
+        {error && (
+          <div className="ml-auto text-sm text-green-400 bg-green-900/20 px-3 py-1 rounded">
+            {error}
+          </div>
+        )}
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
       {/* Kanban Board */}
-      <div className="grid grid-cols-5 gap-6 min-h-[600px]">
-        {COLUMNS.map(column => {
+      <div className="grid grid-cols-4 gap-4 h-[calc(100vh-280px)]">
+        {COLUMNS.map((column) => {
           const columnOutputs = getOutputsForColumn(column.id)
-          
-          return (
-            <div key={column.id} className={`${column.color} rounded-lg p-4`}>
-              {/* Column Header */}
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-800 mb-1">{column.title}</h3>
-                <p className="text-xs text-gray-600 mb-2">{column.description}</p>
-                <Badge variant="secondary" className="text-xs">
-                  {columnOutputs.length}
-                </Badge>
-              </div>
 
-              {/* Column Content */}
-              <div className="space-y-3">
-                {columnOutputs.map(output => {
+          return (
+            <div key={column.id} className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col">
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white">{column.title}</h3>
+                  <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                    {columnOutputs.length}
+                  </Badge>
+                </div>
+                <p className="text-sm text-gray-400 mt-1">{column.description}</p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {columnOutputs.map((output: OutputSchema) => {
                   const persona = personas.find(p => p.id === output.persona_id)
                   
                   return (
-                    <div key={output.id} className="bg-white rounded-lg p-3 shadow-sm border">
+                    <div key={output.id} className="bg-gray-700 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors">
                       {/* Content Preview */}
                       <div className="mb-3">
-                        <p className="text-sm text-gray-800 leading-relaxed">
+                        <p className="text-sm text-gray-200 leading-relaxed">
                           {formatContentPreview(output.generated_content)}
                         </p>
                       </div>
 
                       {/* Metadata */}
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
                         {persona && (
                           <Badge className={`text-xs ${getPersonaBadgeColor(persona.id)}`}>
                             {persona.name}
                           </Badge>
                         )}
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
                           {output.content_type}
                         </Badge>
                         {output.score && (
-                          <Badge className="text-xs bg-yellow-100 text-yellow-800">
+                          <Badge className="text-xs bg-yellow-600 text-yellow-100">
                             <Star className="h-3 w-3 mr-1" />
                             {output.score}
                           </Badge>
@@ -333,7 +397,7 @@ export default function ApprovalQueue() {
                       </div>
 
                       {/* Timestamps */}
-                      <div className="text-xs text-gray-500 mb-3">
+                      <div className="text-xs text-gray-400 mb-3">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {new Date(output.created_at).toLocaleDateString()}
@@ -345,7 +409,7 @@ export default function ApprovalQueue() {
                               href={output.published_url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
+                              className="text-blue-400 hover:underline"
                             >
                               View Post
                             </a>
@@ -360,7 +424,7 @@ export default function ApprovalQueue() {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="text-xs h-7 text-green-600 border-green-300"
+                              className="text-xs h-7 text-green-400 border-green-600 hover:bg-green-900/20"
                               onClick={() => setApprovalModal({
                                 show: true,
                                 output,
@@ -373,7 +437,7 @@ export default function ApprovalQueue() {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="text-xs h-7 text-red-600 border-red-300"
+                              className="text-xs h-7 text-red-400 border-red-600 hover:bg-red-900/20"
                               onClick={() => setApprovalModal({
                                 show: true,
                                 output,
@@ -386,12 +450,12 @@ export default function ApprovalQueue() {
                           </>
                         )}
 
-                        {(output.status === 'approved' && !output.publish_config) && (
+                        {output.status === 'approved' && (
                           <>
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="text-xs h-7"
+                              className="text-xs h-7 text-blue-400 border-blue-600 hover:bg-blue-900/20"
                               onClick={() => {
                                 // TODO: Schedule post
                               }}
@@ -399,17 +463,50 @@ export default function ApprovalQueue() {
                               <Calendar className="h-3 w-3 mr-1" />
                               Schedule
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-xs h-7"
-                              onClick={() => {
-                                // TODO: Post now
-                              }}
-                            >
-                              <Send className="h-3 w-3 mr-1" />
-                              Post Now
-                            </Button>
+                            
+                            {/* Only show Post to X for Twitter/X content */}
+                            {(output.content_type === 'twitter' || output.content_type === 'x') && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 text-green-400 border-green-600 hover:bg-green-900/20"
+                                onClick={() => handlePostToTwitter(output)}
+                              >
+                                <Send className="h-3 w-3 mr-1" />
+                                Post to X
+                              </Button>
+                            )}
+                            
+                            {/* Show LinkedIn post button for LinkedIn content */}
+                            {output.content_type === 'linkedin' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 text-blue-400 border-blue-600 hover:bg-blue-900/20"
+                                onClick={() => {
+                                  // TODO: Implement LinkedIn posting
+                                  setError('LinkedIn posting not yet implemented')
+                                }}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Post to LinkedIn
+                              </Button>
+                            )}
+                            
+                            {/* Generic post button for other content types */}
+                            {!['twitter', 'x', 'linkedin'].includes(output.content_type) && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 text-gray-400 border-gray-600 hover:bg-gray-700/20"
+                                onClick={() => {
+                                  setError(`Direct posting not available for ${output.content_type} content. Use Schedule instead.`)
+                                }}
+                              >
+                                <Send className="h-3 w-3 mr-1" />
+                                Post ({output.content_type})
+                              </Button>
+                            )}
                           </>
                         )}
 
@@ -441,31 +538,36 @@ export default function ApprovalQueue() {
       {/* Approval Modal */}
       {approvalModal.show && approvalModal.output && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-white">
                 {approvalModal.action === 'approve' ? '✅ Approve' : '❌ Reject'} Content
               </h3>
-              <Button 
-                variant="outline" 
-                onClick={() => setApprovalModal({ show: false, output: null, action: 'approve' })}
-              >
-                Cancel
-              </Button>
             </div>
 
             {/* Content Preview */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-gray-800 mb-2">Content:</h4>
-              <p className="text-gray-700 leading-relaxed">
-                {approvalModal.output.generated_content}
+            <div className="bg-gray-700 rounded-lg p-4 mb-4">
+              <h4 className="font-medium text-white mb-2">Content:</h4>
+              <p className="text-gray-300 leading-relaxed">
+                {(() => {
+                  try {
+                    const content = approvalModal.output.generated_content;
+                    if (typeof content === 'string' && content.startsWith('{')) {
+                      const parsed = JSON.parse(content);
+                      return parsed.text || parsed.content || content;
+                    }
+                    return content;
+                  } catch {
+                    return approvalModal.output.generated_content;
+                  }
+                })()}
               </p>
             </div>
 
             {/* Approval Form */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Score (1-10) *
                 </label>
                 <input
@@ -479,7 +581,7 @@ export default function ApprovalQueue() {
                   })}
                   className="w-full"
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
                   <span>1 (Poor)</span>
                   <span className="font-medium">Score: {approvalForm.score}</span>
                   <span>10 (Excellent)</span>
@@ -487,7 +589,7 @@ export default function ApprovalQueue() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Feedback (Optional)
                 </label>
                 <textarea
@@ -497,7 +599,7 @@ export default function ApprovalQueue() {
                     feedback: e.target.value
                   })}
                   placeholder="Add your feedback or suggestions..."
-                  className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg resize-none text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   rows={3}
                 />
               </div>
@@ -506,8 +608,8 @@ export default function ApprovalQueue() {
                 <Button
                   onClick={handleApproval}
                   className={approvalModal.action === 'approve' ? 
-                    'bg-green-600 hover:bg-green-700' : 
-                    'bg-red-600 hover:bg-red-700'
+                    'bg-green-700 hover:bg-green-800 text-white' : 
+                    'bg-red-700 hover:bg-red-800 text-white'
                   }
                 >
                   {approvalModal.action === 'approve' ? 'Approve' : 'Reject'} Content
@@ -515,10 +617,91 @@ export default function ApprovalQueue() {
                 <Button 
                   variant="outline" 
                   onClick={() => setApprovalModal({ show: false, output: null, action: 'approve' })}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                 >
                   Cancel
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Twitter Credential Modal */}
+      {twitterModal.show && twitterModal.output && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-white">🐦 Post to X</h3>
+              <p className="text-gray-400 text-sm mt-1">Enter your Arcade credentials to post</p>
+            </div>
+
+            {/* Content Preview */}
+            <div className="bg-gray-700 rounded-lg p-3 mb-4">
+              <h4 className="font-medium text-white mb-2 text-sm">Content to post:</h4>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                {(() => {
+                  try {
+                    const content = twitterModal.output.generated_content;
+                    if (typeof content === 'string' && content.startsWith('{')) {
+                      const parsed = JSON.parse(content);
+                      const text = parsed.text || parsed.content || content;
+                      return text.length > 150 ? text.substring(0, 150) + '...' : text;
+                    }
+                    const text = content.toString();
+                    return text.length > 150 ? text.substring(0, 150) + '...' : text;
+                  } catch {
+                    return twitterModal.output.generated_content.toString().substring(0, 150) + '...';
+                  }
+                })()}
+              </p>
+            </div>
+
+            {/* Credential Form */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Arcade User ID
+                </label>
+                <input
+                  type="text"
+                  value={twitterCredentials.arcade_user_id}
+                  onChange={(e) => setTwitterCredentials(prev => ({ ...prev, arcade_user_id: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your Arcade User ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Arcade API Key
+                </label>
+                <input
+                  type="password"
+                  value={twitterCredentials.arcade_api_key}
+                  onChange={(e) => setTwitterCredentials(prev => ({ ...prev, arcade_api_key: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your Arcade API Key"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3">
+              <Button
+                onClick={() => setTwitterModal({ show: false, output: null })}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={submitTwitterPost}
+                disabled={!twitterCredentials.arcade_user_id || !twitterCredentials.arcade_api_key}
+                className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Post to X
+              </Button>
             </div>
           </div>
         </div>
