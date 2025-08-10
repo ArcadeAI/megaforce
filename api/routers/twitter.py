@@ -196,7 +196,6 @@ async def search_twitter(
                 content=doc.content,
                 url=doc_url,
                 author=getattr(doc, 'author', None),
-                score=getattr(doc, 'score', 0),
                 reference_type="tweet",
                 run_id=run.id,
                 owner_id=current_user.id
@@ -223,11 +222,15 @@ async def search_twitter(
                 content=doc.content,
                 url=doc.url,
                 author=doc.author,
-                score=doc.score,
-                priority=doc.priority,
-                platform_data=doc.platform_data,
-                run_id=doc.run_id,
+                score=0,  # Default score since Document model doesn't have this field
+                priority=0,  # Default priority since Document model doesn't have this field
+                platform_data={},  # Default empty dict since Document model doesn't have this field
+                document_type=doc.reference_type or "tweet",
+                reference_type=doc.reference_type,
                 owner_id=doc.owner_id,
+                is_style_reference=False,  # Default for tweets
+                persona_ids=doc.persona_ids or [],
+                run_id=doc.run_id,
                 created_at=doc.created_at
             )
             for doc in saved_documents
