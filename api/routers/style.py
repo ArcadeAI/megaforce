@@ -195,8 +195,28 @@ async def generate_comments(
             style_definition=default_style
         ))
 
-    # Define the output schema for the agent
-    output_schemas = [OutputSchema(name="linkedin_comment", description="A professional LinkedIn comment", output_type=CommonOutputType.LINKEDIN_COMMENT)]
+    # Define the output schema for the agent based on requested content type
+    content_type_mapping = {
+        "tweet_single": (CommonOutputType.TWEET_SINGLE, "A single tweet", "tweet"),
+        "tweet_thread": (CommonOutputType.TWITTER_THREAD, "A Twitter thread", "twitter_thread"),
+        "twitter_reply": (CommonOutputType.TWITTER_REPLY, "A Twitter reply", "twitter_reply"),
+        "linkedin_post": (CommonOutputType.LINKEDIN_POST, "A LinkedIn post", "linkedin_post"),
+        "linkedin_comment": (CommonOutputType.LINKEDIN_COMMENT, "A LinkedIn comment", "linkedin_comment"),
+        "social_comment": (CommonOutputType.SOCIAL_COMMENT, "A social media comment", "social_comment"),
+        "blog_post": (CommonOutputType.BLOG_POST, "A blog post", "blog_post"),
+        "reddit_comment": (CommonOutputType.REDDIT_COMMENT, "A Reddit comment", "reddit_comment"),
+        "facebook_comment": (CommonOutputType.FACEBOOK_COMMENT, "A Facebook comment", "facebook_comment"),
+        "instagram_comment": (CommonOutputType.INSTAGRAM_COMMENT, "An Instagram comment", "instagram_comment"),
+        "youtube_comment": (CommonOutputType.YOUTUBE_COMMENT, "A YouTube comment", "youtube_comment")
+    }
+    
+    # Get the mapping for the requested content type, default to linkedin_comment if not found
+    output_type, description, name = content_type_mapping.get(
+        request.content_type, 
+        (CommonOutputType.LINKEDIN_COMMENT, "A professional LinkedIn comment", "linkedin_comment")
+    )
+    
+    output_schemas = [OutputSchema(name=name, description=description, output_type=output_type)]
 
     # Construct the request for the style agent
     from common.schemas import StyleTransferRequest as AgentStyleTransferRequest

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -16,6 +16,7 @@ import {
   Wand2
 } from "lucide-react"
 import { useAuth } from "./auth-context"
+import { apiClient } from "./api-client"
 
 const navigationSections = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -32,6 +33,43 @@ interface SidebarProps {
 
 export function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
   const { user, logout } = useAuth()
+  const [stats, setStats] = useState({
+    commentsGenerated: 0,
+    postsPublished: 0,
+    approvalRate: 0
+  })
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch real data from API
+        const [outputsData] = await Promise.all([
+          apiClient.getOutputs().catch(() => [])
+        ])
+
+        // Calculate real stats
+        const totalOutputs = outputsData.length
+        const publishedOutputs = outputsData.filter((output: any) => 
+          output.status === 'published' || output.status === 'approved'
+        ).length
+        const approvedOutputs = outputsData.filter((output: any) => 
+          output.status === 'approved' || output.status === 'published'
+        ).length
+        
+        const approvalRate = totalOutputs > 0 ? Math.round((approvedOutputs / totalOutputs) * 100) : 0
+
+        setStats({
+          commentsGenerated: totalOutputs,
+          postsPublished: publishedOutputs,
+          approvalRate: approvalRate
+        })
+      } catch (error) {
+        console.error('Failed to fetch sidebar stats:', error)
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   return (
     <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
@@ -67,15 +105,15 @@ export function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-400">Comments Generated</span>
-                <span className="text-white">24</span>
+                <span className="text-white">{stats.commentsGenerated}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Posts Published</span>
-                <span className="text-white">8</span>
+                <span className="text-white">{stats.postsPublished}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Approval Rate</span>
-                <span className="text-green-400">92%</span>
+                <span className="text-green-400">{stats.approvalRate}%</span>
               </div>
             </div>
           </div>

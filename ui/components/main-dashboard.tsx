@@ -104,49 +104,108 @@ export function MainDashboard() {
   const [selectedTweet, setSelectedTweet] = useState<Tweet | null>(null)
   const [tweets, setTweets] = useState<Tweet[]>([])
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
-
+  const [dashboardStats, setDashboardStats] = useState({
+    totalRuns: 0,
+    totalOutputs: 0,
+    pendingApprovals: 0,
+    approvedContent: 0,
+    totalPersonas: 0,
+    totalDocuments: 0
+  })
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch all dashboard data in parallel
+        const [runsData, outputsData, personasData, documentsData] = await Promise.all([
+          apiClient.getRuns().catch(() => []),
+          apiClient.getOutputs().catch(() => []),
+          apiClient.getPersonas().catch(() => []),
+          apiClient.getDocuments().catch(() => [])
+        ])
+        
+        // Calculate stats from real data
+        const pendingCount = outputsData.filter((output: any) => output.status === 'pending_review').length
+        const approvedCount = outputsData.filter((output: any) => output.status === 'approved').length
+        
+        setDashboardStats({
+          totalRuns: runsData.length,
+          totalOutputs: outputsData.length,
+          pendingApprovals: pendingCount,
+          approvedContent: approvedCount,
+          totalPersonas: personasData.length,
+          totalDocuments: documentsData.length
+        })
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error)
+      }
+    }
+    
     const fetchTweets = async () => {
       try {
         setLoading(true)
-        // Use the existing Twitter search endpoint with "the_dog" user data
-        const searchResult = await apiClient.searchTwitter({
-          search_type: "keywords",
-          search_query: "AI OR tech OR startup",
-          limit: 10
-        })
+        // Fetch only posted/published tweets from our outputs
+        const outputsData = await apiClient.getOutputs()
         
-        // Transform API response to our Tweet interface
-        const transformedTweets: Tweet[] = searchResult.data?.map((tweet: any, index: number) => ({
-          id: tweet.id || `tweet-${index}`,
-          text: tweet.text || tweet.full_text || "No content available",
-          author: {
-            username: tweet.author?.username || tweet.user?.screen_name || "unknown",
-            name: tweet.author?.name || tweet.user?.name || "Unknown User",
-            profile_image_url: tweet.author?.profile_image_url || tweet.user?.profile_image_url
-          },
-          public_metrics: {
-            retweet_count: tweet.public_metrics?.retweet_count || tweet.retweet_count || 0,
-            like_count: tweet.public_metrics?.like_count || tweet.favorite_count || 0,
-            reply_count: tweet.public_metrics?.reply_count || tweet.reply_count || 0,
-            quote_count: tweet.public_metrics?.quote_count || tweet.quote_count || 0
-          },
-          created_at: tweet.created_at || new Date().toISOString(),
-          search_query: "AI OR tech OR startup",
-          url: tweet.url || `https://twitter.com/${tweet.author?.username || 'unknown'}/status/${tweet.id}`
-        })) || []
+        // Filter for published tweets only
+        const publishedTweets = outputsData.filter((output: any) => 
+          output.status === 'published' && 
+          output.published_url && 
+          (output.content_type === 'twitter' || output.content_type === 'x')
+        )
+        
+        // Transform to Tweet interface for display
+        const transformedTweets: Tweet[] = publishedTweets.map((output: any, index: number) => {
+          // Extract tweet ID from published URL if available
+          const tweetId = output.published_url?.match(/status\/(\d+)/)?.[1] || `output-${output.id}`
+          
+          // Parse content from JSON if needed
+          let tweetText = output.generated_content
+          if (typeof tweetText === 'object' && tweetText?.text) {
+            tweetText = tweetText.text
+          } else if (typeof tweetText === 'string') {
+            try {
+              const parsed = JSON.parse(tweetText)
+              tweetText = parsed.text || parsed.content || tweetText
+            } catch {
+              // Use as-is if not JSON
+            }
+          }
+          
+          return {
+            id: tweetId,
+            text: tweetText || "No content available",
+            author: {
+              username: "the_dog", // Your username
+              name: "Theo", // Your name
+              profile_image_url: undefined
+            },
+            public_metrics: {
+              // Placeholder metrics - we can't capture these yet
+              retweet_count: 0, // TODO: Fetch from Twitter API
+              like_count: 0,    // TODO: Fetch from Twitter API  
+              reply_count: 0,   // TODO: Fetch from Twitter API
+              quote_count: 0    // TODO: Fetch from Twitter API
+            },
+            created_at: output.published_at || output.created_at || new Date().toISOString(),
+            search_query: "Posted via Megaforce",
+            url: output.published_url || `https://twitter.com/the_dog/status/${tweetId}`
+          }
+        })
         
         setTweets(transformedTweets)
       } catch (error) {
         console.error('Failed to fetch tweets:', error)
-        // Fallback to sample data for development
-        setTweets(getSampleTweets())
+        // No fallback - show empty state instead of dummy data
+        setTweets([])
       } finally {
         setLoading(false)
       }
     }
     
+    // Fetch both dashboard stats and tweets
+    fetchDashboardData()
     fetchTweets()
   }, [])
 
@@ -158,12 +217,12 @@ export function MainDashboard() {
     <div className="flex-1 flex">
       <div className="flex-1 p-4">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-white mb-2">Latest Tweets</h2>
-          <p className="text-gray-400">Recent tweets from your tracked searches</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Your Posted Tweets</h2>
+          <p className="text-gray-400">Tweets you've published via Megaforce • Connected as: the_dog</p>
         </div>
 
         <div className="grid gap-4 mb-6">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-6 gap-4">
             <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
@@ -207,11 +266,37 @@ export function MainDashboard() {
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Searches</p>
-                    <p className="text-2xl font-bold text-white">3</p>
+                    <p className="text-sm text-gray-400">Search Runs</p>
+                    <p className="text-2xl font-bold text-white">{dashboardStats.totalRuns}</p>
                   </div>
                   <div className="text-orange-400">
                     <TrendingUp className="w-5 h-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Generated Content</p>
+                    <p className="text-2xl font-bold text-white">{dashboardStats.totalOutputs}</p>
+                  </div>
+                  <div className="text-green-400">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Pending Approval</p>
+                    <p className="text-2xl font-bold text-white">{dashboardStats.pendingApprovals}</p>
+                  </div>
+                  <div className="text-yellow-400">
+                    <Clock className="w-5 h-5" />
                   </div>
                 </div>
               </CardContent>
