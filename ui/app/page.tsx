@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Sidebar } from "../components/sidebar"
 import { MainDashboard } from "../components/main-dashboard"
@@ -11,7 +11,7 @@ import ApprovalQueue from "../components/approval-queue"
 import { LoginForm } from "../components/login-form"
 import { useAuth } from "../components/auth-context"
 
-export default function HomePage() {
+function HomePageContent() {
   const { user, loading } = useAuth()
   const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState("dashboard")
@@ -69,5 +69,13 @@ export default function HomePage() {
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
       {renderMainContent()}
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen bg-gray-900 text-white items-center justify-center">Loading...</div>}>
+      <HomePageContent />
+    </Suspense>
   )
 }
