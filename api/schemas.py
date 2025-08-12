@@ -108,6 +108,7 @@ class RunBase(BaseModel):
 class RunResponse(RunBase):
     id: str
     input_source_id: str
+    input_source: Optional[InputSourceResponse] = None
     started_at: datetime
     completed_at: Optional[datetime] = None
 
