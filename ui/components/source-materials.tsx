@@ -909,31 +909,57 @@ export default function SourceMaterials() {
               <div>
                 <label className="text-sm font-medium text-gray-300">Search Parameters</label>
                 <div className="bg-gray-700 rounded p-3 mt-1">
-                  {selectedRun.meta_data?.search_query && (
-                    <p className="text-white text-sm mb-2">
-                      <strong>Query:</strong> "{selectedRun.meta_data.search_query}"
-                    </p>
-                  )}
-                  {selectedRun.meta_data?.search_type && (
-                    <p className="text-white text-sm mb-2">
-                      <strong>Search Type:</strong> {selectedRun.meta_data.search_type}
-                    </p>
-                  )}
-                  {selectedRun.meta_data?.limit && (
-                    <p className="text-white text-sm mb-2">
-                      <strong>Limit:</strong> {selectedRun.meta_data.limit} results
-                    </p>
-                  )}
-                  {selectedRun.meta_data?.rank_tweets !== undefined && (
-                    <p className="text-white text-sm mb-2">
-                      <strong>Ranked:</strong> {selectedRun.meta_data.rank_tweets ? 'Yes' : 'No'}
-                    </p>
-                  )}
-                  {selectedRun.meta_data?.llm_provider && (
-                    <p className="text-white text-sm mb-2">
-                      <strong>LLM:</strong> {selectedRun.meta_data.llm_provider} ({selectedRun.meta_data.llm_model || 'default model'})
-                    </p>
-                  )}
+                  {/* Try to get search parameters from input_source.config first, then fallback to meta_data */}
+                  {(() => {
+                    const searchConfig = selectedRun.input_source?.config || selectedRun.meta_data || {};
+                    const hasParams = searchConfig.search_query || searchConfig.search_type || searchConfig.limit;
+                    
+                    if (!hasParams) {
+                      return (
+                        <p className="text-gray-400 text-sm">No search parameters available</p>
+                      );
+                    }
+                    
+                    return (
+                      <>
+                        {searchConfig.search_query && (
+                          <p className="text-white text-sm mb-2">
+                            <strong>Query:</strong> "{searchConfig.search_query}"
+                          </p>
+                        )}
+                        {searchConfig.search_type && (
+                          <p className="text-white text-sm mb-2">
+                            <strong>Search Type:</strong> {searchConfig.search_type}
+                          </p>
+                        )}
+                        {searchConfig.limit && (
+                          <p className="text-white text-sm mb-2">
+                            <strong>Limit:</strong> {searchConfig.limit} results
+                          </p>
+                        )}
+                        {searchConfig.rank_tweets !== undefined && (
+                          <p className="text-white text-sm mb-2">
+                            <strong>Ranked:</strong> {searchConfig.rank_tweets ? 'Yes' : 'No'}
+                          </p>
+                        )}
+                        {(searchConfig.llm_provider || selectedRun.meta_data?.llm_provider) && (
+                          <p className="text-white text-sm mb-2">
+                            <strong>LLM:</strong> {searchConfig.llm_provider || selectedRun.meta_data?.llm_provider} ({searchConfig.llm_model || selectedRun.meta_data?.llm_model || 'default model'})
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
+                  
+                  {/* Show full run object for debugging */}
+                  <details className="mt-3">
+                    <summary className="text-gray-300 text-xs cursor-pointer hover:text-white">
+                      Full Run Object (Debug)
+                    </summary>
+                    <pre className="text-xs text-gray-400 mt-2 overflow-x-auto">
+                      {JSON.stringify(selectedRun, null, 2)}
+                    </pre>
+                  </details>
                   
                   {/* Show raw metadata for debugging */}
                   {selectedRun.meta_data && (
@@ -957,10 +983,6 @@ export default function SourceMaterials() {
                         {JSON.stringify(selectedRun.input_source, null, 2)}
                       </pre>
                     </details>
-                  )}
-                  
-                  {!selectedRun.meta_data && !selectedRun.input_source && (
-                    <p className="text-gray-400 text-sm italic">No search parameters available</p>
                   )}
                 </div>
               </div>

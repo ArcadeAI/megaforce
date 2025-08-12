@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from api.database import get_db
@@ -15,7 +15,7 @@ async def list_runs(
     current_user = Depends(get_current_user)
 ):
     """List all runs for the current user."""
-    runs = db.query(Run).join(Run.input_source).filter(
+    runs = db.query(Run).options(joinedload(Run.input_source)).join(Run.input_source).filter(
         Run.input_source.has(owner_id=current_user.id)
     ).all()
     return runs
@@ -27,7 +27,7 @@ async def get_run(
     current_user = Depends(get_current_user)
 ):
     """Get a specific run."""
-    run = db.query(Run).join(Run.input_source).filter(
+    run = db.query(Run).options(joinedload(Run.input_source)).join(Run.input_source).filter(
         Run.id == run_id,
         Run.input_source.has(owner_id=current_user.id)
     ).first()
