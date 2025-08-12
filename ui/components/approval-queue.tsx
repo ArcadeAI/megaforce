@@ -96,6 +96,7 @@ export default function ApprovalQueue() {
   const [selectedContentType, setSelectedContentType] = useState<string>('all')
   
   // Modals
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{show: boolean, outputId: string, title: string}>({show: false, outputId: '', title: ''})
   const [approvalModal, setApprovalModal] = useState<{
     show: boolean
     output: OutputSchema | null
@@ -339,18 +340,53 @@ export default function ApprovalQueue() {
     }
   }
 
-  // Handle delete
-  const handleDelete = async (outputId: string) => {
-    if (!confirm('Are you sure you want to delete this output?')) return
+  // Handle delete - show confirmation modal
+  const handleDelete = (outputId: string) => {
+    const output = outputs.find(o => o.id === outputId)
+    const title = output ? formatContentPreview(output.generated_content, 50) : 'this output'
+    console.log(`🗑️ Preparing to delete output: ${outputId} - "${title}"`)
+    setDeleteConfirmation({
+      show: true,
+      outputId: outputId,
+      title: title
+    })
+  }
+
+  // Confirm delete after modal confirmation
+  const confirmDelete = async () => {
+    const outputId = deleteConfirmation.outputId
+    const title = deleteConfirmation.title
+    
+    // Immediately hide the dialog to improve UX
+    setDeleteConfirmation({show: false, outputId: '', title: ''})
+    
+    // Show a loading message
+    setError(`Deleting "${title}"...`)
     
     try {
+      console.log(`🗑️ DELETE API CALL: Deleting output ${outputId} - "${title}"`)
+      
+      // Optimistically remove from UI first
+      setOutputs(prevOutputs => prevOutputs.filter(output => output.id !== outputId))
+      
+      // Call delete API
       await apiClient.deleteOutput(outputId)
+      console.log('✅ Output deleted successfully:', outputId)
+      
+      // Refresh data to ensure consistency
       await fetchData()
       setError('Output deleted successfully')
     } catch (err) {
       console.error('❌ Error deleting output:', err)
       setError('Failed to delete output')
+      // Refresh data to restore UI state if delete failed
+      await fetchData()
     }
+  }
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setDeleteConfirmation({show: false, outputId: '', title: ''})
   }
 
   // Format content preview
@@ -507,17 +543,21 @@ export default function ApprovalQueue() {
                           <Clock className="h-3 w-3" />
                           {new Date(output.created_at).toLocaleDateString()}
                         </div>
-                        {output.published_url && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <ExternalLink className="h-3 w-3" />
-                            <a 
-                              href={output.published_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:underline"
-                            >
-                              View Post
-                            </a>
+                        {/* URL Link - Only for Posted items */}
+                        {output.status === 'posted' && (
+                          <div className="mt-1">
+                            {output.published_url ? (
+                              <a 
+                                href={output.published_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:underline text-xs"
+                              >
+                                View Post
+                              </a>
+                            ) : (
+                              <span className="text-gray-500 text-xs">URL not saved</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -628,6 +668,19 @@ export default function ApprovalQueue() {
                               </Button>
                             )}
                           </>
+                        )}
+
+                        {/* URL for posted items */}
+                        {output.published_url && (
+                          <a 
+                            href={output.published_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-400 hover:underline text-xs px-2 py-1 border border-blue-600 rounded hover:bg-blue-900/20"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View Post
+                          </a>
                         )}
 
                         <Button 
@@ -951,6 +1004,34 @@ export default function ApprovalQueue() {
               >
                 <Send className="h-4 w-4 mr-2" />
                 Post to X
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">Confirm Deletion</h3>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to permanently delete "{deleteConfirmation.title}"? 
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={cancelDelete}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete Permanently
               </Button>
             </div>
           </div>

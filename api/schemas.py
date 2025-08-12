@@ -179,6 +179,7 @@ class OutputSchemaUpdate(BaseModel):
     score: Optional[float] = None
     feedback_notes: Optional[str] = None
     publish_config: Optional[Dict[str, Any]] = None
+    published_url: Optional[str] = None
 
 
 class OutputSchemaResponse(OutputSchemaBase):

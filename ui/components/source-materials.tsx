@@ -74,6 +74,7 @@ export default function SourceMaterials() {
     searchQuery: '',
     searchType: 'keywords',
     limit: 20,
+    target_number: 5,
     rank_tweets: true,  // Re-enabled now that OpenAI API key is available
     llm_provider: 'openai',
     llm_model: 'gpt-4o-mini',
@@ -247,6 +248,7 @@ export default function SourceMaterials() {
         search_type: newRunForm.searchType as 'keywords' | 'user',
         search_query: newRunForm.searchQuery,
         limit: newRunForm.limit,
+        target_number: newRunForm.target_number || 5, // Use form value or default to 5
         rank_tweets: newRunForm.rank_tweets,
         llm_provider: newRunForm.llm_provider,
         llm_model: newRunForm.llm_model,
@@ -576,7 +578,8 @@ export default function SourceMaterials() {
           
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Limit
+              Fetch Limit
+              <span className="text-xs text-gray-400 block">Raw tweets to fetch from Twitter API</span>
             </label>
             <Input
               type="number"
@@ -584,6 +587,21 @@ export default function SourceMaterials() {
               max="100"
               value={newRunForm.limit}
               onChange={(e) => setNewRunForm(prev => ({ ...prev, limit: parseInt(e.target.value) || 20 }))}
+              className="bg-gray-700 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Final Results
+              <span className="text-xs text-gray-400 block">Top tweets to keep after AI ranking</span>
+            </label>
+            <Input
+              type="number"
+              min="1"
+              max="50"
+              value={newRunForm.target_number || 5}
+              onChange={(e) => setNewRunForm(prev => ({ ...prev, target_number: parseInt(e.target.value) || 5 }))}
               className="bg-gray-700 border-gray-600 text-white"
             />
           </div>
@@ -911,12 +929,35 @@ export default function SourceMaterials() {
                 <div className="bg-gray-700 rounded p-3 mt-1">
                   {/* Try to get search parameters from input_source.config first, then fallback to meta_data */}
                   {(() => {
+                    // Debug logging
+                    console.log('selectedRun:', selectedRun);
+                    console.log('selectedRun.input_source:', selectedRun.input_source);
+                    console.log('selectedRun.meta_data:', selectedRun.meta_data);
+                    
                     const searchConfig = selectedRun.input_source?.config || selectedRun.meta_data || {};
+                    console.log('searchConfig:', searchConfig);
+                    
                     const hasParams = searchConfig.search_query || searchConfig.search_type || searchConfig.limit;
                     
                     if (!hasParams) {
                       return (
-                        <p className="text-gray-400 text-sm">No search parameters available</p>
+                        <div>
+                          <p className="text-gray-400 text-sm">No search parameters available</p>
+                          <details className="mt-2">
+                            <summary className="text-gray-300 text-xs cursor-pointer hover:text-white">
+                              Debug Info
+                            </summary>
+                            <pre className="text-xs text-gray-400 mt-2 overflow-x-auto">
+                              {JSON.stringify({
+                                hasInputSource: !!selectedRun.input_source,
+                                inputSource: selectedRun.input_source,
+                                hasMetaData: !!selectedRun.meta_data,
+                                metaData: selectedRun.meta_data,
+                                searchConfig: searchConfig
+                              }, null, 2)}
+                            </pre>
+                          </details>
+                        </div>
                       );
                     }
                     
@@ -951,15 +992,7 @@ export default function SourceMaterials() {
                     );
                   })()}
                   
-                  {/* Show full run object for debugging */}
-                  <details className="mt-3">
-                    <summary className="text-gray-300 text-xs cursor-pointer hover:text-white">
-                      Full Run Object (Debug)
-                    </summary>
-                    <pre className="text-xs text-gray-400 mt-2 overflow-x-auto">
-                      {JSON.stringify(selectedRun, null, 2)}
-                    </pre>
-                  </details>
+
                   
                   {/* Show raw metadata for debugging */}
                   {selectedRun.meta_data && (

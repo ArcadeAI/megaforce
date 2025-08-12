@@ -32,11 +32,13 @@ interface Run {
   id: string;
   name: string;
   created_at: string;
+  started_at?: string;
   status?: string;
   input_source?: {
     source_type?: string;
     search_query?: string;
     query?: string;
+    config?: any;
   };
   document_count?: number;
   documents?: any[];
@@ -237,6 +239,13 @@ export default function GenerateContent() {
           setGenerating(false);
           return;
         }
+        // Validate that the run has documents before sending
+        const selectedRunData = runs.find(r => r.id === selectedRun);
+        if (!selectedRunData || !selectedRunData.documents || selectedRunData.documents.length === 0) {
+          alert('Selected search run has no documents. Please choose a different run or use custom content.');
+          setGenerating(false);
+          return;
+        }
         requestBody.run_id = selectedRun;
       } else if (contentSource === 'custom') {
         if (!customContent.trim()) {
@@ -412,60 +421,84 @@ export default function GenerateContent() {
                         const dateB = new Date(b.created_at || b.started_at || '1970-01-01').getTime();
                         return dateB - dateA;
                       })
-                      .map((run) => {
-                        // Extract search details from run metadata
-                        const searchType = run.input_source?.source_type || 'Twitter';
-                        
-                        // Extract search query from input_source or metadata
-                        let searchQuery = run.input_source?.search_query || 
-                                        run.input_source?.query || 
-                                        run.meta_data?.search_query ||
-                                        run.meta_data?.query ||
-                                        'Unknown query';
-                        
-                        // Truncate long queries for display
-                        const displayQuery = searchQuery.length > 30 ? 
-                                           searchQuery.substring(0, 30) + '...' : 
-                                           searchQuery;
-                        
-                        // Format date
-                        const formatDate = () => {
-                          const dateStr = run.created_at || run.started_at;
-                          if (dateStr) {
-                            try {
-                              return new Date(dateStr).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              });
-                            } catch (e) {
-                              return 'No date';
-                            }
-                          }
-                          return 'No date';
-                        };
-                        
-                        // Count results
-                        const resultCount = run.documents?.length || 0;
-                        
-                        return (
-                          <SelectItem key={run.id} value={run.id} className="text-white hover:bg-gray-600 py-3">
-                            <div className="flex flex-col space-y-1 w-full">
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-white truncate">
-                                  {searchType} Search - {formatDate()}
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                  {resultCount} results
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-300">
-                                Query: "{displayQuery}"
-                              </div>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
+                       .map((run) => {
+                         // Extract search details from run metadata
+                         const sourceType = run.input_source?.source_type || 'twitter_keywords';
+                         
+                         // Convert source type to display format
+                         const searchType = sourceType === 'twitter_keywords' ? 'X' : 
+                                          sourceType === 'twitter_user' ? 'X User' :
+                                          sourceType === 'twitter_hashtag' ? 'X Hashtag' :
+                                          'X';
+                         
+                         // Extract search query from input_source, config, or metadata
+                         let searchQuery = run.input_source?.search_query || 
+                                         run.input_source?.query || 
+                                         run.input_source?.config?.search_query ||
+                                         run.input_source?.config?.query ||
+                                         run.meta_data?.search_query ||
+                                         run.meta_data?.query ||
+                                         run.name || // Fallback to run name which might contain query info
+                                         'Unknown query';
+                         
+                         // Extract search parameters from input_source config
+                         const config = run.input_source?.config || {};
+                         const fetchLimit = config.limit || run.meta_data?.limit || 'N/A';
+                         const finalResults = config.target_number || run.meta_data?.target_number || 'N/A';
+                         const rankTweets = config.rank_tweets !== undefined ? config.rank_tweets : run.meta_data?.rank_tweets;
+                         const searchTypeDetail = config.search_type || run.meta_data?.search_type || 'keywords';
+                         
+                         // Truncate long queries for display
+                         const displayQuery = searchQuery.length > 25 ? 
+                                            searchQuery.substring(0, 25) + '...' : 
+                                            searchQuery;
+                         
+                         // Format date
+                         const formatDate = () => {
+                           const dateStr = run.created_at || run.started_at;
+                           if (dateStr) {
+                             try {
+                               return new Date(dateStr).toLocaleDateString('en-US', {
+                                 month: 'short',
+                                 day: 'numeric',
+                                 hour: '2-digit',
+                                 minute: '2-digit'
+                               });
+                             } catch (e) {
+                               return 'No date';
+                             }
+                           }
+                           return 'No date';
+                         };
+                         
+                         // Count results
+                         const resultCount = run.documents?.length || 0;
+                         
+                         return (
+                           <SelectItem key={run.id} value={run.id} className="text-white hover:bg-gray-600 data-[highlighted]:bg-gray-600 data-[highlighted]:text-white py-4">
+                             <div className="flex flex-col space-y-1 w-full">
+                               <div className="flex items-center justify-between">
+                                 <span className="font-medium truncate">
+                                   {searchType} • {searchTypeDetail} • {formatDate()}
+                                 </span>
+                                 <span className="text-xs font-medium opacity-80">
+                                   {resultCount} results
+                                 </span>
+                               </div>
+                               <div className="text-xs opacity-90">
+                                 Query: "{displayQuery}"
+                               </div>
+                               <div className="flex items-center justify-between text-xs opacity-80">
+                                 <span>Fetch: {fetchLimit} → Final: {finalResults}</span>
+                                 <span className="flex items-center gap-1">
+                                   {rankTweets && <span className="text-green-400">✓ Ranked</span>}
+                                   {rankTweets === false && <span className="opacity-60">No Ranking</span>}
+                                 </span>
+                               </div>
+                             </div>
+                           </SelectItem>
+                         );
+                       })}
                   </SelectContent>
                 </Select>
                 {selectedRun && (
@@ -568,15 +601,25 @@ export default function GenerateContent() {
           {/* Temperature */}
           <div>
             <Label className="text-gray-300">Temperature: {temperature}</Label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full"
-            />
+            <div className="relative mt-2">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={temperature}
+                onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${temperature * 100}%, #374151 ${temperature * 100}%, #374151 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0.0 (Focused)</span>
+                <span>0.5 (Balanced)</span>
+                <span>1.0 (Creative)</span>
+              </div>
+            </div>
           </div>
 
           {/* API Key */}
