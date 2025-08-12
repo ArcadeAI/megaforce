@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { AuthProvider } from '@/components/auth-context'
+import { AuthProvider } from '../components/auth-context'
 
 export const metadata: Metadata = {
   title: 'Megaforce - AI Social Media Management',
