@@ -428,6 +428,19 @@ class ApiClient {
     return this.request('/api/v1/outputs/')
   }
   
+  async createOutput(outputData: {
+    content_type: string
+    generated_content: string
+    persona_id: string
+    source_document_id?: string
+    publish_config?: Record<string, any>
+  }): Promise<any> {
+    return this.request('/api/v1/outputs/', {
+      method: 'POST',
+      body: JSON.stringify(outputData),
+    })
+  }
+  
   async approveOutput(id: string, score: number, feedback?: string): Promise<any> {
     return this.request(`/api/v1/outputs/${id}/approve`, {
       method: 'POST',
@@ -442,6 +455,20 @@ class ApiClient {
     })
   }
   
+  async updateOutput(id: string, updateData: {
+    status?: string
+    generated_content?: string
+    score?: number
+    feedback_notes?: string
+    publish_config?: Record<string, any>
+    published_url?: string
+  }): Promise<any> {
+    return this.request(`/api/v1/outputs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    })
+  }
+
   async deleteOutput(id: string): Promise<void> {
     return this.request(`/api/v1/outputs/${id}`, {
       method: 'DELETE',

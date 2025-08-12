@@ -99,13 +99,17 @@ export default function ApprovalQueue() {
   const [approvalModal, setApprovalModal] = useState<{
     show: boolean
     output: OutputSchema | null
-    action: 'approve' | 'reject'
-  }>({ show: false, output: null, action: 'approve' })
+    action: 'approve_as_is' | 'edit_approve' | 'reject'
+  }>({ show: false, output: null, action: 'approve_as_is' })
   
   const [approvalForm, setApprovalForm] = useState<ApprovalRequest>({
     score: 8,
     feedback: ''
   })
+  
+  // Edit modal state
+  const [editedContent, setEditedContent] = useState('')
+  const [editedContentType, setEditedContentType] = useState('')
   
   // Twitter credential modal
   const [twitterModal, setTwitterModal] = useState<{
@@ -173,27 +177,121 @@ export default function ApprovalQueue() {
     if (!approvalModal.output) return
     
     try {
-      if (approvalModal.action === 'approve') {
-        await apiClient.approveOutput(
-          approvalModal.output.id, 
-          approvalForm.score || 8, 
-          approvalForm.feedback
-        )
-      } else {
+      if (approvalModal.action === 'reject') {
+        // Reject the original output
         await apiClient.rejectOutput(
           approvalModal.output.id, 
           approvalForm.score || 8, 
           approvalForm.feedback
         )
+        setError('Output rejected successfully')
+      } else if (approvalModal.action === 'approve_as_is') {
+        // Approve the original output as-is
+        await apiClient.approveOutput(
+          approvalModal.output.id, 
+          approvalForm.score || 8, 
+          approvalForm.feedback
+        )
+        setError('Output approved successfully')
+      } else if (approvalModal.action === 'edit_approve') {
+        // Create a new approved output with edited content
+        await handleEditAndApprove()
+        return // handleEditAndApprove handles its own success/error messages
       }
       
-      setApprovalModal({ show: false, output: null, action: 'approve' })
+      setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
       setApprovalForm({ score: 8, feedback: '' })
+      setEditedContent('')
       await fetchData() // Refresh data
-      setError(`Output ${approvalModal.action}d successfully`)
     } catch (err) {
-      console.error(`❌ Error ${approvalModal.action}ing output:`, err)
-      setError(`Failed to ${approvalModal.action} output`)
+      console.error(`❌ Error processing approval:`, err)
+      setError(`Failed to process approval`)
+    }
+  }
+  
+  // Validate content length based on type
+  const validateContentLength = (content: string, contentType: string): { isValid: boolean; message?: string } => {
+    const trimmedContent = content.trim()
+    
+    if (!trimmedContent) {
+      return { isValid: false, message: 'Content cannot be empty' }
+    }
+    
+    // Twitter character limits
+    if (contentType === 'tweet_single' || contentType === 'twitter' || contentType === 'x') {
+      if (trimmedContent.length > 280) {
+        return { 
+          isValid: false, 
+          message: `Tweet too long: ${trimmedContent.length}/280 characters` 
+        }
+      }
+    }
+    
+    // LinkedIn post limits (approximate)
+    if (contentType === 'linkedin_post' || contentType === 'linkedin_comment') {
+      if (trimmedContent.length > 3000) {
+        return { 
+          isValid: false, 
+          message: `LinkedIn post too long: ${trimmedContent.length}/3000 characters` 
+        }
+      }
+    }
+    
+    return { isValid: true }
+  }
+  
+  // Handle edit and approve workflow
+  const handleEditAndApprove = async () => {
+    if (!approvalModal.output || !editedContent.trim()) {
+      setError('Please provide edited content')
+      return
+    }
+    
+    // Validate content length
+    const validation = validateContentLength(editedContent, editedContentType)
+    if (!validation.isValid) {
+      setError(validation.message || 'Content validation failed')
+      return
+    }
+    
+    try {
+      // Create a new output with edited content using the direct output creation API
+      const newOutput = {
+        content_type: editedContentType,
+        generated_content: editedContent,
+        persona_id: approvalModal.output.persona_id,
+        source_document_id: approvalModal.output.source_document_id,
+        publish_config: approvalModal.output.publish_config
+      }
+      
+      // First create the new output
+      const createdOutput = await apiClient.createOutput(newOutput)
+      
+      // Then immediately approve it
+      if (createdOutput && createdOutput.id) {
+        await apiClient.approveOutput(
+          createdOutput.id,
+          approvalForm.score || 8,
+          `Edited version. Original feedback: ${approvalForm.feedback || 'None'}`
+        )
+      }
+      
+      // Reject the original output with reference to the edited version
+      await apiClient.rejectOutput(
+        approvalModal.output.id,
+        approvalForm.score || 8,
+        `Replaced with edited version. ${approvalForm.feedback || ''}`
+      )
+      
+      setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
+      setApprovalForm({ score: 8, feedback: '' })
+      setEditedContent('')
+      setEditedContentType('')
+      await fetchData() // Refresh data
+      setError('Edited content created and approved successfully')
+    } catch (err) {
+      console.error('❌ Error creating edited version:', err)
+      setError('Failed to create edited version')
     }
   }
 
@@ -220,6 +318,13 @@ export default function ApprovalQueue() {
       }
 
       const result = await apiClient.postToTwitter(content, twitterCredentials)
+      
+      // Update output status to "published" after successful posting
+      await apiClient.updateOutput(twitterModal.output.id, {
+        status: 'published',
+        published_url: result.tweet_url || `https://twitter.com/i/web/status/${result.tweet_id}`
+      })
+      
       await fetchData() // Refresh data to show updated status
       setError(`Content posted to X successfully! Tweet ID: ${result.tweet_id || 'N/A'}`)
       setTwitterModal({ show: false, output: null })
@@ -425,14 +530,29 @@ export default function ApprovalQueue() {
                               size="sm" 
                               variant="outline" 
                               className="text-xs h-7 text-green-400 border-green-600 hover:bg-green-900/20"
-                              onClick={() => setApprovalModal({
-                                show: true,
-                                output,
-                                action: 'approve'
-                              })}
+                              onClick={() => {
+                                setApprovalModal({
+                                  show: true,
+                                  output,
+                                  action: 'approve_as_is'
+                                })
+                                // Initialize edited content and type with current values
+                                try {
+                                  const content = output.generated_content
+                                  if (typeof content === 'string' && content.startsWith('{')) {
+                                    const parsed = JSON.parse(content)
+                                    setEditedContent(parsed.text || parsed.content || content)
+                                  } else {
+                                    setEditedContent(content)
+                                  }
+                                } catch {
+                                  setEditedContent(output.generated_content)
+                                }
+                                setEditedContentType(output.content_type)
+                              }}
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              Approve
+                              Review
                             </Button>
                             <Button 
                               size="sm" 
@@ -465,7 +585,7 @@ export default function ApprovalQueue() {
                             </Button>
                             
                             {/* Only show Post to X for Twitter/X content */}
-                            {(output.content_type === 'twitter' || output.content_type === 'x') && (
+                            {(output.content_type === 'twitter' || output.content_type === 'x' || output.content_type === 'tweet_single' || output.content_type === 'tweet_thread' || output.content_type === 'twitter_reply') && (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -494,7 +614,7 @@ export default function ApprovalQueue() {
                             )}
                             
                             {/* Generic post button for other content types */}
-                            {!['twitter', 'x', 'linkedin'].includes(output.content_type) && (
+                            {!['twitter', 'x', 'linkedin', 'tweet_single', 'tweet_thread', 'twitter_reply'].includes(output.content_type) && (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -538,30 +658,98 @@ export default function ApprovalQueue() {
       {/* Approval Modal */}
       {approvalModal.show && approvalModal.output && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="mb-4">
               <h3 className="text-xl font-bold text-white">
-                {approvalModal.action === 'approve' ? '✅ Approve' : '❌ Reject'} Content
+                📝 Review Content
               </h3>
+              <p className="text-gray-400 text-sm mt-1">
+                Choose how to handle this content
+              </p>
             </div>
 
-            {/* Content Preview */}
+            {/* Content Preview/Edit */}
             <div className="bg-gray-700 rounded-lg p-4 mb-4">
               <h4 className="font-medium text-white mb-2">Content:</h4>
-              <p className="text-gray-300 leading-relaxed">
-                {(() => {
-                  try {
-                    const content = approvalModal.output.generated_content;
-                    if (typeof content === 'string' && content.startsWith('{')) {
-                      const parsed = JSON.parse(content);
-                      return parsed.text || parsed.content || content;
+              {approvalModal.action === 'edit_approve' ? (
+                <div className="space-y-4">
+                  {/* Content Type Selector */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Content Type:
+                    </label>
+                    <select
+                      value={editedContentType}
+                      onChange={(e) => setEditedContentType(e.target.value)}
+                      className="w-full p-2 bg-gray-600 border border-gray-500 rounded-lg text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="tweet_single">Single Tweet</option>
+                      <option value="tweet_thread">Tweet Thread</option>
+                      <option value="twitter_reply">Twitter Reply</option>
+                      <option value="linkedin_post">LinkedIn Post</option>
+                      <option value="linkedin_comment">LinkedIn Comment</option>
+                      <option value="blog_post">Blog Post</option>
+                      <option value="social_comment">Social Comment</option>
+                    </select>
+                  </div>
+                  
+                  {/* Content Editor */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Edit content below:
+                    </label>
+                    <textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg resize-none text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      rows={6}
+                      placeholder="Edit the content..."
+                    />
+                    
+                    {/* Character count and validation */}
+                    <div className="flex justify-between items-center mt-2 text-sm">
+                      <div className="text-gray-400">
+                        {editedContentType === 'tweet_single' || editedContentType === 'twitter' || editedContentType === 'x' ? (
+                          <span className={editedContent.length > 280 ? 'text-red-400' : 'text-gray-400'}>
+                            {editedContent.length}/280 characters
+                          </span>
+                        ) : editedContentType === 'linkedin_post' || editedContentType === 'linkedin_comment' ? (
+                          <span className={editedContent.length > 3000 ? 'text-red-400' : 'text-gray-400'}>
+                            {editedContent.length}/3000 characters
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">
+                            {editedContent.length} characters
+                          </span>
+                        )}
+                      </div>
+                      
+                      {(() => {
+                        const validation = validateContentLength(editedContent, editedContentType)
+                        if (!validation.isValid) {
+                          return <span className="text-red-400 text-xs">{validation.message}</span>
+                        }
+                        return null
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-300 leading-relaxed">
+                  {(() => {
+                    try {
+                      const content = approvalModal.output.generated_content;
+                      if (typeof content === 'string' && content.startsWith('{')) {
+                        const parsed = JSON.parse(content);
+                        return parsed.text || parsed.content || content;
+                      }
+                      return content;
+                    } catch {
+                      return approvalModal.output.generated_content;
                     }
-                    return content;
-                  } catch {
-                    return approvalModal.output.generated_content;
-                  }
-                })()}
-              </p>
+                  })()}
+                </p>
+              )}
             </div>
 
             {/* Approval Form */}
@@ -590,7 +778,7 @@ export default function ApprovalQueue() {
 
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Feedback (Optional)
+                  Feedback *
                 </label>
                 <textarea
                   value={approvalForm.feedback || ''}
@@ -598,26 +786,88 @@ export default function ApprovalQueue() {
                     ...approvalForm,
                     feedback: e.target.value
                   })}
-                  placeholder="Add your feedback or suggestions..."
+                  placeholder="Add your feedback or suggestions... (required)"
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg resize-none text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   rows={3}
+                  required
                 />
               </div>
 
+              {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleApproval}
-                  className={approvalModal.action === 'approve' ? 
-                    'bg-green-700 hover:bg-green-800 text-white' : 
-                    'bg-red-700 hover:bg-red-800 text-white'
-                  }
-                >
-                  {approvalModal.action === 'approve' ? 'Approve' : 'Reject'} Content
-                </Button>
+                {approvalModal.action === 'edit_approve' ? (
+                  <>
+                    <Button
+                      onClick={handleApproval}
+                      disabled={!editedContent.trim() || !approvalForm.feedback?.trim() || !validateContentLength(editedContent, editedContentType).isValid}
+                      className="bg-green-700 hover:bg-green-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Save & Approve Edit
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setApprovalModal({ ...approvalModal, action: 'approve_as_is' })}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      ← Back to Review
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={async () => {
+                        // Set action and handle approval directly
+                        try {
+                          await apiClient.approveOutput(
+                            approvalModal.output.id, 
+                            approvalForm.score || 8, 
+                            approvalForm.feedback
+                          )
+                          setError('Output approved successfully')
+                          setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
+                          setApprovalForm({ score: 8, feedback: '' })
+                          await fetchData() // Refresh data
+                        } catch (err) {
+                          console.error(`❌ Error approving output:`, err)
+                          setError(`Failed to approve output`)
+                        }
+                      }}
+                      disabled={!approvalForm.feedback?.trim()}
+                      className="bg-green-700 hover:bg-green-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approve as-is
+                    </Button>
+                    <Button
+                      onClick={() => setApprovalModal({ ...approvalModal, action: 'edit_approve' })}
+                      className="bg-blue-700 hover:bg-blue-800 text-white"
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit & Approve
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setApprovalModal({ ...approvalModal, action: 'reject' })
+                        handleApproval()
+                      }}
+                      disabled={!approvalForm.feedback?.trim()}
+                      className="bg-red-700 hover:bg-red-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  </>
+                )}
                 <Button 
                   variant="outline" 
-                  onClick={() => setApprovalModal({ show: false, output: null, action: 'approve' })}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  onClick={() => {
+                    setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
+                    setApprovalForm({ score: 8, feedback: '' })
+                    setEditedContent('')
+                    setEditedContentType('')
+                  }}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white ml-auto"
                 >
                   Cancel
                 </Button>
