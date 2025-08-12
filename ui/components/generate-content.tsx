@@ -266,7 +266,16 @@ export default function GenerateContent() {
 
     try {
       console.log('🚀 Sending request:', JSON.stringify(requestBody, null, 2));
+      console.log('📊 Request details:', {
+        contentSource,
+        commentType,
+        selectedDocuments: selectedDocuments.length,
+        selectedRun,
+        hasCustomContent: !!customContent
+      });
+      
       const data = await apiClient.generateComments(requestBody);
+      console.log('✅ Generate comments response:', data);
       
       await fetchOutputs();
       // Clear form after successful generation
@@ -277,8 +286,14 @@ export default function GenerateContent() {
       
       alert('Content generated successfully!');
     } catch (error) {
-      console.error('Error generating content:', error);
-      alert('Error generating content. Please check your API keys and try again.');
+      console.error('❌ Error generating content:', error);
+      console.error('📋 Request that failed:', requestBody);
+      console.error('🔍 Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      alert(`Error generating content: ${error.message || 'Unknown error'}. Please check your API keys and try again.`);
     } finally {
       setGenerating(false);
     }
