@@ -198,7 +198,7 @@ async def generate_comments(
     # Define the output schema for the agent based on requested content type
     content_type_mapping = {
         "tweet_single": (CommonOutputType.TWEET_SINGLE, "A single tweet", "tweet"),
-        "tweet_thread": (CommonOutputType.TWITTER_THREAD, "A Twitter thread", "twitter_thread"),
+        "tweet_thread": (CommonOutputType.TWEET_THREAD, "A Twitter thread", "twitter_thread"),
         "twitter_reply": (CommonOutputType.TWITTER_REPLY, "A Twitter reply", "twitter_reply"),
         "linkedin_post": (CommonOutputType.LINKEDIN_POST, "A LinkedIn post", "linkedin_post"),
         "linkedin_comment": (CommonOutputType.LINKEDIN_COMMENT, "A LinkedIn comment", "linkedin_comment"),
