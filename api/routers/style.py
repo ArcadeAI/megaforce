@@ -16,7 +16,8 @@ from ..schemas import CommentResponse, Comment
 
 # Import the style agent and its schemas
 from style_agent.agent import transfer_style
-from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment, OutputType as CommonOutputType
+from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment
+from models import OutputType as CommonOutputType
 
 router = APIRouter()
 
