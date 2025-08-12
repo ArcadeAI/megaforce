@@ -74,7 +74,7 @@ export default function SourceMaterials() {
     searchQuery: '',
     searchType: 'keywords',
     limit: 20,
-    rank_tweets: true,
+    rank_tweets: true,  // Re-enabled now that OpenAI API key is available
     llm_provider: 'openai',
     llm_model: 'gpt-4o-mini',
     api_key: '',
