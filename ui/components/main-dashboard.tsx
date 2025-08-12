@@ -3,546 +3,214 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowUpRight, MessageSquare, Heart, ExternalLink, Clock, Twitter, TrendingUp } from "lucide-react"
+import { Clock, ExternalLink, Sparkles, Star } from "lucide-react"
 import { apiClient } from "./api-client"
 
-// Types for Twitter data
-interface Tweet {
-  id: string
-  text: string
-  author: {
-    username: string
-    name: string
-    profile_image_url?: string
-  }
-  public_metrics: {
-    retweet_count: number
-    like_count: number
-    reply_count: number
-    quote_count: number
-  }
-  created_at: string
-  search_query?: string
-  url?: string
-}
-
-interface TwitterSearchResult {
-  query: string
-  tweets: Tweet[]
-  total_count: number
-}
-
-// Default user for development - using "the_dog" as specified
-const DEFAULT_USER = {
-  username: "the_dog",
-  token: "dev-token-for-the-dog" // This will be replaced with real auth
-}
-
-// Sample tweets for fallback/development
-function getSampleTweets(): Tweet[] {
-  return [
-    {
-      id: "1",
-      text: "Just shipped a new AI feature that automatically generates social media content. The future is here! 🚀 #AI #tech",
-      author: {
-        username: "techfounder",
-        name: "Tech Founder",
-        profile_image_url: "https://pbs.twimg.com/profile_images/1234567890/avatar.jpg"
-      },
-      public_metrics: {
-        retweet_count: 45,
-        like_count: 234,
-        reply_count: 12,
-        quote_count: 8
-      },
-      created_at: "2024-01-15T10:30:00Z",
-      search_query: "AI OR tech OR startup",
-      url: "https://twitter.com/techfounder/status/1"
-    },
-    {
-      id: "2",
-      text: "Building in public: Our startup just raised $2M seed round! Here's what we learned during the fundraising process 🧵",
-      author: {
-        username: "startup_ceo",
-        name: "Startup CEO",
-        profile_image_url: "https://pbs.twimg.com/profile_images/1234567891/avatar.jpg"
-      },
-      public_metrics: {
-        retweet_count: 89,
-        like_count: 567,
-        reply_count: 34,
-        quote_count: 23
-      },
-      created_at: "2024-01-15T09:15:00Z",
-      search_query: "AI OR tech OR startup",
-      url: "https://twitter.com/startup_ceo/status/2"
-    },
-    {
-      id: "3",
-      text: "The intersection of AI and social media is fascinating. We're seeing unprecedented engagement rates with AI-generated content.",
-      author: {
-        username: "ai_researcher",
-        name: "AI Researcher",
-        profile_image_url: "https://pbs.twimg.com/profile_images/1234567892/avatar.jpg"
-      },
-      public_metrics: {
-        retweet_count: 23,
-        like_count: 156,
-        reply_count: 18,
-        quote_count: 5
-      },
-      created_at: "2024-01-15T08:45:00Z",
-      search_query: "AI OR tech OR startup",
-      url: "https://twitter.com/ai_researcher/status/3"
-    }
-  ]
-}
-
 export function MainDashboard() {
-  const [selectedTweet, setSelectedTweet] = useState<Tweet | null>(null)
-  const [tweets, setTweets] = useState<Tweet[]>([])
-  const [loading, setLoading] = useState(true)
-  const [dashboardStats, setDashboardStats] = useState({
-    totalRuns: 0,
-    totalOutputs: 0,
-    pendingApprovals: 0,
-    approvedContent: 0,
-    totalPersonas: 0,
-    totalDocuments: 0
+  const [user, setUser] = useState<any>(null)
+  const [stats, setStats] = useState({
+    commentsGenerated: 0,
+    postsPublished: 0,
+    activeSearches: 0
   })
+  const [publishedOutputs, setPublishedOutputs] = useState<any[]>([])
+  const [personas, setPersonas] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         
-        // Fetch all dashboard data in parallel
-        const [runsData, outputsData, personasData, documentsData] = await Promise.all([
-          apiClient.getRuns().catch(() => []),
+        // Fetch all data in parallel
+        const [userData, outputsData, runsData, personasData] = await Promise.all([
+          apiClient.getCurrentUser().catch(() => null),
           apiClient.getOutputs().catch(() => []),
-          apiClient.getPersonas().catch(() => []),
-          apiClient.getDocuments().catch(() => [])
+          apiClient.getRuns().catch(() => []),
+          apiClient.getPersonas().catch(() => [])
         ])
         
-        // Calculate stats from real data
-        const pendingCount = outputsData.filter((output: any) => output.status === 'pending_review').length
-        const approvedCount = outputsData.filter((output: any) => output.status === 'approved').length
+        setUser(userData)
+        setPersonas(personasData)
         
-        setDashboardStats({
-          totalRuns: runsData.length,
-          totalOutputs: outputsData.length,
-          pendingApprovals: pendingCount,
-          approvedContent: approvedCount,
-          totalPersonas: personasData.length,
-          totalDocuments: documentsData.length
-        })
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats:', error)
-      }
-    }
-    
-    const fetchTweets = async () => {
-      try {
-        setLoading(true)
-        // Fetch only posted/published tweets from our outputs
-        const outputsData = await apiClient.getOutputs()
-        
-        // Filter for published tweets only
-        const publishedTweets = outputsData.filter((output: any) => 
-          output.status === 'published' && 
-          output.published_url && 
-          (output.content_type === 'twitter' || output.content_type === 'x')
+        // Filter for published outputs only
+        const published = outputsData.filter((output: any) => 
+          output.status === 'published' && output.published_url
         )
+        setPublishedOutputs(published)
         
-        // Transform to Tweet interface for display
-        const transformedTweets: Tweet[] = publishedTweets.map((output: any, index: number) => {
-          // Extract tweet ID from published URL if available
-          const tweetId = output.published_url?.match(/status\/(\d+)/)?.[1] || `output-${output.id}`
-          
-          // Parse content from JSON if needed
-          let tweetText = output.generated_content
-          if (typeof tweetText === 'object' && tweetText?.text) {
-            tweetText = tweetText.text
-          } else if (typeof tweetText === 'string') {
-            try {
-              const parsed = JSON.parse(tweetText)
-              tweetText = parsed.text || parsed.content || tweetText
-            } catch {
-              // Use as-is if not JSON
-            }
-          }
-          
-          return {
-            id: tweetId,
-            text: tweetText || "No content available",
-            author: {
-              username: "the_dog", // Your username
-              name: "Theo", // Your name
-              profile_image_url: undefined
-            },
-            public_metrics: {
-              // Placeholder metrics - we can't capture these yet
-              retweet_count: 0, // TODO: Fetch from Twitter API
-              like_count: 0,    // TODO: Fetch from Twitter API  
-              reply_count: 0,   // TODO: Fetch from Twitter API
-              quote_count: 0    // TODO: Fetch from Twitter API
-            },
-            created_at: output.published_at || output.created_at || new Date().toISOString(),
-            search_query: "Posted via Megaforce",
-            url: output.published_url || `https://twitter.com/the_dog/status/${tweetId}`
-          }
+        // Calculate real stats
+        setStats({
+          commentsGenerated: outputsData.length,
+          postsPublished: published.length,
+          activeSearches: runsData.length
         })
         
-        setTweets(transformedTweets)
       } catch (error) {
-        console.error('Failed to fetch tweets:', error)
-        // No fallback - show empty state instead of dummy data
-        setTweets([])
+        console.error('Failed to fetch dashboard data:', error)
       } finally {
         setLoading(false)
       }
     }
-    
-    // Fetch both dashboard stats and tweets
-    fetchDashboardData()
-    fetchTweets()
+
+    fetchData()
   }, [])
 
-  if (selectedTweet) {
-    return <TweetDetail tweet={selectedTweet} onBack={() => setSelectedTweet(null)} />
+  const getPersonaName = (personaId: string) => {
+    const persona = personas.find(p => p.id === personaId)
+    return persona?.name || 'Unknown Persona'
+  }
+
+  const formatContentPreview = (content: any, maxLength: number = 150) => {
+    try {
+      if (typeof content === 'object' && content?.text) {
+        const text = content.text
+        return text.length <= maxLength ? text : text.substring(0, maxLength) + '...'
+      }
+      if (typeof content === 'string' && content.startsWith('{')) {
+        const parsed = JSON.parse(content)
+        const text = parsed.text || parsed.content || content
+        return text.length <= maxLength ? text : text.substring(0, maxLength) + '...'
+      }
+      if (content.length <= maxLength) return content
+      return content.substring(0, maxLength) + '...'
+    } catch {
+      if (content.length <= maxLength) return content
+      return content.substring(0, maxLength) + '...'
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="flex-1 flex">
-      <div className="flex-1 p-4">
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-white mb-2">Your Posted Tweets</h2>
-          <p className="text-gray-400">Tweets you've published via Megaforce • Connected as: the_dog</p>
-        </div>
+    <div className="flex-1 bg-gray-900 text-white p-6 space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-white mb-2">Dashboard</h2>
+        <p className="text-gray-400">
+          Successfully posted content • Connected as: {user?.username || user?.email || 'Not connected'}
+        </p>
+      </div>
 
-        <div className="grid gap-4 mb-6">
-          <div className="grid grid-cols-6 gap-4">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Total Tweets</p>
-                    <p className="text-2xl font-bold text-white">{tweets.length}</p>
-                  </div>
-                  <div className="text-blue-400">
-                    <Twitter className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Avg Likes</p>
-                    <p className="text-2xl font-bold text-white">{Math.round(tweets.reduce((acc, tweet) => acc + tweet.public_metrics.like_count, 0) / tweets.length) || 0}</p>
-                  </div>
-                  <div className="text-red-400">
-                    <Heart className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Replies</p>
-                    <p className="text-2xl font-bold text-white">{tweets.reduce((acc, tweet) => acc + tweet.public_metrics.reply_count, 0)}</p>
-                  </div>
-                  <div className="text-purple-400">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Search Runs</p>
-                    <p className="text-2xl font-bold text-white">{dashboardStats.totalRuns}</p>
-                  </div>
-                  <div className="text-orange-400">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Generated Content</p>
-                    <p className="text-2xl font-bold text-white">{dashboardStats.totalOutputs}</p>
-                  </div>
-                  <div className="text-green-400">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Pending Approval</p>
-                    <p className="text-2xl font-bold text-white">{dashboardStats.pendingApprovals}</p>
-                  </div>
-                  <div className="text-yellow-400">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Comments Generated</p>
+                <p className="text-2xl font-bold text-white">{stats.commentsGenerated}</p>
+              </div>
+              <Sparkles className="w-6 h-6 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
 
-        <ScrollArea className="h-[calc(100vh-240px)]">
-          <div className="space-y-3">
-            {loading ? (
-              <div className="text-center text-gray-400 py-8">
-                <Twitter className="w-8 h-8 mx-auto mb-2 animate-pulse" />
-                Loading tweets...
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Posts Published</p>
+                <p className="text-2xl font-bold text-white">{stats.postsPublished}</p>
               </div>
-            ) : tweets.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">
-                <Twitter className="w-8 h-8 mx-auto mb-2" />
-                No tweets found
+              <ExternalLink className="w-6 h-6 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Active Searches</p>
+                <p className="text-2xl font-bold text-white">{stats.activeSearches}</p>
               </div>
-            ) : (
-              tweets.map((tweet) => (
-                <Card
-                  key={tweet.id}
-                  className="bg-gray-800 border-gray-700 hover:bg-gray-750 cursor-pointer transition-colors"
-                  onClick={() => setSelectedTweet(tweet)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <Badge variant="secondary" className="text-xs bg-blue-600">
-                          @{tweet.author.username}
+              <Star className="w-6 h-6 text-yellow-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Published Posts */}
+      <div>
+        <h3 className="text-xl font-bold text-white mb-4">Published Posts ({publishedOutputs.length})</h3>
+        
+        {publishedOutputs.length === 0 ? (
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-400">No published posts yet</p>
+              <p className="text-sm text-gray-500 mt-2">Posts will appear here after they are published</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-4">
+              {publishedOutputs.map((output: any) => {
+                const persona = personas.find(p => p.id === output.persona_id)
+                
+                return (
+                  <div key={output.id} className="bg-gray-700 rounded-lg p-4 border border-gray-600 hover:border-gray-500 transition-colors">
+                    {/* Content Preview */}
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-200 leading-relaxed">
+                        {formatContentPreview(output.generated_content)}
+                      </p>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      {persona && (
+                        <Badge className="text-xs bg-blue-100 text-blue-800">
+                          {persona.name}
                         </Badge>
-                        <span className="text-xs text-gray-400 flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {new Date(tweet.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(tweet.url, '_blank'); }}>
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    <p className="text-white mb-3 line-clamp-3">{tweet.text}</p>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <Heart className="w-4 h-4 text-red-400" />
-                          <span className="text-sm text-gray-300">{tweet.public_metrics.like_count.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <MessageSquare className="w-4 h-4 text-blue-400" />
-                          <span className="text-sm text-gray-300">{tweet.public_metrics.reply_count}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <ArrowUpRight className="w-4 h-4 text-green-400" />
-                          <span className="text-sm text-gray-300">{tweet.public_metrics.retweet_count}</span>
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-500">{tweet.author.name}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </ScrollArea>
-      </div>
-    </div>
-  )
-}
-
-function TweetDetail({ tweet, onBack }: { tweet: Tweet; onBack: () => void }) {
-  const aiSuggestions = [
-    {
-      id: 1,
-      type: "Insightful",
-      content:
-        "This is a fascinating development! The implications for enterprise software development could be huge. Has anyone here had experience implementing similar AI-driven solutions in production environments?",
-      confidence: 92,
-    },
-    {
-      id: 2,
-      type: "Question",
-      content:
-        "Great post! I'm curious about the technical implementation details. Are there any open-source alternatives or similar approaches that the community has experimented with?",
-      confidence: 87,
-    },
-    {
-      id: 3,
-      type: "Supportive",
-      content:
-        "Thanks for sharing this! The timing couldn't be better as our team is evaluating similar technologies. Would love to hear more about real-world performance metrics if anyone has data to share.",
-      confidence: 89,
-    },
-  ]
-
-  return (
-    <div className="flex-1 p-4">
-      <div className="mb-4">
-        <Button variant="ghost" onClick={onBack} className="mb-4">
-          ← Back to Dashboard
-        </Button>
-        <div className="flex items-center space-x-3 mb-2">
-          <Badge variant="outline">#{post.priority}</Badge>
-          <Badge variant="secondary">{post.subreddit}</Badge>
-          <span className="text-sm text-gray-400">{post.timeAgo}</span>
-        </div>
-        <h1 className="text-3xl font-bold text-white mb-4">{post.title}</h1>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Post Content</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <p className="text-gray-300 leading-relaxed mb-4">{post.preview}</p>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                ex ea commodo consequat.
-              </p>
-              <p className="text-gray-300 leading-relaxed">
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-                laborum.
-              </p>
-              <div className="mt-6 pt-4 border-t border-gray-700">
-                <Button
-                  variant="outline"
-                  className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 hover:text-white bg-transparent"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View Original Post on Reddit
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Sparkles className="w-5 h-5 mr-2 text-purple-400" />
-                AI Comment Suggestions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {aiSuggestions.map((suggestion) => (
-                  <div key={suggestion.id} className="p-3 bg-gray-700/50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        {suggestion.type}
+                      )}
+                    <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
+                      {output.content_type}
+                    </Badge>
+                    {output.score && (
+                      <Badge className="text-xs bg-yellow-600 text-yellow-100">
+                        <Star className="h-3 w-3 mr-1" />
+                        {output.score}
                       </Badge>
-                      <span className="text-xs text-gray-400">{suggestion.confidence}% confidence</span>
-                    </div>
-                    <p className="text-gray-300 text-sm leading-relaxed mb-3">{suggestion.content}</p>
-                    <Button size="sm" variant="secondary" className="w-full">
-                      Use This Comment
-                    </Button>
+                    )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        <div className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Post Metrics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Score</span>
-                <div className="flex items-center space-x-2">
-                  <ThumbsUp className="w-4 h-4 text-green-400" />
-                  <span className="text-white font-semibold">{post.score.toLocaleString()}</span>
+                  {/* Timestamps and URL */}
+                  <div className="text-xs text-gray-400 mb-3">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(output.created_at).toLocaleDateString()}
+                    </div>
+                    {output.published_url && (
+                      <div className="mt-1">
+                        <a 
+                          href={output.published_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline text-xs flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View Post
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Comments</span>
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-semibold">{post.comments}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Author</span>
-                <span className="text-white">{post.author}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Priority Rank</span>
-                <Badge variant="outline">#{post.priority}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Engagement Rate</span>
-                <span className="text-green-400 font-semibold">94.2%</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 hover:text-white bg-transparent"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open in Reddit
-              </Button>
-              <Button variant="secondary" className="w-full">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate More Comments
-              </Button>
-              <Button variant="ghost" className="w-full">
-                Mark as Reviewed
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Subreddit Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Today's Posts</span>
-                <span className="text-white">10</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Avg Score</span>
-                <span className="text-white">12.4K</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Top Performer</span>
-                <span className="text-green-400">This Post</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
+        )}
       </div>
     </div>
   )

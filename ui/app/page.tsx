@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
-import { TwitterDashboard } from "@/components/twitter-dashboard"
+import { MainDashboard } from "@/components/main-dashboard"
 import Personas from "@/components/personas"
 import SourceMaterials from "@/components/source-materials"
 import GenerateContent from "@/components/generate-content"
@@ -46,7 +46,7 @@ export default function HomePage() {
   const renderMainContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <TwitterDashboard />
+        return <MainDashboard />
       case "personas":
         return <Personas />
       case "approval":
@@ -60,7 +60,7 @@ export default function HomePage() {
           </div>
         )
       default:
-        return <TwitterDashboard />
+        return <MainDashboard />
     }
   }
 
