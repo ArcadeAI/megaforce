@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { Sidebar } from "../components/sidebar"
-import { MainDashboard } from "../components/main-dashboard"
-import Personas from "../components/personas"
-import SourceMaterials from "../components/source-materials"
-import GenerateContent from "../components/generate-content"
-import ApprovalQueue from "../components/approval-queue"
-import { LoginForm } from "../components/login-form"
-import { useAuth } from "../components/auth-context"
+import { Sidebar } from "../../components/sidebar"
+import { MainDashboard } from "../../components/main-dashboard"
+import Personas from "../../components/personas"
+import SourceMaterials from "../../components/source-materials"
+import GenerateContent from "../../components/generate-content"
+import ApprovalQueue from "../../components/approval-queue"
+import { LoginForm } from "../../components/login-form"
+import { useAuth } from "../../components/auth-context"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
