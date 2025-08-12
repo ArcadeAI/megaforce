@@ -238,6 +238,9 @@ export default function SourceMaterials() {
       setError('')
       
       console.log('🚀 Creating new run with:', newRunForm)
+      console.log('🔑 API Key present:', !!newRunForm.api_key)
+      console.log('🎮 Arcade User present:', !!newRunForm.arcade_user)
+      console.log('🔐 Arcade Secret present:', !!newRunForm.arcade_secret)
       
       // Call the Twitter search API to create a new run
       const apiPayload: TwitterSearchRequest = {
@@ -265,6 +268,21 @@ export default function SourceMaterials() {
             break
         }
       }
+      
+      console.log('📦 Final API payload (keys masked):', {
+        ...apiPayload,
+        openai_api_key: apiPayload.openai_api_key ? '***masked***' : undefined,
+        anthropic_api_key: apiPayload.anthropic_api_key ? '***masked***' : undefined,
+        google_api_key: apiPayload.google_api_key ? '***masked***' : undefined,
+        arcade_user: apiPayload.arcade_user ? '***masked***' : undefined,
+        arcade_secret: apiPayload.arcade_secret ? '***masked***' : undefined
+      })
+      
+      // Debug: Check actual payload structure
+      console.log('🔍 Actual payload keys:', Object.keys(apiPayload))
+      console.log('🔍 Has openai_api_key:', 'openai_api_key' in apiPayload)
+      console.log('🔍 Has arcade_user:', 'arcade_user' in apiPayload)
+      console.log('🔍 Has arcade_secret:', 'arcade_secret' in apiPayload)
       
       const response = await apiClient.searchTwitter(apiPayload)
       

@@ -406,64 +406,61 @@ export default function GenerateContent() {
                         const status = run.status || 'completed';
                         return status !== 'failed'; // Filter out failed runs
                       })
+                      .sort((a, b) => {
+                        // Sort by created_at in descending order (newest first)
+                        const dateA = new Date(a.created_at || a.started_at || '1970-01-01').getTime();
+                        const dateB = new Date(b.created_at || b.started_at || '1970-01-01').getTime();
+                        return dateB - dateA;
+                      })
                       .map((run) => {
-                        // Extract search details from run metadata with robust fallbacks
-                        const searchType = run.input_source?.source_type || 
-                                         (run.meta_data?.source_type) || 
-                                         'Twitter'; // Default to Twitter since most runs seem to be Twitter searches
+                        // Extract search details from run metadata
+                        const searchType = run.input_source?.source_type || 'Twitter';
                         
-                        // Try to extract actual search query, avoiding the run name
+                        // Extract search query from input_source or metadata
                         let searchQuery = run.input_source?.search_query || 
                                         run.input_source?.query || 
-                                        (run.meta_data?.query) ||
-                                        (run.meta_data?.search_query) ||
-                                        (run.meta_data?.search_terms) ||
-                                        'No query available';
-                        
-                        // If the search query is the same as the run name, try to extract from name
-                        if (searchQuery === run.name || searchQuery === 'No query available') {
-                          // Try to extract search terms from run name pattern like "Twitter Search - 2025-07-29 05:27"
-                          const nameMatch = run.name.match(/Twitter Search.*?(\d{4}-\d{2}-\d{2})/);
-                          if (nameMatch) {
-                            searchQuery = 'Twitter content search';
-                          } else {
-                            searchQuery = 'Search query not available';
-                          }
-                        }
+                                        run.meta_data?.search_query ||
+                                        run.meta_data?.query ||
+                                        'Unknown query';
                         
                         // Truncate long queries for display
-                        const displayQuery = searchQuery.length > 50 ? 
-                                           searchQuery.substring(0, 50) + '...' : 
+                        const displayQuery = searchQuery.length > 30 ? 
+                                           searchQuery.substring(0, 30) + '...' : 
                                            searchQuery;
+                        
+                        // Format date
+                        const formatDate = () => {
+                          const dateStr = run.created_at || run.started_at;
+                          if (dateStr) {
+                            try {
+                              return new Date(dateStr).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              });
+                            } catch (e) {
+                              return 'No date';
+                            }
+                          }
+                          return 'No date';
+                        };
+                        
+                        // Count results
+                        const resultCount = run.documents?.length || 0;
                         
                         return (
                           <SelectItem key={run.id} value={run.id} className="text-white hover:bg-gray-600 py-3">
                             <div className="flex flex-col space-y-1 w-full">
                               <div className="flex items-center justify-between">
-                                <span className="font-medium text-white truncate">{run.name}</span>
+                                <span className="font-medium text-white truncate">
+                                  {searchType} Search - {formatDate()}
+                                </span>
                                 <span className="text-xs text-gray-400">
-                                  {(() => {
-                                    // Try multiple date field locations and formats
-                                    const dateStr = run.created_at || run.started_at || run.date || run.timestamp;
-                                    if (dateStr) {
-                                      try {
-                                        return new Date(dateStr).toLocaleDateString();
-                                      } catch (e) {
-                                        // If date parsing fails, try to extract from run name
-                                        const nameMatch = run.name.match(/(\d{4}-\d{2}-\d{2})/);
-                                        if (nameMatch) {
-                                          return new Date(nameMatch[1]).toLocaleDateString();
-                                        }
-                                      }
-                                    }
-                                    // Try to extract date from run name as last resort
-                                    const nameMatch = run.name.match(/(\d{4}-\d{2}-\d{2})/);
-                                    return nameMatch ? new Date(nameMatch[1]).toLocaleDateString() : 'No date';
-                                  })()}
+                                  {resultCount} results
                                 </span>
                               </div>
                               <div className="text-xs text-gray-300">
-                                <span className="font-medium capitalize">{searchType}</span> • "{displayQuery}"
+                                Query: "{displayQuery}"
                               </div>
                             </div>
                           </SelectItem>
