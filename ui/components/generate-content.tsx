@@ -248,24 +248,28 @@ export default function GenerateContent() {
           setGenerating(false);
           return;
         }
-        // Validate that the run has documents before sending
+        // Validate that the run exists - documents will be fetched by backend
         const selectedRunData = runs.find(r => r.id === selectedRun);
         console.log('🔍 Search run validation:', {
           selectedRun,
           selectedRunData: selectedRunData ? {
             id: selectedRunData.id,
-            hasDocuments: !!selectedRunData.documents,
-            documentsLength: selectedRunData.documents?.length || 0
-          } : null,
-          allRuns: runs.map(r => ({ id: r.id, documentsCount: r.documents?.length || 0 }))
+            query: selectedRunData.query,
+            status: selectedRunData.status,
+            total_documents: selectedRunData.total_documents || 0
+          } : null
         });
         
-        if (!selectedRunData || !selectedRunData.documents || selectedRunData.documents.length === 0) {
-          console.error('❌ Search run validation failed:', {
-            selectedRunData: !!selectedRunData,
-            hasDocuments: selectedRunData?.documents ? true : false,
-            documentsLength: selectedRunData?.documents?.length || 0
-          });
+        if (!selectedRunData) {
+          console.error('❌ Search run validation failed: Run not found');
+          alert('Selected search run not found. Please choose a different run.');
+          setGenerating(false);
+          return;
+        }
+        
+        // Check if run has any documents (backend will handle fetching them)
+        if (selectedRunData.total_documents === 0) {
+          console.error('❌ Search run validation failed: No documents in run');
           alert('Selected search run has no documents. Please choose a different run or use custom content.');
           setGenerating(false);
           return;
