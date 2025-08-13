@@ -702,10 +702,12 @@ export default function GenerateContent() {
               }
             }}
             disabled={(() => {
-              const isDisabled = generating || !selectedPersona;
+              const isDisabled = generating || !selectedPersona || selectedPersona === '';
+              const selectedPersonaObj = personas.find(p => p.id === selectedPersona);
               console.log('🔧 Button disabled state:', {
                 generating,
-                selectedPersona: selectedPersona?.name || 'none',
+                selectedPersonaId: selectedPersona,
+                selectedPersonaName: selectedPersonaObj?.name || 'none',
                 isDisabled,
                 contentSource,
                 selectedDocumentsCount: selectedDocuments.length
