@@ -250,7 +250,22 @@ export default function GenerateContent() {
         }
         // Validate that the run has documents before sending
         const selectedRunData = runs.find(r => r.id === selectedRun);
+        console.log('🔍 Search run validation:', {
+          selectedRun,
+          selectedRunData: selectedRunData ? {
+            id: selectedRunData.id,
+            hasDocuments: !!selectedRunData.documents,
+            documentsLength: selectedRunData.documents?.length || 0
+          } : null,
+          allRuns: runs.map(r => ({ id: r.id, documentsCount: r.documents?.length || 0 }))
+        });
+        
         if (!selectedRunData || !selectedRunData.documents || selectedRunData.documents.length === 0) {
+          console.error('❌ Search run validation failed:', {
+            selectedRunData: !!selectedRunData,
+            hasDocuments: selectedRunData?.documents ? true : false,
+            documentsLength: selectedRunData?.documents?.length || 0
+          });
           alert('Selected search run has no documents. Please choose a different run or use custom content.');
           setGenerating(false);
           return;
