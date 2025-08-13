@@ -132,7 +132,7 @@ async def generate_comments(
         docs = db.query(Document).filter(Document.id.in_(request.document_ids)).all()
         if not docs:
             raise HTTPException(status_code=404, detail="No documents found for document_ids")
-        target_docs = [SchemaDocument(url=d.url, type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
+        target_docs = [SchemaDocument(url=d.url or "https://example.com", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
         source_document_ids = [d.id for d in docs]
     elif request.document_id:
         doc = db.query(Document).filter(Document.id == request.document_id).first()
