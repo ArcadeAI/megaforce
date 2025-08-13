@@ -677,7 +677,10 @@ export default function GenerateContent() {
           </div>
 
           <Button
-            onClick={handleGenerate}
+            onClick={() => {
+              console.log('🔘 Generate button clicked!');
+              handleGenerate();
+            }}
             disabled={generating || !selectedPersona}
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
