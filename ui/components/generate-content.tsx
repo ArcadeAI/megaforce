@@ -183,6 +183,15 @@ export default function GenerateContent() {
   };
 
   const handleGenerate = async () => {
+    console.log('🎯 handleGenerate called with:', {
+      selectedPersona,
+      commentType,
+      contentSource,
+      selectedDocuments: selectedDocuments.length,
+      selectedRun,
+      customContent: !!customContent
+    });
+
     if (!selectedPersona) {
       alert('Please select a persona');
       return;
