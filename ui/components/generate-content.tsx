@@ -701,7 +701,17 @@ export default function GenerateContent() {
                 console.error('💥 Error in handleGenerate:', error);
               }
             }}
-            disabled={generating || !selectedPersona}
+            disabled={(() => {
+              const isDisabled = generating || !selectedPersona;
+              console.log('🔧 Button disabled state:', {
+                generating,
+                selectedPersona: selectedPersona?.name || 'none',
+                isDisabled,
+                contentSource,
+                selectedDocumentsCount: selectedDocuments.length
+              });
+              return isDisabled;
+            })()}
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
             {generating ? (
