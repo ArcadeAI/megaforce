@@ -687,7 +687,19 @@ export default function GenerateContent() {
           <Button
             onClick={() => {
               console.log('🔘 Generate button clicked!');
-              handleGenerate();
+              console.log('🔍 Button state:', {
+                generating,
+                selectedPersona,
+                disabled: generating || !selectedPersona,
+                contentSource,
+                selectedDocuments: selectedDocuments.length,
+                selectedRun
+              });
+              try {
+                handleGenerate();
+              } catch (error) {
+                console.error('💥 Error in handleGenerate:', error);
+              }
             }}
             disabled={generating || !selectedPersona}
             className="w-full bg-blue-600 hover:bg-blue-700"
