@@ -241,6 +241,10 @@ export default function GenerateContent() {
 
     if (commentType === 'new_content') {
       if (contentSource === 'documents') {
+        console.log('📄 Multiple documents selected:', {
+          count: selectedDocuments.length,
+          documentIds: selectedDocuments
+        });
         requestBody.document_ids = selectedDocuments;
       } else if (contentSource === 'run') {
         if (!selectedRun) {
@@ -721,7 +725,9 @@ export default function GenerateContent() {
                 <p>No generated outputs yet. Use the left panel to generate content.</p>
               </div>
             ) : (
-              outputs.map((output) => {
+              outputs
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .map((output) => {
                 console.log('🏷️ Output data structure:', output);
                 return (
                 <Card key={output.id} className="bg-gray-700 border-gray-600 p-4">
