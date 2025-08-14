@@ -36,6 +36,7 @@ async def list_documents(
     reference_type: str = None,  # Filter by reference type (tweet, url, document, etc.)
     persona_id: str = None,  # Filter by linked persona
     run_id: str = None,  # Filter by run ID
+    search: str = None,  # Search in title and content
     limit: int = 100,  # Limit number of results (default 100)
     offset: int = 0,  # Offset for pagination (default 0)
     db: Session = Depends(get_db),
@@ -44,7 +45,7 @@ async def list_documents(
     """List all documents for the current user with optional filtering."""
     try:
         print(f"📋 Backend: Listing documents for user {current_user.id}")
-        print(f"🔍 Backend: Filters - reference_type: {reference_type}, persona_id: {persona_id}, run_id: {run_id}")
+        print(f"🔍 Backend: Filters - reference_type: {reference_type}, persona_id: {persona_id}, run_id: {run_id}, search: {search}")
         
         # Base query: all documents owned by current user
         query = db.query(Document).filter(Document.owner_id == current_user.id)
@@ -58,6 +59,13 @@ async def list_documents(
             query = query.filter(text(f"persona_ids @> '[\"{ persona_id }\"]'::jsonb"))
         if run_id:
             query = query.filter(Document.run_id == run_id)
+        if search:
+            # Search in title and content using case-insensitive ILIKE
+            search_term = f"%{search}%"
+            query = query.filter(
+                (Document.title.ilike(search_term)) | 
+                (Document.content.ilike(search_term))
+            )
         
         # Apply pagination
         documents = query.offset(offset).limit(limit).all()

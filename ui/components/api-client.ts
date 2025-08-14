@@ -180,7 +180,22 @@ class ApiClient {
       } catch (e) {
         errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
       }
-      const errorMessage = errorData?.detail || JSON.stringify(errorData) || `HTTP ${response.status}: ${response.statusText}`;
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      if (errorData?.detail) {
+        if (Array.isArray(errorData.detail)) {
+          // Handle FastAPI validation errors
+          const validationErrors = errorData.detail.map((err: any) => 
+            `${err.loc?.join('.') || 'field'}: ${err.msg || err.message || 'validation error'}`
+          ).join(', ');
+          errorMessage = `Validation error: ${validationErrors}`;
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else {
+          errorMessage = JSON.stringify(errorData.detail);
+        }
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
       console.error('💥 API Error Details:', errorData);
       throw new Error(errorMessage);
     }
@@ -242,10 +257,15 @@ class ApiClient {
     })
   }
   
-  async postToTwitter(content: string): Promise<any> {
+  async postToTwitter(content: string, credentials?: { arcade_user_id: string; arcade_api_key: string }): Promise<any> {
+    const payload: any = { tweet_text: content }
+    if (credentials) {
+      payload.arcade_user_id = credentials.arcade_user_id
+      payload.arcade_api_key = credentials.arcade_api_key
+    }
     return this.request('/api/v1/twitter/post', {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(payload),
     })
   }
   
@@ -282,28 +302,9 @@ class ApiClient {
     })
   }
   
-  // Document endpoints (including style references)
-  async getDocuments(params: any): Promise<any> {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/v1/documents?${queryString}`);
-  }
 
-  async getRun(runId: string): Promise<any> {
-    return this.request(`/api/v1/runs/${runId}`);
-  }
 
-  async updateDocument(id: string, data: any): Promise<any> {
-    return this.request(`/api/v1/documents/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
 
-  async deleteDocument(id: string): Promise<void> {
-    return this.request(`/api/v1/documents/${id}`, {
-      method: 'DELETE',
-    });
-  }
 
   async getStyleReferences(personaId?: string): Promise<Document[]> {
     const params = personaId ? `?persona_id=${personaId}&is_style_reference=true` : '?is_style_reference=true'
@@ -427,6 +428,19 @@ class ApiClient {
     return this.request('/api/v1/outputs/')
   }
   
+  async createOutput(outputData: {
+    content_type: string
+    generated_content: string
+    persona_id: string
+    source_document_id?: string
+    publish_config?: Record<string, any>
+  }): Promise<any> {
+    return this.request('/api/v1/outputs/', {
+      method: 'POST',
+      body: JSON.stringify(outputData),
+    })
+  }
+  
   async approveOutput(id: string, score: number, feedback?: string): Promise<any> {
     return this.request(`/api/v1/outputs/${id}/approve`, {
       method: 'POST',
@@ -441,6 +455,20 @@ class ApiClient {
     })
   }
   
+  async updateOutput(id: string, updateData: {
+    status?: string
+    generated_content?: string
+    score?: number
+    feedback_notes?: string
+    publish_config?: Record<string, any>
+    published_url?: string
+  }): Promise<any> {
+    return this.request(`/api/v1/outputs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    })
+  }
+
   async deleteOutput(id: string): Promise<void> {
     return this.request(`/api/v1/outputs/${id}`, {
       method: 'DELETE',

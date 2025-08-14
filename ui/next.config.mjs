@@ -10,10 +10,13 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
+    // Use environment variable for API URL in production
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:8000/api/v1/:path*',
+        destination: `${apiUrl}/api/v1/:path*`,
       },
     ];
   },

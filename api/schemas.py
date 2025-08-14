@@ -108,6 +108,7 @@ class RunBase(BaseModel):
 class RunResponse(RunBase):
     id: str
     input_source_id: str
+    input_source: Optional[InputSourceResponse] = None
     started_at: datetime
     completed_at: Optional[datetime] = None
 
@@ -178,6 +179,7 @@ class OutputSchemaUpdate(BaseModel):
     score: Optional[float] = None
     feedback_notes: Optional[str] = None
     publish_config: Optional[Dict[str, Any]] = None
+    published_url: Optional[str] = None
 
 
 class OutputSchemaResponse(OutputSchemaBase):

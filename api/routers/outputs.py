@@ -5,7 +5,7 @@ import uuid
 
 from api.database import get_db
 from api.models import OutputSchema, ApprovalHistory
-from api.schemas import OutputSchemaResponse, OutputSchemaCreate, ApprovalRequest
+from api.schemas import OutputSchemaResponse, OutputSchemaCreate, OutputSchemaUpdate, ApprovalRequest
 from api.auth import get_current_user
 
 router = APIRouter()
@@ -138,6 +138,36 @@ async def reject_output(
     db.commit()
     
     return {"message": "Output rejected successfully"}
+
+@router.put("/{output_id}", response_model=OutputSchemaResponse)
+async def update_output(
+    output_id: str,
+    update_data: OutputSchemaUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Update an output schema."""
+    try:
+        # Filter through persona relationship since OutputSchema doesn't have user_id
+        output = db.query(OutputSchema).join(OutputSchema.persona).filter(
+            OutputSchema.id == output_id,
+            OutputSchema.persona.has(owner_id=current_user.id)
+        ).first()
+        if not output:
+            raise HTTPException(status_code=404, detail="Output not found")
+        
+        # Update only provided fields
+        update_dict = update_data.dict(exclude_unset=True)
+        for field, value in update_dict.items():
+            setattr(output, field, value)
+        
+        db.commit()
+        db.refresh(output)
+        return output
+    except Exception as e:
+        print(f"ERROR in update_output: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update output: {str(e)}")
 
 @router.delete("/{output_id}")
 async def delete_output(

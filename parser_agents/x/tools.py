@@ -83,18 +83,35 @@ async def search_tweets(
     # TODO(Mateo): Add handlers for other search types
     response = await get_tweets()
     try:
-        tweets.extend(response.output.value["data"])
-        _enrich_tweets(tweets, response.output.value["includes"])
-    except TypeError as e:
-        print(e)
+        # Check if response has data before trying to extend
+        if response.output.value and response.output.value.get("data"):
+            tweets.extend(response.output.value["data"])
+            _enrich_tweets(tweets, response.output.value["includes"])
+        else:
+            print(f"No data returned for search: {search_query}")
+            return []  # Return empty list if no data found
+    except (TypeError, KeyError, AttributeError) as e:
+        print(f"Error processing Twitter response: {e}")
+        return []  # Return empty list on error
 
+    # Only continue pagination if we have a valid response structure
+    if not response.output.value or not response.output.value.get("meta"):
+        return tweets
+        
     next_token = response.output.value["meta"].get("next_token", None)
     while next_token is not None and len(tweets) < limit:
         sleep(0.5)
-        response = await get_tweets(next_token=next_token)
-        tweets.extend(response.output.value["data"])
-        _enrich_tweets(tweets, response.output.value["includes"])
-        next_token = response.output.value["meta"]["next_token"]
+        try:
+            response = await get_tweets(next_token=next_token)
+            if response.output.value and response.output.value.get("data"):
+                tweets.extend(response.output.value["data"])
+                _enrich_tweets(tweets, response.output.value["includes"])
+                next_token = response.output.value["meta"].get("next_token", None)
+            else:
+                break  # No more data, stop pagination
+        except (TypeError, KeyError, AttributeError) as e:
+            print(f"Error during pagination: {e}")
+            break  # Stop pagination on error
 
     return tweets
 

@@ -168,15 +168,23 @@ materials to target content.
 
 ## Instructions:
 1. Analyze the reference style characteristics carefully
-2. Extract key information from the target content
-3. Create content that matches the reference style while conveying the target
-   content's message
-4. Follow the writing style guidance above
-5. Return the content in the exact format specified by the output schema
-6. Maintain the original intent and focus while adapting to the new style
+2. MANDATORY: You MUST extract and use key information from ALL target documents provided above - do not ignore any document
+3. MANDATORY: If multiple documents are provided, you MUST synthesize information from ALL sources - create content that references or combines themes from every single document
+4. MANDATORY: Your response must show clear evidence that you considered every target document - mention elements from each one
+5. Create content that matches the reference style while conveying the combined message from all target content
+6. Follow the writing style guidance above
+7. Return the content in the exact format specified by the output schema
+8. Maintain the original intent and focus while adapting to the new style
 
 Please generate the content now:
 """
+
+    # Debug logging to see the actual prompt
+    print("🔍 PROMPT DEBUG - Target Documents Count:", len(target_docs))
+    print("🔍 PROMPT DEBUG - Full Prompt:")
+    print("=" * 80)
+    print(prompt)
+    print("=" * 80)
 
     return prompt
 

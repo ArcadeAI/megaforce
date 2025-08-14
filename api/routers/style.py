@@ -16,9 +16,29 @@ from ..schemas import CommentResponse, Comment
 
 # Import the style agent and its schemas
 from style_agent.agent import transfer_style
-from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment, OutputType as CommonOutputType
+from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment
+from api.models import OutputType as CommonOutputType
 
 router = APIRouter()
+
+# --- Helper Functions --- #
+
+def get_content_type_instructions(content_type: OutputType) -> str:
+    """Get platform-specific instructions for different content types."""
+    instructions = {
+        OutputType.TWEET_SINGLE: "Generate a single engaging tweet (max 280 characters). Use relevant hashtags and mention handles when appropriate. Be concise and impactful.",
+        OutputType.TWEET_THREAD: "Generate a Twitter thread with 2-5 connected tweets. Each tweet should be under 280 characters. Number them (1/n, 2/n, etc.) and ensure they flow logically.",
+        OutputType.TWITTER_REPLY: "Generate a thoughtful Twitter reply. Keep it under 280 characters. Be engaging and add value to the conversation. Use appropriate tone for the platform.",
+        OutputType.LINKEDIN_POST: "Generate a professional LinkedIn post. Use 1-3 paragraphs with line breaks for readability. Include relevant hashtags and maintain a professional tone.",
+        OutputType.LINKEDIN_COMMENT: "Generate a professional LinkedIn comment. Be thoughtful and add value to the discussion. Maintain professional tone while being engaging.",
+        OutputType.SOCIAL_COMMENT: "Generate a general social media comment. Be engaging, authentic, and appropriate for the platform context. Add value to the conversation.",
+        OutputType.BLOG_POST: "Generate a comprehensive blog post with introduction, main points, and conclusion. Use proper formatting with headers and paragraphs.",
+        OutputType.REDDIT_COMMENT: "Generate a Reddit-style comment. Be authentic, informative, and match the community tone. Use proper Reddit etiquette and formatting.",
+        OutputType.FACEBOOK_COMMENT: "Generate a Facebook comment. Be friendly and conversational. Consider the social context and maintain appropriate tone.",
+        OutputType.INSTAGRAM_COMMENT: "Generate an Instagram comment. Be visual-focused, use emojis appropriately, and keep it engaging and positive.",
+        OutputType.YOUTUBE_COMMENT: "Generate a YouTube comment. Be engaging and relevant to video content. Can be longer than other social comments but stay focused."
+    }
+    return instructions.get(content_type, "Generate engaging content appropriate for the specified platform.")
 
 # --- Enums --- #
 
@@ -51,6 +71,7 @@ class StyleTransferResponse(BaseModel):
 
 class CommentRequest(BaseModel):
     comment_type: CommentType = Field(default=CommentType.REPLY, description="Type of comment: reply or new_content")
+    content_type: OutputType = Field(default=OutputType.LINKEDIN_COMMENT, description="Type of content to generate")
     
     # Content sources (mutually exclusive based on comment_type)
     run_id: Optional[str] = Field(None, description="ID of a run to use all documents from (new_content only)")
@@ -108,10 +129,14 @@ async def generate_comments(
         target_docs = [SchemaDocument(url=d.url or "https://example.com", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
         source_document_ids = [d.id for d in docs]
     elif request.document_ids:
+        print(f"🔍 BACKEND DEBUG - Received document_ids: {request.document_ids}")
+        print(f"🔍 BACKEND DEBUG - Document IDs count: {len(request.document_ids)}")
         docs = db.query(Document).filter(Document.id.in_(request.document_ids)).all()
+        print(f"🔍 BACKEND DEBUG - Found documents count: {len(docs)}")
+        print(f"🔍 BACKEND DEBUG - Found document IDs: {[d.id for d in docs]}")
         if not docs:
             raise HTTPException(status_code=404, detail="No documents found for document_ids")
-        target_docs = [SchemaDocument(url=d.url, type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
+        target_docs = [SchemaDocument(url=d.url or "https://example.com", type=ContentType.TWITTER, category=DocumentCategory.CASUAL, content=d.content, title=d.title) for d in docs]
         source_document_ids = [d.id for d in docs]
     elif request.document_id:
         doc = db.query(Document).filter(Document.id == request.document_id).first()
@@ -175,16 +200,40 @@ async def generate_comments(
             style_definition=default_style
         ))
 
-    # Define the output schema for the agent
-    output_schemas = [OutputSchema(name="linkedin_comment", description="A professional LinkedIn comment", output_type=CommonOutputType.LINKEDIN_COMMENT)]
+    # Define the output schema for the agent based on requested content type
+    content_type_mapping = {
+        "tweet_single": (CommonOutputType.TWEET_SINGLE, "A single tweet", "tweet"),
+        "tweet_thread": (CommonOutputType.TWEET_THREAD, "A Twitter thread", "twitter_thread"),
+        "twitter_reply": (CommonOutputType.TWITTER_REPLY, "A Twitter reply", "twitter_reply"),
+        "linkedin_post": (CommonOutputType.LINKEDIN_POST, "A LinkedIn post", "linkedin_post"),
+        "linkedin_comment": (CommonOutputType.LINKEDIN_COMMENT, "A LinkedIn comment", "linkedin_comment"),
+        "social_comment": (CommonOutputType.SOCIAL_COMMENT, "A social media comment", "social_comment"),
+        "blog_post": (CommonOutputType.BLOG_POST, "A blog post", "blog_post"),
+        "reddit_comment": (CommonOutputType.REDDIT_COMMENT, "A Reddit comment", "reddit_comment"),
+        "facebook_comment": (CommonOutputType.FACEBOOK_COMMENT, "A Facebook comment", "facebook_comment"),
+        "instagram_comment": (CommonOutputType.INSTAGRAM_COMMENT, "An Instagram comment", "instagram_comment"),
+        "youtube_comment": (CommonOutputType.YOUTUBE_COMMENT, "A YouTube comment", "youtube_comment")
+    }
+    
+    # Get the mapping for the requested content type, default to linkedin_comment if not found
+    output_type, description, name = content_type_mapping.get(
+        request.content_type, 
+        (CommonOutputType.LINKEDIN_COMMENT, "A professional LinkedIn comment", "linkedin_comment")
+    )
+    
+    output_schemas = [OutputSchema(name=name, description=description, output_type=output_type)]
 
     # Construct the request for the style agent
     from common.schemas import StyleTransferRequest as AgentStyleTransferRequest
     
+    # Get content-type-specific instructions
+    content_instructions = get_content_type_instructions(request.content_type)
+    focus_instruction = f"{content_instructions} Engage the author and provide a thoughtful response."
+    
     agent_request = AgentStyleTransferRequest(
         reference_style=reference_styles,
         intent=request.comment_style,
-        focus="Engage the author and provide a thoughtful response.",
+        focus=focus_instruction,
         target_content=target_docs,
         target_schemas=output_schemas
     )
@@ -212,7 +261,7 @@ async def generate_comments(
         id=str(uuid.uuid4()),
         persona_id=persona_id,
         source_document_id=source_document_ids[0] if source_document_ids else None,
-        content_type=OutputType.LINKEDIN_COMMENT,
+        content_type=request.content_type,
         generated_content=generated_comment, # Save the JSON string
         status=OutputStatus.PENDING_REVIEW,
         score=confidence,

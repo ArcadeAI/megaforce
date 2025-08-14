@@ -1,16 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { Sidebar } from "@/components/sidebar"
-import { TwitterDashboard } from "@/components/twitter-dashboard"
-import Personas from "@/components/personas"
-import SourceMaterials from "@/components/source-materials"
-import GenerateContent from "@/components/generate-content"
-import { LoginForm } from "@/components/login-form"
-import { useAuth } from "@/components/auth-context"
+import { Sidebar } from "../components/sidebar"
+import { MainDashboard } from "../components/main-dashboard"
+import Personas from "../components/personas"
+import SourceMaterials from "../components/source-materials"
+import GenerateContent from "../components/generate-content"
+import ApprovalQueue from "../components/approval-queue"
+import { LoginForm } from "../components/login-form"
+import { useAuth } from "../components/auth-context"
 
-export default function HomePage() {
+function HomePageContent() {
   const { user, loading } = useAuth()
   const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState("dashboard")
@@ -45,16 +46,11 @@ export default function HomePage() {
   const renderMainContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <TwitterDashboard />
+        return <MainDashboard />
       case "personas":
         return <Personas />
       case "approval":
-        return (
-          <div className="flex-1 p-6 bg-gray-900 text-white">
-            <h1 className="text-2xl font-bold mb-4">Approval Queue</h1>
-            <p className="text-gray-400">Coming soon...</p>
-          </div>
-        )
+        return <ApprovalQueue />
       case "generate":
         return <GenerateContent />
       case "sources":
@@ -64,7 +60,7 @@ export default function HomePage() {
           </div>
         )
       default:
-        return <TwitterDashboard />
+        return <MainDashboard />
     }
   }
 
@@ -73,5 +69,13 @@ export default function HomePage() {
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
       {renderMainContent()}
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen bg-gray-900 text-white items-center justify-center">Loading...</div>}>
+      <HomePageContent />
+    </Suspense>
   )
 }
