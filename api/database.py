@@ -6,23 +6,47 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Supabase connection string
-# Format: postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
-SUPABASE_DATABASE_URL = os.getenv("SUPABASE_DATABASE_URL")
+# Database configuration based on DATABASE_TYPE environment variable
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "supabase").lower()
 
-if not SUPABASE_DATABASE_URL:
-    # Fallback to individual components for local development
-    SUPABASE_HOST = os.getenv("SUPABASE_HOST", "localhost")
-    SUPABASE_PORT = os.getenv("SUPABASE_PORT", "5432")
-    SUPABASE_DB = os.getenv("SUPABASE_DB", "postgres")
-    SUPABASE_USER = os.getenv("SUPABASE_USER", "postgres")
-    SUPABASE_PASSWORD = os.getenv("SUPABASE_PASSWORD", "")
+def get_database_url():
+    """Get database URL based on DATABASE_TYPE environment variable."""
+    if DATABASE_TYPE == "postgresql":
+        # Local PostgreSQL configuration
+        # Use 'postgres' as hostname when running in Docker, 'localhost' otherwise
+        default_host = "postgres" if os.getenv("DOCKER_ENV") == "true" else "localhost"
+        host = os.getenv("POSTGRES_HOST", default_host)
+        port = os.getenv("POSTGRES_PORT", "5432")
+        db = os.getenv("POSTGRES_DB", "megaforce")
+        user = os.getenv("POSTGRES_USER", "postgres")
+        password = os.getenv("POSTGRES_PASSWORD", "postgres")
+        
+        database_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+        print(f"Using local PostgreSQL: {host}:{port}/{db}")
+        return database_url
     
-    SUPABASE_DATABASE_URL = f"postgresql://{SUPABASE_USER}:{SUPABASE_PASSWORD}@{SUPABASE_HOST}:{SUPABASE_PORT}/{SUPABASE_DB}"
+    else:  # Default to Supabase
+        # Supabase connection string
+        supabase_url = os.getenv("SUPABASE_DATABASE_URL")
+        
+        if not supabase_url:
+            # Fallback to individual components for Supabase
+            host = os.getenv("SUPABASE_HOST", "localhost")
+            port = os.getenv("SUPABASE_PORT", "5432")
+            db = os.getenv("SUPABASE_DB", "postgres")
+            user = os.getenv("SUPABASE_USER", "postgres")
+            password = os.getenv("SUPABASE_PASSWORD", "")
+            
+            supabase_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+        
+        print(f"Using Supabase: {supabase_url.split('@')[1] if '@' in supabase_url else 'configured'}")
+        return supabase_url
+
+DATABASE_URL = get_database_url()
 
 # Create SQLAlchemy engine
 engine = create_engine(
-    SUPABASE_DATABASE_URL,
+    DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
     echo=os.getenv("SQL_DEBUG", "false").lower() == "true"

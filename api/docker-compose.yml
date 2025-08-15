@@ -20,7 +20,14 @@ services:
       - ARCADE_API_KEY=${ARCADE_API_KEY}
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o-2024-08-06}
+      - DATABASE_TYPE=${DATABASE_TYPE:-supabase}
+      - DOCKER_ENV=true
       - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB:-megaforce}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - SECRET_KEY=${SECRET_KEY}
       - SQL_DEBUG=${SQL_DEBUG:-false}
     command: uv run uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
@@ -34,18 +41,20 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
-  # Optional: Local PostgreSQL for development (if not using Supabase)
-  # postgres:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_DB: megaforce
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   restart: unless-stopped
+  # Local PostgreSQL for development (enabled when DATABASE_TYPE=postgresql)
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-megaforce}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    profiles:
+      - postgresql
 
-# volumes:
-#   postgres_data:
+volumes:
+  postgres_data:
