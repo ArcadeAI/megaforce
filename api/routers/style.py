@@ -15,8 +15,8 @@ from ..models import User, Persona, Document, OutputSchema as DBOutputSchema, Ap
 from ..schemas import CommentResponse, Comment
 
 # Import the style agent and its schemas
-from style_agent.agent import transfer_style
-from common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment
+from megaforce.style_agent.agent import transfer_style
+from megaforce.common.schemas import StyleTransferRequest as AgentStyleRequest, ReferenceStyle, Document as SchemaDocument, OutputSchema, ContentType, DocumentCategory, WritingStyle, LinkedInComment
 from api.models import OutputType as CommonOutputType
 
 router = APIRouter()
@@ -186,7 +186,7 @@ async def generate_comments(
         
     # Ensure we always have at least one reference style with a style definition
     if not reference_styles:
-        from common.schemas import WritingStyle
+        from megaforce.common.schemas import WritingStyle
         # Create a default style definition if no reference documents are available
         default_style = WritingStyle(
             tone="professional",
@@ -224,7 +224,7 @@ async def generate_comments(
     output_schemas = [OutputSchema(name=name, description=description, output_type=output_type)]
 
     # Construct the request for the style agent
-    from common.schemas import StyleTransferRequest as AgentStyleTransferRequest
+    from megaforce.common.schemas import StyleTransferRequest as AgentStyleTransferRequest
     
     # Get content-type-specific instructions
     content_instructions = get_content_type_instructions(request.content_type)

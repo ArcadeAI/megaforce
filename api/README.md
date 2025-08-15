@@ -376,25 +376,39 @@ curl -X POST "https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com/api/v1
 
 ### Local Development
 
+The API supports **two database backends** for local development:
+
+#### Option 1: Local PostgreSQL (Recommended)
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd megaforce/api
+cd megaforce
 
 # 2. Configure environment variables
-# Create .env file in api/ directory with your Supabase credentials:
-# - Use transaction pooler URL: postgresql://postgres.PROJECT:[PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres
-# - Add all required API keys (Arcade, OpenAI, etc.)
+# Ensure you have a .env file in the root directory with required API keys
 
-# 3. Start with Docker (WORKING)
-docker-compose up -d
+# 3. Start with local PostgreSQL (automatically sets DATABASE_TYPE=postgresql)
+./scripts/start-local-postgres.sh
 
-# 4. Run database migrations (NEXT STEP)
-docker-compose exec api uv run alembic upgrade head
-
-# 5. API is available at http://localhost:8000
+# 4. API is available at http://localhost:8000
 curl http://localhost:8000/  # Returns: {"message":"Megaforce Social Media API","version":"1.0.0"}
 ```
+
+#### Option 2: Supabase (Production-like)
+```bash
+# 1. Configure Supabase credentials in .env:
+# SUPABASE_DATABASE_URL=postgresql://postgres.PROJECT:[PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres
+
+# 2. Start with Supabase (automatically sets DATABASE_TYPE=supabase)
+./scripts/start-local-supabase.sh
+
+# 3. API is available at http://localhost:8000
+```
+
+#### Database Switching
+- **Environment Variable**: `DATABASE_TYPE` controls which database to use (`postgresql` or `supabase`)
+- **Startup Scripts**: Automatically set the correct `DATABASE_TYPE` override
+- **No Migrations**: Tables are created automatically using SQLAlchemy `Base.metadata.create_all()`
 
 ### **Production Deployment (Heroku)**
 ```bash

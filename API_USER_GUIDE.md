@@ -15,11 +15,31 @@ This guide provides the **exact working code** for testing every endpoint in the
 ## 📋 Prerequisites
 
 Before starting, ensure you have:
-- **Local API server running** on http://localhost:8000
-- **Required environment variables**:
-  - `OPENAI_API_KEY` - For OpenAI GPT models
-  - `ANTHROPIC_API_KEY` - For Claude models  
-  - `ARCADE_API_KEY` - For Twitter search and posting
+
+### Local API Server Setup
+Choose one of two database options:
+
+**Option 1: PostgreSQL (Recommended for Development)**
+```bash
+# Start with local PostgreSQL
+./scripts/start-local-postgres.sh
+# API available at http://localhost:8000
+```
+
+**Option 2: Supabase (Production-like)**
+```bash
+# Start with Supabase (requires SUPABASE_DATABASE_URL in .env)
+./scripts/start-local-supabase.sh
+# API available at http://localhost:8000
+```
+
+### Required Environment Variables
+- `OPENAI_API_KEY` - For OpenAI GPT models
+- `ANTHROPIC_API_KEY` - For Claude models  
+- `ARCADE_API_KEY` - For Twitter search and posting
+- `SUPABASE_DATABASE_URL` - Only needed for Supabase option
+
+### Testing Tools
 - **curl and jq** installed for testing
 
 ## 🎯 Complete Workflow Overview

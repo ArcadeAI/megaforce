@@ -11,6 +11,8 @@ DATABASE_TYPE = os.getenv("DATABASE_TYPE", "supabase").lower()
 
 def get_database_url():
     """Get database URL based on DATABASE_TYPE environment variable."""
+    print(f"DEBUG: DATABASE_TYPE={DATABASE_TYPE}, DOCKER_ENV={os.getenv('DOCKER_ENV')}")
+    
     if DATABASE_TYPE == "postgresql":
         # Local PostgreSQL configuration
         # Use 'postgres' as hostname when running in Docker, 'localhost' otherwise
@@ -26,7 +28,7 @@ def get_database_url():
         return database_url
     
     else:  # Default to Supabase
-        # Supabase connection string
+        # Supabase connection string - always use SUPABASE_DATABASE_URL regardless of DOCKER_ENV
         supabase_url = os.getenv("SUPABASE_DATABASE_URL")
         
         if not supabase_url:

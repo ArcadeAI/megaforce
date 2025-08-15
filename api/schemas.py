@@ -122,12 +122,7 @@ class DocumentBase(BaseModel):
     content: str
     url: Optional[str] = None
     author: Optional[str] = None
-    score: int = 0
-    priority: int = 0
-    platform_data: Optional[Dict[str, Any]] = None
     reference_type: Optional[str] = None  # "tweet", "url", "document", etc.
-    document_type: str = "source_material"  # "source_material" or "style_reference"
-    is_style_reference: bool = False
 
 
 class DocumentCreate(DocumentBase):
@@ -141,9 +136,6 @@ class DocumentUpdate(BaseModel):
     content: Optional[str] = None
     url: Optional[str] = None
     author: Optional[str] = None
-    score: Optional[int] = None
-    priority: Optional[int] = None
-    platform_data: Optional[Dict[str, Any]] = None
     reference_type: Optional[str] = None
     persona_ids: Optional[List[str]] = None
 

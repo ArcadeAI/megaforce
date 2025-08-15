@@ -3,7 +3,7 @@ from datetime import datetime
 import megaforce.parser_agents.reddit.agent as reddit_agent
 import megaforce.parser_agents.x.agent as x_agent
 import megaforce.parser_agents.x.schemas as x_schemas
-from common.writers import write_documents_to_json
+from megaforce.common.writers import write_documents_to_json
 import logging
 
 # Configure logging

@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 sys.path.insert(0, '/Users/scarlettattensil/megaforce')
 
-from posting_agents.x.agent import post_tweet
+from megaforce.posting_agents.x.agent import post_tweet
 
 async def main():
     """Post a test tweet using the Megaforce posting agent."""

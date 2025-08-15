@@ -33,26 +33,19 @@ fi
 echo "✅ Prerequisites OK"
 echo ""
 
-# Backup original .env
-cp .env .env.test_backup
-
 # Test 1: PostgreSQL setup
 echo "🐘 Test 1: PostgreSQL Setup"
 echo "----------------------------"
 
-# Set PostgreSQL mode
-echo "Setting DATABASE_TYPE=postgresql..."
-sed -i.bak 's/^DATABASE_TYPE=.*/DATABASE_TYPE=postgresql/' .env 2>/dev/null || echo "DATABASE_TYPE=postgresql" >> .env
-
-echo "Starting PostgreSQL services..."
+echo "Starting PostgreSQL services with DATABASE_TYPE=postgresql..."
+export DATABASE_TYPE=postgresql
 ./scripts/start-local-postgres.sh
 
 echo "Waiting for services to start..."
 sleep 15
 
-echo "Running database migrations..."
-cd api && uv run alembic upgrade head
-cd ..
+echo "Database tables will be created automatically by the API..."
+# No migrations needed - API uses Base.metadata.create_all()
 
 echo ""
 echo "🚀 Running comprehensive API test suite (PostgreSQL)..."
@@ -83,10 +76,8 @@ echo "-------------------------"
 
 # Check if Supabase is configured
 if grep -q "SUPABASE_DATABASE_URL=postgresql://" .env && ! grep -q "YOUR-PROJECT-REF" .env; then
-    echo "Setting DATABASE_TYPE=supabase..."
-    sed -i.bak 's/^DATABASE_TYPE=.*/DATABASE_TYPE=supabase/' .env
-    
-    echo "Starting Supabase services..."
+    echo "Starting Supabase services with DATABASE_TYPE=supabase..."
+    export DATABASE_TYPE=supabase
     ./scripts/start-local-supabase.sh
     
     echo "Waiting for services to start..."
@@ -116,9 +107,6 @@ else
     echo "   To test Supabase, set SUPABASE_DATABASE_URL in .env"
     SUPABASE_SUCCESS="skipped"
 fi
-
-# Restore original .env
-mv .env.test_backup .env
 
 echo ""
 echo "🎉 Test Results Summary"

@@ -7,47 +7,40 @@ This guide shows you how to run Megaforce locally with either **PostgreSQL** or 
 ### Option 1: Local PostgreSQL (Recommended for Development)
 
 ```bash
-# 1. Copy environment template
-cp .env.template .env
-
-# 2. Edit .env and set:
-DATABASE_TYPE=postgresql
-
-# 3. Start with PostgreSQL
+# 1. Ensure you have a working .env file (should already exist)
+# 2. Start with PostgreSQL (automatically sets DATABASE_TYPE=postgresql)
 ./scripts/start-local-postgres.sh
 
-# 4. Run database migrations
-cd api && uv run alembic upgrade head
-
-# 5. Start the UI (in another terminal)
+# 3. Start the UI (in another terminal)
 cd ui && npm run dev
+
+# 4. Visit http://localhost:3000
 ```
 
 ### Option 2: Supabase (Production-like)
 
 ```bash
-# 1. Copy environment template
-cp .env.template .env
-
-# 2. Edit .env and set:
-DATABASE_TYPE=supabase
-SUPABASE_DATABASE_URL=your_supabase_connection_string
-
-# 3. Start with Supabase
+# 1. Ensure your .env file has valid Supabase credentials:
+#    SUPABASE_DATABASE_URL=postgresql://postgres.[YOUR-PROJECT]:[PASSWORD]@...
+# 2. Start with Supabase (automatically sets DATABASE_TYPE=supabase)
 ./scripts/start-local-supabase.sh
 
-# 4. Start the UI (in another terminal)
+# 3. Start the UI (in another terminal)
 cd ui && npm run dev
+
+# 4. Visit http://localhost:3000
 ```
 
 ## Environment Configuration
 
-### Database Selection
+### Simplified Database Switching
 
-Set `DATABASE_TYPE` in your `.env` file:
+The system uses **environment variable overrides** to switch between databases:
 
-- `DATABASE_TYPE=postgresql` - Use local PostgreSQL
-- `DATABASE_TYPE=supabase` - Use Supabase
+- **PostgreSQL**: `./scripts/start-local-postgres.sh` (sets `DATABASE_TYPE=postgresql`)
+- **Supabase**: `./scripts/start-local-supabase.sh` (sets `DATABASE_TYPE=supabase`)
+
+Your main `.env` file defaults to Supabase, but the startup scripts override this as needed.
 
 ### PostgreSQL Settings (when DATABASE_TYPE=postgresql)
 
@@ -99,12 +92,6 @@ SUPABASE_KEY=your_supabase_anon_key
 ./scripts/stop-local.sh
 ```
 
-### Database Migrations
-```bash
-cd api
-uv run alembic upgrade head
-```
-
 ### Reset PostgreSQL Data
 ```bash
 ./scripts/stop-local.sh
@@ -114,12 +101,20 @@ docker volume rm api_postgres_data
 
 ## Switching Between Databases
 
-You can easily switch between PostgreSQL and Supabase:
+Switching between PostgreSQL and Supabase is now **automatic** - just use the appropriate start script:
 
 1. **Stop current services**: `./scripts/stop-local.sh`
-2. **Update .env**: Change `DATABASE_TYPE=postgresql` or `DATABASE_TYPE=supabase`
-3. **Start with new database**: Run the appropriate start script
-4. **Run migrations** (if switching to PostgreSQL): `cd api && uv run alembic upgrade head`
+2. **Start with desired database**:
+   - PostgreSQL: `./scripts/start-local-postgres.sh`
+   - Supabase: `./scripts/start-local-supabase.sh`
+
+**No manual `.env` editing required!** The scripts automatically set the correct `DATABASE_TYPE` environment variable.
+
+### Database Schema Management
+
+- **PostgreSQL**: Tables are created automatically by SQLAlchemy (`Base.metadata.create_all()`)
+- **Supabase**: Uses existing Supabase database schema
+- **No Alembic migrations required** for local development
 
 ## Troubleshooting
 
@@ -143,11 +138,40 @@ You can easily switch between PostgreSQL and Supabase:
 - Check UI logs: `cd ui && npm run dev`
 - Verify `API_BASE_URL` points to correct API server
 
+## Testing
+
+### Comprehensive Test Suite
+
+Run the full test suite to verify both PostgreSQL and Supabase configurations:
+
+```bash
+./scripts/test-local.sh
+```
+
+This will:
+- Test PostgreSQL setup with end-to-end API workflow
+- Test Supabase setup with end-to-end API workflow  
+- Verify user registration, login, persona creation, document creation, and Twitter search
+- Automatically handle environment switching using variable overrides
+
+### Manual Testing
+
+```bash
+# Test PostgreSQL only
+./scripts/start-local-postgres.sh
+# Then run your manual tests
+
+# Test Supabase only  
+./scripts/start-local-supabase.sh
+# Then run your manual tests
+```
+
 ## Development Workflow
 
-1. **Start backend**: `./scripts/start-local-postgres.sh`
-2. **Run migrations**: `cd api && uv run alembic upgrade head`
-3. **Start frontend**: `cd ui && npm run dev`
-4. **Access application**: http://localhost:3000
+1. **Start backend**: `./scripts/start-local-postgres.sh` (or `start-local-supabase.sh`)
+2. **Start frontend**: `cd ui && npm run dev`
+3. **Access application**: http://localhost:3000
 
 The API will automatically reload when you make changes to the code, and the UI supports hot reloading for development.
+
+**Note**: Database tables are created automatically - no manual migrations required!

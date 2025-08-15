@@ -5,8 +5,8 @@ import os
 import sys
 sys.path.insert(0, '/Users/scarlettattensil/megaforce')
 
-from style_agent.agent import transfer_style, generate_related_content
-from common.schemas import (
+from megaforce.style_agent.agent import transfer_style, generate_related_content
+from megaforce.common.schemas import (
     StyleTransferRequest, 
     ReferenceStyle, 
     OutputSchema, 

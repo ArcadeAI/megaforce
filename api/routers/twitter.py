@@ -17,9 +17,10 @@ from api.schemas import (
 )
 
 # Import the existing Twitter agents (DO NOT CHANGE AGENT LOGIC)
-from parser_agents.x.agent import get_content
-from parser_agents.x.schemas import InputSchema, SearchType
-from posting_agents.x.agent import post_tweet, delete_tweet
+from megaforce.parser_agents.x.agent import get_content
+from megaforce.parser_agents.x.schemas import InputSchema, SearchType
+# from megaforce.posting_agents.x.agent import post_tweet, delete_tweet
+# TODO: Implement posting agent functions
 
 router = APIRouter()
 
@@ -141,19 +142,50 @@ async def search_twitter(
                         
                 print(f"DEBUG: LLM ranking enabled with provider={request.llm_provider}, model={request.llm_model}")
             
-            # Use the existing Twitter agent with generous timeout and credentials
-            documents = await asyncio.wait_for(
-                get_content(
-                    parser_agent_config=agent_input,
-                    userid=user_id,
-                    key=api_key,
-                    provider=provider,
-                    llm_provider=request.llm_provider,
-                    llm_model=request.llm_model,
-                    llm_api_key=llm_api_key
-                ), 
-                timeout=120.0  # 2 minutes timeout for complex searches
-            )
+            # Set environment variables for the agent to use
+            original_user_id = os.getenv('USER_ID')
+            original_arcade_key = os.getenv('ARCADE_API_KEY')
+            original_llm_provider = os.getenv('LLM_PROVIDER')
+            original_llm_model = os.getenv('LLM_MODEL')
+            
+            try:
+                # Temporarily set environment variables for the agent
+                os.environ['USER_ID'] = user_id
+                os.environ['ARCADE_API_KEY'] = api_key
+                if request.rank_tweets:
+                    os.environ['LLM_PROVIDER'] = request.llm_provider
+                    os.environ['LLM_MODEL'] = request.llm_model or "gpt-4o-2024-08-06"
+                    # Set the appropriate LLM API key
+                    if request.llm_provider == "openai":
+                        os.environ['OPENAI_API_KEY'] = llm_api_key
+                    elif request.llm_provider == "anthropic":
+                        os.environ['ANTHROPIC_API_KEY'] = llm_api_key
+                    elif request.llm_provider == "google_genai":
+                        os.environ['GOOGLE_API_KEY'] = llm_api_key
+                
+                # Use the existing Twitter agent with generous timeout
+                documents = await asyncio.wait_for(
+                    get_content(parser_agent_config=agent_input), 
+                    timeout=120.0  # 2 minutes timeout for complex searches
+                )
+            finally:
+                # Restore original environment variables
+                if original_user_id:
+                    os.environ['USER_ID'] = original_user_id
+                else:
+                    os.environ.pop('USER_ID', None)
+                if original_arcade_key:
+                    os.environ['ARCADE_API_KEY'] = original_arcade_key
+                else:
+                    os.environ.pop('ARCADE_API_KEY', None)
+                if original_llm_provider:
+                    os.environ['LLM_PROVIDER'] = original_llm_provider
+                else:
+                    os.environ.pop('LLM_PROVIDER', None)
+                if original_llm_model:
+                    os.environ['LLM_MODEL'] = original_llm_model
+                else:
+                    os.environ.pop('LLM_MODEL', None)
         except asyncio.TimeoutError:
             # Update run status and raise timeout error
             run.status = "failed"

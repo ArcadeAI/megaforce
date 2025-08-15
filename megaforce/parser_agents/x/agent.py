@@ -20,8 +20,7 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
     await auth_tools(
         client=client,
         user_id=os.getenv("USER_ID"),
-        tool_names=["X.SearchRecentTweetsByKeywords", "X.SearchRecentTweetsByUsername"],
-        provider="x"
+        tool_names=["X.SearchRecentTweetsByKeywords", "X.SearchRecentTweetsByUsername"]
     )
 
     logger.info(f"Getting top tweets for {parser_agent_config.search_query}")
