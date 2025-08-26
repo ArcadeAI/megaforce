@@ -298,11 +298,8 @@ class StyleTransferRequest(BaseModel):
     max_length: Optional[int] = Field(280, description="Maximum character length for output")
     
     # LLM Provider Configuration (with .env fallbacks)
-    llm_provider: str = Field(default="anthropic", description="LLM provider: openai, anthropic, google")
+    llm_provider: str = Field(default="openai", description="LLM provider: openai, anthropic, google")
     llm_model: Optional[str] = Field(None, description="Specific model to use (optional, defaults to provider default)")
-    openai_api_key: Optional[str] = Field(None, description="OpenAI API key (optional, defaults to .env)")
-    anthropic_api_key: Optional[str] = Field(None, description="Anthropic API key (optional, defaults to .env)")
-    google_api_key: Optional[str] = Field(None, description="Google API key (optional, defaults to .env)")
     
     @field_validator('style_description')
     @classmethod

@@ -228,17 +228,6 @@ export default function GenerateContent() {
       temperature: temperature
     };
 
-    // Add API key if provided based on LLM provider
-    if (apiKey.trim()) {
-      if (llmProvider === 'openai') {
-        requestBody.openai_api_key = apiKey.trim();
-      } else if (llmProvider === 'anthropic') {
-        requestBody.anthropic_api_key = apiKey.trim();
-      } else if (llmProvider === 'google') {
-        requestBody.google_api_key = apiKey.trim();
-      }
-    }
-
     if (commentType === 'new_content') {
       if (contentSource === 'documents') {
         console.log('📄 Multiple documents selected:', {

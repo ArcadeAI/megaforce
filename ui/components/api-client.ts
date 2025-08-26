@@ -1,10 +1,9 @@
 // API Client for Megaforce Backend Integration
 // Connects the Next.js frontend to the existing FastAPI backend
 
-// Use deployed Heroku API directly
-const API_BASE_URL = 'https://megaforce-api-1753594244-73541ebdaf5f.herokuapp.com'
-console.log('🔧 Using deployed API:', API_BASE_URL)
-
+// Use Next.js proxy for API requests (configured in next.config.mjs)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+console.log('🔧 Using Next.js API proxy to backend')
 // Types for API responses (based on existing backend schemas)
 export interface User {
   id: string
@@ -55,9 +54,6 @@ export interface CommentGenerationRequest {
   num_comments?: number
   llm_provider?: string
   llm_model?: string
-  openai_api_key?: string
-  anthropic_api_key?: string
-  google_api_key?: string
 }
 
 export interface Comment {
@@ -274,7 +270,7 @@ class ApiClient {
     return this.request('/api/v1/style/generate-comments', {
       method: 'POST',
       body: JSON.stringify(request),
-    })
+    });
   }
   
   // Persona endpoints

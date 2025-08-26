@@ -1,7 +1,7 @@
 """Fix OutputType enum values to lowercase format
 
 Revision ID: fix_outputtype_enum_values
-Revises: 38062b60878b
+Revises: 001_unified_documents
 Create Date: 2025-08-08 01:07:39.000000
 
 """
@@ -10,15 +10,28 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'fix_outputtype_enum_values'
-down_revision = '38062b60878b'  # Depends on the migrating columns migration
+down_revision = '001_unified_documents'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    """Update OutputType enum values from uppercase to lowercase format."""
+    """Add lowercase enum values and update existing records."""
     
-    # Update all existing records to use the new lowercase format
+    # Add new lowercase values to the enum type
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'tweet_single'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'tweet_thread'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'social_comment'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'twitter_reply'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'linkedin_post'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'linkedin_comment'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'blog_post'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'reddit_comment'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'facebook_comment'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'instagram_comment'")
+    op.execute("ALTER TYPE outputtype ADD VALUE IF NOT EXISTS 'youtube_comment'")
+    
+    # Now update existing records to use lowercase format
     op.execute("""
         UPDATE output_schemas SET content_type = 'tweet_single' WHERE content_type = 'TWEET_SINGLE';
     """)

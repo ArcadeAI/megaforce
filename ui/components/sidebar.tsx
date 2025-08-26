@@ -55,7 +55,7 @@ export function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
         const approvedOutputs = outputsData.filter((output: any) => 
           output.status === 'approved' || output.status === 'published'
         ).length
-        
+
         const approvalRate = totalOutputs > 0 ? Math.round((approvedOutputs / totalOutputs) * 100) : 0
 
         setStats({

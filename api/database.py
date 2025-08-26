@@ -12,13 +12,13 @@ SUPABASE_DATABASE_URL = os.getenv("SUPABASE_DATABASE_URL")
 
 if not SUPABASE_DATABASE_URL:
     # Fallback to individual components for local development
-    SUPABASE_HOST = os.getenv("SUPABASE_HOST", "localhost")
-    SUPABASE_PORT = os.getenv("SUPABASE_PORT", "5432")
-    SUPABASE_DB = os.getenv("SUPABASE_DB", "postgres")
-    SUPABASE_USER = os.getenv("SUPABASE_USER", "postgres")
-    SUPABASE_PASSWORD = os.getenv("SUPABASE_PASSWORD", "")
+    POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+    POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
+    POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
     
-    SUPABASE_DATABASE_URL = f"postgresql://{SUPABASE_USER}:{SUPABASE_PASSWORD}@{SUPABASE_HOST}:{SUPABASE_PORT}/{SUPABASE_DB}"
+    SUPABASE_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 # Create SQLAlchemy engine
 engine = create_engine(
