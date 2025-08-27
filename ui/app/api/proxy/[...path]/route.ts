@@ -1,7 +1,7 @@
 // Next.js API proxy to avoid CORS issues with Heroku backend
 import { NextRequest, NextResponse } from 'next/server'
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function GET(
   request: NextRequest,

@@ -1,9 +1,18 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from enum import Enum
 
 from api.models import UserRole, InputSourceType, OutputStatus, OutputType
+
+
+# General verification schema (Arcade custom verifier)
+class VerifyResponse(BaseModel):
+    success: bool
+    auth_id: Optional[str] = None
+    next_uri: Optional[str] = None
+    status: Optional[str] = None
+    message: Optional[str] = None
+    persona_id: Optional[str] = None
 
 
 # User schemas
@@ -223,6 +232,17 @@ class ApprovalHistoryResponse(BaseModel):
         from_attributes = True
 
 
+# Scheduling schemas
+class ScheduleRequest(BaseModel):
+    schedule_time: datetime
+
+
+class ScheduleResponse(BaseModel):
+    message: str
+    task_id: str
+    scheduled_at: datetime
+
+
 # Twitter-specific schemas
 class TwitterSearchRequest(BaseModel):
     search_type: str = Field(..., description="keywords, user, hashtag")
@@ -287,6 +307,17 @@ class TwitterDeleteResponse(BaseModel):
     tweet_id: str
     message: str
     deleted_at: Optional[datetime] = None
+
+
+# Twitter OAuth connect schemas
+class TwitterConnectRequest(BaseModel):
+    persona_id: str = Field(..., description="Persona to associate the Twitter account with")
+
+
+class TwitterConnectResponse(BaseModel):
+    oauth_url: str = Field(..., description="URL to redirect the user to complete OAuth")
+    state: str = Field(..., description="Opaque state used to correlate the OAuth flow")
+    message: Optional[str] = None
 
 
 # Style Agent schemas

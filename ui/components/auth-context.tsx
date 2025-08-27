@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { apiClient, User, LoginRequest, RegisterRequest } from './api-client'
+import { apiClient, TokenManager, User, LoginRequest, RegisterRequest } from './api-client'
 
 interface AuthContextType {
   user: User | null
@@ -22,8 +22,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Only try to get current user if we have a token
-        const token = localStorage.getItem('token')
+        // Migrate legacy key and only try to get current user if we have a token
+        const legacyToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        if (legacyToken) {
+          TokenManager.setToken(legacyToken)
+          try { localStorage.removeItem('token') } catch {}
+        }
+        const token = TokenManager.getToken()
         if (token) {
           const currentUser = await apiClient.getCurrentUser()
           setUser(currentUser)

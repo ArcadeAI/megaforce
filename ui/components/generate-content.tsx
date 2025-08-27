@@ -65,7 +65,7 @@ export default function GenerateContent() {
   const [outputs, setOutputs] = useState<Output[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  
+
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -84,10 +84,10 @@ export default function GenerateContent() {
   const [outputType, setOutputType] = useState('tweet_single');
   const [customContent, setCustomContent] = useState('');
   const [customTitle, setCustomTitle] = useState('');
-  const [llmProvider, setLlmProvider] = useState<'anthropic' | 'openai' | 'google'>('anthropic');
+  const [llmProvider, setLlmProvider] = useState<'anthropic' | 'openai' | 'google'>('openai');
   const [temperature, setTemperature] = useState(0.7);
   const [apiKey, setApiKey] = useState('');
-  
+
   // Run details modal state
   const [showRunDetails, setShowRunDetails] = useState(false);
   const [selectedRunDetails, setSelectedRunDetails] = useState<any>(null);
@@ -157,7 +157,7 @@ export default function GenerateContent() {
 
   const confirmDeleteOutput = async (outputId: string) => {
     setConfirmDialog(prev => ({ ...prev, isOpen: false }))
-    
+
     try {
       console.log('🗑️ Deleting output:', outputId)
       await apiClient.deleteOutput(outputId)
@@ -174,8 +174,8 @@ export default function GenerateContent() {
     if (commentType === 'reply') {
       setSelectedDocuments([documentId]);
     } else {
-      setSelectedDocuments(prev => 
-        prev.includes(documentId) 
+      setSelectedDocuments(prev =>
+        prev.includes(documentId)
           ? prev.filter(id => id !== documentId)
           : [...prev, documentId]
       );
@@ -218,7 +218,7 @@ export default function GenerateContent() {
     }
 
     setGenerating(true);
-    
+
     const requestBody: any = {
       comment_type: commentType,
       content_type: outputType,
@@ -252,14 +252,14 @@ export default function GenerateContent() {
             total_documents: selectedRunData.total_documents || 0
           } : null
         });
-        
+
         if (!selectedRunData) {
           console.error('❌ Search run validation failed: Run not found');
           alert('Selected search run not found. Please choose a different run.');
           setGenerating(false);
           return;
         }
-        
+
         // Check if run has any documents (backend will handle fetching them)
         if (selectedRunData.total_documents === 0) {
           console.error('❌ Search run validation failed: No documents in run');
@@ -294,17 +294,17 @@ export default function GenerateContent() {
         selectedRun,
         hasCustomContent: !!customContent
       });
-      
+
       const data = await apiClient.generateComments(requestBody);
       console.log('✅ Generate comments response:', data);
-      
+
       await fetchOutputs();
       // Clear form after successful generation
       setCustomContent('');
       setCustomTitle('');
       setSelectedDocuments([]);
       setSelectedRun('');
-      
+
       alert('Content generated successfully!');
     } catch (error) {
       console.error('❌ Error generating content:', error);
@@ -346,7 +346,7 @@ export default function GenerateContent() {
           <Sparkles className="mr-2 h-5 w-5" />
           Generate Content
         </h2>
-        
+
         <div className="space-y-4">
           {/* Comment Type */}
           <div>
@@ -375,12 +375,7 @@ export default function GenerateContent() {
                 <SelectItem value="twitter_reply" className="text-white hover:bg-gray-600">Twitter Reply</SelectItem>
                 <SelectItem value="linkedin_post" className="text-white hover:bg-gray-600">LinkedIn Post</SelectItem>
                 <SelectItem value="linkedin_comment" className="text-white hover:bg-gray-600">LinkedIn Comment</SelectItem>
-                <SelectItem value="social_comment" className="text-white hover:bg-gray-600">Social Comment</SelectItem>
                 <SelectItem value="blog_post" className="text-white hover:bg-gray-600">Blog Post</SelectItem>
-                <SelectItem value="reddit_comment" className="text-white hover:bg-gray-600">Reddit Comment</SelectItem>
-                <SelectItem value="facebook_comment" className="text-white hover:bg-gray-600">Facebook Comment</SelectItem>
-                <SelectItem value="instagram_comment" className="text-white hover:bg-gray-600">Instagram Comment</SelectItem>
-                <SelectItem value="youtube_comment" className="text-white hover:bg-gray-600">YouTube Comment</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -460,35 +455,35 @@ export default function GenerateContent() {
                        .map((run) => {
                          // Extract search details from run metadata
                          const sourceType = run.input_source?.source_type || 'twitter_keywords';
-                         
+
                          // Convert source type to display format
-                         const searchType = sourceType === 'twitter_keywords' ? 'X' : 
+                         const searchType = sourceType === 'twitter_keywords' ? 'X' :
                                           sourceType === 'twitter_user' ? 'X User' :
                                           sourceType === 'twitter_hashtag' ? 'X Hashtag' :
                                           'X';
-                         
+
                          // Extract search query from input_source, config, or metadata
-                         let searchQuery = run.input_source?.search_query || 
-                                         run.input_source?.query || 
+                         let searchQuery = run.input_source?.search_query ||
+                                         run.input_source?.query ||
                                          run.input_source?.config?.search_query ||
                                          run.input_source?.config?.query ||
                                          run.meta_data?.search_query ||
                                          run.meta_data?.query ||
                                          run.name || // Fallback to run name which might contain query info
                                          'Unknown query';
-                         
+
                          // Extract search parameters from input_source config
                          const config = run.input_source?.config || {};
                          const fetchLimit = config.limit || run.meta_data?.limit || 'N/A';
                          const finalResults = config.target_number || run.meta_data?.target_number || 'N/A';
                          const rankTweets = config.rank_tweets !== undefined ? config.rank_tweets : run.meta_data?.rank_tweets;
                          const searchTypeDetail = config.search_type || run.meta_data?.search_type || 'keywords';
-                         
+
                          // Truncate long queries for display
-                         const displayQuery = searchQuery.length > 25 ? 
-                                            searchQuery.substring(0, 25) + '...' : 
+                         const displayQuery = searchQuery.length > 25 ?
+                                            searchQuery.substring(0, 25) + '...' :
                                             searchQuery;
-                         
+
                          // Format date
                          const formatDate = () => {
                            const dateStr = run.created_at || run.started_at;
@@ -506,10 +501,10 @@ export default function GenerateContent() {
                            }
                            return 'No date';
                          };
-                         
+
                          // Count results
                          const resultCount = run.documents?.length || 0;
-                         
+
                          return (
                            <SelectItem key={run.id} value={run.id} className="text-white hover:bg-gray-600 data-[highlighted]:bg-gray-600 data-[highlighted]:text-white py-4">
                              <div className="flex flex-col space-y-1 w-full">
@@ -622,13 +617,13 @@ export default function GenerateContent() {
           {/* LLM Provider */}
           <div>
             <Label className="text-gray-300">LLM Provider</Label>
-            <Select value={llmProvider} onValueChange={(value) => setLlmProvider(value as 'anthropic' | 'openai' | 'google')}>
+            <Select value={llmProvider} onValueChange={(value) => setLlmProvider(value as 'openai' | 'anthropic' | 'google')}>
               <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600">
-                <SelectItem value="anthropic" className="text-white hover:bg-gray-600">Anthropic</SelectItem>
                 <SelectItem value="openai" className="text-white hover:bg-gray-600">OpenAI</SelectItem>
+                <SelectItem value="anthropic" className="text-white hover:bg-gray-600">Anthropic</SelectItem>
                 <SelectItem value="google" className="text-white hover:bg-gray-600">Google</SelectItem>
               </SelectContent>
             </Select>
@@ -656,21 +651,6 @@ export default function GenerateContent() {
                 <span>1.0 (Creative)</span>
               </div>
             </div>
-          </div>
-
-          {/* API Key */}
-          <div>
-            <Label className="text-gray-300">API Key (Optional)</Label>
-            <Input
-              type="password"
-              placeholder="Enter your LLM API key..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to use server defaults
-            </p>
           </div>
 
           <Button
@@ -721,12 +701,12 @@ export default function GenerateContent() {
       </div>
 
       {/* Right Panel - Results */}
-      <div className="flex-1 bg-gray-900 p-6 overflow-y-auto">
+      <div className="flex-1 bg-gray-900 p-4 overflow-y-auto min-w-[352px]">
         <h2 className="text-xl font-bold text-white mb-6 flex items-center">
           Generated Outputs
         </h2>
-        
-        <ScrollArea className="h-full">
+
+        <ScrollArea>
           <div className="space-y-4">
             {loading ? (
               <div className="text-center py-8">
@@ -774,7 +754,7 @@ export default function GenerateContent() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="bg-gray-800 p-3 rounded">
                       <p className="text-sm text-gray-300 whitespace-pre-wrap">
@@ -791,7 +771,7 @@ export default function GenerateContent() {
                         })()}
                       </p>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {output.score && (
@@ -850,7 +830,7 @@ export default function GenerateContent() {
           <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Run Details</h3>
-              <Button 
+              <Button
                 onClick={() => setShowRunDetails(false)}
                 variant="outline"
                 size="sm"
@@ -859,7 +839,7 @@ export default function GenerateContent() {
                 ✕
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               {/* Basic Run Info */}
               <div className="grid grid-cols-2 gap-4">

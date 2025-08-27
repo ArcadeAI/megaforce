@@ -26,7 +26,7 @@ function HomePageContent() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-900 text-white items-center justify-center">
+      <div className="flex h-screen w-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
           <p>Loading...</p>
@@ -37,7 +37,7 @@ function HomePageContent() {
 
   if (!user) {
     return (
-      <div className="flex h-screen bg-gray-900 text-white items-center justify-center">
+      <div className="flex h-screen bg-gray-900 text-white overflow-scroll">
         <LoginForm />
       </div>
     )
@@ -65,16 +65,21 @@ function HomePageContent() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white overflow-scroll">
+    <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-      {renderMainContent()}
+      <main className="flex-1 h-screen overflow-y-auto">
+        {renderMainContent()}
+      </main>
     </div>
   )
 }
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="flex h-screen bg-gray-900 text-white items-center justify-center">Loading...</div>}>
+    <Suspense fallback={
+    <div className="flex h-screen bg-gray-900 text-white items-center justify-center">
+      Loading...
+    </div>}>
       <HomePageContent />
     </Suspense>
   )

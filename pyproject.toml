@@ -10,8 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.10.0",
-    "arcade-ai>=2.0.0",
-    "arcadepy",
+    "arcadepy>=1.7.0",
     "autoflake>=2.0.0",
     "black>=23.0.0",
     "cryptography>=3.4.0",
@@ -40,6 +39,8 @@ dependencies = [
     "alembic>=1.10.0",
     "psycopg2-binary>=2.9.0",
     "langchain-google-genai>=2.1.0",
+    "celery>=5.3.6",
+    "redis>=5.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]

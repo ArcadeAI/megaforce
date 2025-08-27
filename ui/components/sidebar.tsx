@@ -72,7 +72,7 @@ export function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
   }, [])
 
   return (
-    <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
       <div className="p-4 border-b border-gray-700">
         <h1 className="text-xl font-bold text-white flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-blue-400" />

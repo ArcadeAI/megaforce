@@ -1,22 +1,14 @@
-import asyncio
-import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, Query, Cookie
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from api.database import get_db, engine, Base
 from api.auth import get_current_user
-from api.models import User as UserModel, InputSource, Run, Document, OutputSchema
-from api.schemas import (
-    UserCreate, UserLogin, User, Token,
-    InputSourceCreate, InputSourceResponse,
-    RunResponse, DocumentResponse, OutputSchemaResponse,
-    TwitterSearchRequest, TwitterSearchResponse
-)
+# from api.models import User as UserModel
 from api.routers import auth, input_sources, runs, documents, outputs, twitter, style, personas
 
 import logging

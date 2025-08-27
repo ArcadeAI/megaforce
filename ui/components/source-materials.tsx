@@ -57,18 +57,18 @@ interface Run {
 export default function SourceMaterials() {
   const { user } = useAuth()
   const router = useRouter()
-  
+
   // State for documents and filtering
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  
+
   // Filter state
   const [filterType, setFilterType] = useState<'none' | 'documents' | 'tweets' | 'urls' | 'all' | 'run' | 'persona' | 'content'>('none')
   const [filterRunId, setFilterRunId] = useState('')
   const [filterPersonaId, setFilterPersonaId] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   // New run creation state
   const [newRunForm, setNewRunForm] = useState({
     searchQuery: '',
@@ -87,19 +87,19 @@ export default function SourceMaterials() {
   const [personaLinking, setPersonaLinking] = useState<{show: boolean, docId: string, docTitle: string}>({show: false, docId: '', docTitle: ''})
   const [availablePersonas, setAvailablePersonas] = useState<Array<{id: string, name: string}>>([])
   const [selectedPersonaIds, setSelectedPersonaIds] = useState<string[]>([])
-  
+
   // Run details modal state
   const [showRunDetails, setShowRunDetails] = useState(false)
   const [selectedRun, setSelectedRun] = useState<Run | null>(null)
-  
+
   // Edit document modal state
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingDocument, setEditingDocument] = useState<any | null>(null)
-  
+
   // Search modal state
   const [searchModal, setSearchModal] = useState<{show: boolean, type: string, title: string}>({show: false, type: '', title: ''})
   const [searchInput, setSearchInput] = useState('')
-  
+
   // Reference type filter state
   const [referenceTypeFilter, setReferenceTypeFilter] = useState('all')
   const [editForm, setEditForm] = useState({
@@ -115,16 +115,16 @@ export default function SourceMaterials() {
     try {
       setLoading(true)
       setError('')
-      
+
       let params: any = { limit: 100, offset: 0 }
-      
+
       // Apply reference type filter - always get all documents and filter client-side for consistency
       // This handles case sensitivity issues and null values properly
       if (referenceTypeFilter !== 'all') {
         // Don't set backend params, we'll filter everything client-side for consistency
         console.log(`🎯 Will filter client-side for: ${referenceTypeFilter}`)
       }
-      
+
       // Apply search filters
       if (filterType === 'run' && filterRunId) {
         params.run_id = filterRunId
@@ -134,15 +134,15 @@ export default function SourceMaterials() {
         params.search = searchTerm
         params.limit = 50
       }
-      
+
       console.log('🔍 Fetching documents with params:', params)
       const response = await apiClient.getDocuments(params)
       setDocuments(response.documents || []);
       console.log('📄 Documents fetched:', response)
-      
+
       // Handle both array response and object with documents property
       const docsResponse = Array.isArray(response) ? response : (response.documents || [])
-      
+
       // Debug: Log reference types of first few documents
       const sampleDocs = docsResponse.slice(0, 5).map((doc: any) => ({
         id: doc.id,
@@ -150,7 +150,7 @@ export default function SourceMaterials() {
         reference_type: doc.reference_type
       }))
       console.log('🔍 Reference types in response:', sampleDocs)
-      
+
       // Also log a summary of all reference types
       const refTypeCounts = docsResponse.reduce((acc: any, doc: any) => {
         const refType = doc.reference_type || 'null/empty'
@@ -158,14 +158,14 @@ export default function SourceMaterials() {
         return acc
       }, {})
       console.log('📊 Reference type distribution:', refTypeCounts)
-      
+
       // Filter out any null or undefined documents
       let validDocs = docsResponse.filter((doc: any) => doc && doc.id)
-      
+
       // Apply client-side filtering for all reference types (handles case sensitivity)
       if (referenceTypeFilter !== 'all') {
         const beforeFilter = validDocs.length
-        
+
         if (referenceTypeFilter === 'tweet') {
           // Show only tweets (case-insensitive)
           validDocs = validDocs.filter((doc: any) => {
@@ -195,17 +195,17 @@ export default function SourceMaterials() {
           })
           console.log(`❓ None filter: ${validDocs.length} documents found (was ${beforeFilter})`)
         }
-        
+
         console.log(`🔍 Sample filtered documents:`, validDocs.slice(0, 3).map((doc: any) => `${doc.title?.substring(0, 30)} | ref_type: ${doc.reference_type}`))
       }
-      
+
       if (validDocs.length !== docsResponse.length) {
         console.warn(`⚠️ Filtered out ${docsResponse.length - validDocs.length} invalid/excluded documents`)
       }
-      
+
       console.log(`✅ Loaded ${validDocs.length} documents from server`)
       setDocuments(validDocs)
-      
+
       // Fetch personas for linking
       const personasResponse = await apiClient.getPersonas()
       setAvailablePersonas(personasResponse)
@@ -228,7 +228,7 @@ export default function SourceMaterials() {
       setError('Please enter a search query')
       return
     }
-    
+
     if (newRunForm.limit < 1 || newRunForm.limit > 100) {
       setError('Limit must be between 1 and 100')
       return
@@ -237,12 +237,12 @@ export default function SourceMaterials() {
     try {
       setNewRunLoading(true)
       setError('')
-      
+
       console.log('🚀 Creating new run with:', newRunForm)
       console.log('🔑 API Key present:', !!newRunForm.api_key)
       console.log('🎮 Arcade User present:', !!newRunForm.arcade_user)
       console.log('🔐 Arcade Secret present:', !!newRunForm.arcade_secret)
-      
+
       // Call the Twitter search API to create a new run
       const apiPayload: TwitterSearchRequest = {
         search_type: newRunForm.searchType as 'keywords' | 'user',
@@ -255,7 +255,7 @@ export default function SourceMaterials() {
         arcade_user: newRunForm.arcade_user || undefined,
         arcade_secret: newRunForm.arcade_secret || undefined
       }
-      
+
       // Add the appropriate API key based on the selected provider
       if (newRunForm.api_key) {
         switch (newRunForm.llm_provider) {
@@ -270,7 +270,7 @@ export default function SourceMaterials() {
             break
         }
       }
-      
+
       console.log('📦 Final API payload (keys masked):', {
         ...apiPayload,
         openai_api_key: apiPayload.openai_api_key ? '***masked***' : undefined,
@@ -279,24 +279,24 @@ export default function SourceMaterials() {
         arcade_user: apiPayload.arcade_user ? '***masked***' : undefined,
         arcade_secret: apiPayload.arcade_secret ? '***masked***' : undefined
       })
-      
+
       // Debug: Check actual payload structure
       console.log('🔍 Actual payload keys:', Object.keys(apiPayload))
       console.log('🔍 Has openai_api_key:', 'openai_api_key' in apiPayload)
       console.log('🔍 Has arcade_user:', 'arcade_user' in apiPayload)
       console.log('🔍 Has arcade_secret:', 'arcade_secret' in apiPayload)
-      
+
       const response = await apiClient.searchTwitter(apiPayload)
-      
+
       console.log('✅ New run created:', response)
-      
+
       // Auto-populate the search by run_id filter
       if (response.run_id) {
         setFilterRunId(response.run_id)
         setFilterType('run')
         // This will trigger fetchData to load documents for this run
       }
-      
+
       // Reset form
       setNewRunForm({
         searchQuery: '',
@@ -309,7 +309,7 @@ export default function SourceMaterials() {
         arcade_user: '',
         arcade_secret: ''
       })
-      
+
     } catch (error: any) {
       console.error('❌ Error creating new run:', error)
       const errorMessage = error?.message || error?.toString() || 'Unknown error'
@@ -361,15 +361,15 @@ export default function SourceMaterials() {
     try {
       setEditLoading(true)
       console.log('📝 Updating document:', editingDocument.id)
-      
+
       const updatedDoc = await apiClient.updateDocument(editingDocument.id, editForm)
       console.log('✅ Document updated successfully')
-      
+
       // Update the document in the current list
-      setDocuments(prev => prev.map(doc => 
+      setDocuments(prev => prev.map(doc =>
         doc.id === editingDocument.id ? { ...doc, ...editForm } : doc
       ))
-      
+
       setShowEditModal(false)
       setEditingDocument(null)
     } catch (error) {
@@ -395,32 +395,32 @@ export default function SourceMaterials() {
     // Store the document info locally before clearing the state
     const docId = deleteConfirmation.docId;
     const title = deleteConfirmation.title;
-    
+
     // Immediately hide the dialog to improve UX
     setDeleteConfirmation({show: false, docId: '', title: ''});
-    
+
     // Show a loading message
     setError(`Deleting document "${title}"...`);
-    
+
     try {
       console.log(`🗑️ DELETE API CALL: Deleting document ${docId} - "${title}"`);
-      
+
       // Make the API call to delete the document
       await apiClient.deleteDocument(docId);
-      
+
       console.log(`✅ DELETE SUCCESS: Document ${docId} deleted from server`);
-      
+
       // Update the UI by removing the document from state
       setDocuments(prevDocs => {
         const filteredDocs = prevDocs.filter(doc => doc.id !== docId);
         console.log(`📊 UI UPDATE: Removed document from state. Before: ${prevDocs.length}, After: ${filteredDocs.length}`);
         return filteredDocs;
       });
-      
+
       // Show success message
       setError(`Document "${title}" deleted successfully`);
       setTimeout(() => setError(''), 3000);
-      
+
       // Refresh data from server to ensure consistency
       setTimeout(() => {
         console.log('🔄 Refreshing data after deletion');
@@ -429,7 +429,7 @@ export default function SourceMaterials() {
     } catch (error: any) {
       console.error(`❌ DELETE ERROR: Failed to delete document ${docId}:`, error);
       setError(`Failed to delete document: ${error.message || String(error)}`);
-      
+
       // Refresh data to ensure UI is consistent with server state
       setTimeout(() => fetchData(), 1000);
     }
@@ -447,12 +447,12 @@ export default function SourceMaterials() {
       // Fetch available personas
       const personas = await apiClient.getPersonas()
       setAvailablePersonas(personas)
-      
+
       // Get current document and its linked personas
       const currentDoc = documents.find(doc => doc.id === docId)
-      const currentPersonaIds = currentDoc?.persona_ids || 
+      const currentPersonaIds = currentDoc?.persona_ids ||
                                currentDoc?.persona_style_links?.map(link => link.persona_id) || []
-      
+
       // Set currently selected personas
       setSelectedPersonaIds(currentPersonaIds)
       setPersonaLinking({show: true, docId, docTitle})
@@ -481,10 +481,10 @@ export default function SourceMaterials() {
       // Update document with selected persona_ids
       await apiClient.updateDocument(docId, { persona_ids: selectedPersonaIds })
       console.log('✅ Document updated successfully')
-      
+
       // Refresh the documents list to show the new links
       fetchData()
-      
+
       // Close the modal and show success message
       console.log('🚪 Closing persona linking modal')
       setPersonaLinking({show: false, docId: '', docTitle: ''})
@@ -509,7 +509,7 @@ export default function SourceMaterials() {
   const handleSearchSubmit = () => {
     const trimmedInput = searchInput.trim()
     if (!trimmedInput) return
-    
+
     if (searchModal.type === 'run_id') {
       setFilterRunId(trimmedInput)
       setFilterType('run')
@@ -520,7 +520,7 @@ export default function SourceMaterials() {
       setSearchTerm(trimmedInput)
       setFilterType('content')
     }
-    
+
     // Close modal and clear input
     setSearchModal({show: false, type: '', title: ''})
     setSearchInput('')
@@ -544,7 +544,7 @@ export default function SourceMaterials() {
       {/* Left Pane - Create New Search Run */}
       <div className="w-1/3 min-w-0 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-6">🚀 Create New Search Run</h2>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -561,7 +561,7 @@ export default function SourceMaterials() {
               className="bg-gray-700 border-gray-600 text-white"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Search Type
@@ -575,7 +575,7 @@ export default function SourceMaterials() {
               <option value="user">User</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Fetch Limit
@@ -619,7 +619,7 @@ export default function SourceMaterials() {
               <option value="false">No</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               LLM Provider
@@ -635,45 +635,6 @@ export default function SourceMaterials() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              LLM API Key
-            </label>
-            <Input
-              type="password"
-              value={newRunForm.api_key}
-              onChange={(e) => setNewRunForm(prev => ({ ...prev, api_key: e.target.value }))}
-              className="bg-gray-700 border-gray-600 text-white"
-              placeholder={newRunForm.llm_provider === 'openai' ? 'sk-...' : 
-                         newRunForm.llm_provider === 'anthropic' ? 'sk-ant-...' : 
-                         'AIza...'}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Arcade User
-            </label>
-            <Input
-              type="text"
-              value={newRunForm.arcade_user}
-              onChange={(e) => setNewRunForm(prev => ({ ...prev, arcade_user: e.target.value }))}
-              className="bg-gray-700 border-gray-600 text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Arcade Secret
-            </label>
-            <Input
-              type="password"
-              value={newRunForm.arcade_secret}
-              onChange={(e) => setNewRunForm(prev => ({ ...prev, arcade_secret: e.target.value }))}
-              className="bg-gray-700 border-gray-600 text-white"
-            />
-          </div>
-          
           <Button
             onClick={handleCreateNewRun}
             disabled={newRunLoading || !newRunForm.searchQuery.trim()}
@@ -681,13 +642,13 @@ export default function SourceMaterials() {
           >
             {newRunLoading ? 'Creating Run...' : 'Create Run'}
           </Button>
-          
+
           {error && (
             <div className="text-red-400 text-sm mt-2">{error}</div>
           )}
         </div>
       </div>
-      
+
       {/* Right Pane - Search Results */}
       <div className="flex-1 min-w-0 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
@@ -723,21 +684,21 @@ export default function SourceMaterials() {
             Search By
           </label>
           <div className="flex gap-2 flex-wrap">
-            <Button 
+            <Button
               onClick={() => setSearchModal({show: true, type: 'run_id', title: 'Search by Run ID'})}
               variant="outline"
               className="border-gray-500 text-white bg-gray-700 hover:bg-gray-600 hover:text-white"
             >
               Run ID
             </Button>
-            <Button 
+            <Button
               onClick={() => setSearchModal({show: true, type: 'persona_id', title: 'Search by Persona ID'})}
               variant="outline"
               className="border-gray-500 text-white bg-gray-700 hover:bg-gray-600 hover:text-white"
             >
               Persona ID
             </Button>
-            <Button 
+            <Button
               onClick={() => setSearchModal({show: true, type: 'content', title: 'Search by Content'})}
               variant="outline"
               className="border-gray-500 text-white bg-gray-700 hover:bg-gray-600 hover:text-white"
@@ -746,7 +707,7 @@ export default function SourceMaterials() {
             </Button>
           </div>
         </div>
-        
+
         {/* Results */}
         {loading ? (
           <div className="flex items-center justify-center h-64">
@@ -765,11 +726,11 @@ export default function SourceMaterials() {
                 doc.persona_ids?.includes(filterPersonaId) ||
                 doc.persona_style_links?.some(link => link.persona_id === filterPersonaId)
               )
-              
+
               return (
               <div key={doc.id} className={`bg-gray-800 rounded-lg p-4 border ${
-                isPersonaMatch 
-                  ? 'border-purple-500 bg-purple-900/20 shadow-lg shadow-purple-500/20' 
+                isPersonaMatch
+                  ? 'border-purple-500 bg-purple-900/20 shadow-lg shadow-purple-500/20'
                   : 'border-gray-700'
               } relative`}>
                 {/* Action buttons - positioned at top right */}
@@ -800,7 +761,7 @@ export default function SourceMaterials() {
                 <div className="pr-24 mb-3">
                   <h3 className="font-medium text-white mb-2 line-clamp-2">{doc.title}</h3>
                   <p className="text-gray-300 text-sm mb-3 line-clamp-3">{doc.content}</p>
-                  
+
                   <div className="flex items-center gap-4 text-xs text-gray-400">
                     {doc.author && (
                       <span className="flex items-center gap-1">
@@ -809,9 +770,9 @@ export default function SourceMaterials() {
                       </span>
                     )}
                     {doc.url && (
-                      <a 
-                        href={doc.url} 
-                        target="_blank" 
+                      <a
+                        href={doc.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-400 hover:text-blue-300"
                       >
@@ -822,7 +783,7 @@ export default function SourceMaterials() {
                     <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-                
+
                 {/* Badges at bottom */}
                 {(doc.run_id || doc.persona_id || doc.persona_ids?.length || (doc.persona_style_links && doc.persona_style_links.length > 0)) && (
                   <div className="border-t border-gray-700 pt-3 mt-3">
@@ -893,7 +854,7 @@ export default function SourceMaterials() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -915,7 +876,7 @@ export default function SourceMaterials() {
                   <p className="text-white text-sm">{new Date(selectedRun.started_at).toLocaleString()}</p>
                 </div>
               </div>
-              
+
               {selectedRun.completed_at && (
                 <div>
                   <label className="text-sm font-medium text-gray-300">Completed</label>
@@ -933,12 +894,12 @@ export default function SourceMaterials() {
                     console.log('selectedRun:', selectedRun);
                     console.log('selectedRun.input_source:', selectedRun.input_source);
                     console.log('selectedRun.meta_data:', selectedRun.meta_data);
-                    
+
                     const searchConfig = selectedRun.input_source?.config || selectedRun.meta_data || {};
                     console.log('searchConfig:', searchConfig);
-                    
+
                     const hasParams = searchConfig.search_query || searchConfig.search_type || searchConfig.limit;
-                    
+
                     if (!hasParams) {
                       return (
                         <div>
@@ -960,7 +921,7 @@ export default function SourceMaterials() {
                         </div>
                       );
                     }
-                    
+
                     return (
                       <>
                         {searchConfig.search_query && (
@@ -991,9 +952,9 @@ export default function SourceMaterials() {
                       </>
                     );
                   })()}
-                  
 
-                  
+
+
                   {/* Show raw metadata for debugging */}
                   {selectedRun.meta_data && (
                     <details className="mt-3">
@@ -1005,7 +966,7 @@ export default function SourceMaterials() {
                       </pre>
                     </details>
                   )}
-                  
+
                   {/* Show input source for debugging */}
                   {selectedRun.input_source && (
                     <details className="mt-3">
@@ -1019,7 +980,7 @@ export default function SourceMaterials() {
                   )}
                 </div>
               </div>
-              
+
               {selectedRun.input_source && (
                 <div>
                   <label className="text-sm font-medium text-gray-300">Input Source</label>
@@ -1037,7 +998,7 @@ export default function SourceMaterials() {
                   </div>
                 </div>
               )}
-              
+
               {selectedRun.meta_data && (
                 <div>
                   <label className="text-sm font-medium text-gray-300">Metadata</label>
@@ -1046,7 +1007,7 @@ export default function SourceMaterials() {
                   </pre>
                 </div>
               )}
-              
+
               {selectedRun.documents && selectedRun.documents.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-gray-300">
@@ -1066,7 +1027,7 @@ export default function SourceMaterials() {
           </div>
         </div>
       )}
-      
+
       {/* Edit Document Modal */}
       {showEditModal && editingDocument && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1082,7 +1043,7 @@ export default function SourceMaterials() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -1095,7 +1056,7 @@ export default function SourceMaterials() {
                   className="bg-gray-700 border-gray-600 text-white"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Content
@@ -1107,7 +1068,7 @@ export default function SourceMaterials() {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   URL (optional)
@@ -1120,7 +1081,7 @@ export default function SourceMaterials() {
                   className="bg-gray-700 border-gray-600 text-white"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Reference Type
@@ -1136,7 +1097,7 @@ export default function SourceMaterials() {
                   <option value="url">URL</option>
                 </select>
               </div>
-              
+
               <div className="flex justify-end gap-3 mt-6">
                 <Button
                   variant="outline"
@@ -1157,25 +1118,25 @@ export default function SourceMaterials() {
           </div>
         </div>
       )}
-      
+
       {/* Delete Confirmation Dialog */}
       {deleteConfirmation.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-white mb-4">Confirm Deletion</h3>
             <p className="text-gray-300 mb-6">
-              Are you sure you want to permanently delete "{deleteConfirmation.title}"? 
+              Are you sure you want to permanently delete "{deleteConfirmation.title}"?
               This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={cancelDeleteDocument}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={confirmDeleteDocument}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
@@ -1185,7 +1146,7 @@ export default function SourceMaterials() {
           </div>
         </div>
       )}
-      
+
       {/* Persona Linking Dialog */}
       {personaLinking.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1197,7 +1158,7 @@ export default function SourceMaterials() {
             <div className="space-y-3 mb-6">
               {availablePersonas.map((persona) => {
                 const isSelected = selectedPersonaIds.includes(persona.id)
-                
+
                 return (
                   <label
                     key={persona.id}
@@ -1221,14 +1182,14 @@ export default function SourceMaterials() {
               })}
             </div>
             <div className="flex gap-3 justify-end">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={cancelPersonaLinking}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={savePersonaLinks}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
@@ -1254,14 +1215,14 @@ export default function SourceMaterials() {
               autoFocus
             />
             <div className="flex gap-3 justify-end">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={cancelSearchModal}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleSearchSubmit}
                 disabled={!searchInput.trim()}
                 className="bg-blue-600 hover:bg-blue-700 text-white"

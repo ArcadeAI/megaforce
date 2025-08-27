@@ -17,7 +17,8 @@ import {
   FileText, 
   Save,
   X,
-  Users
+  Users,
+  Link2
 } from "lucide-react"
 import { apiClient, Persona as BasePersona, Document, DocumentCreate } from "./api-client"
 
@@ -45,6 +46,8 @@ export default function Personas() {
     message: string
     onConfirm: () => void
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+
+  const [isConnectingTwitter, setIsConnectingTwitter] = useState(false)
 
   // Form state for creating/editing personas
   const [personaFormData, setPersonaFormData] = useState({
@@ -111,9 +114,17 @@ export default function Personas() {
       
       setPersonas(personasWithStyleRefs)
       console.log('✅ All personas loaded with style references')
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error loading personas:', error)
-      setError('Failed to load personas. Please try again.')
+      const message = (error && error.message) ? String(error.message) : ''
+      if (message.includes('Not authenticated')) {
+        // Clear any stale token and send user to login
+        try { apiClient.logout() } catch {}
+        setError('Please sign in to view personas.')
+        try { window.location.href = '/login' } catch {}
+      } else {
+        setError('Failed to load personas. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -155,7 +166,8 @@ export default function Personas() {
           target_audience: "",
           content_type: "",
           key_phrases: "",
-          avoid_phrases: ""
+          avoid_phrases: "",
+          use_emojis: false
         }
       })
       setIsCreating(false)
@@ -200,6 +212,27 @@ export default function Personas() {
     } catch (error) {
       console.error('❌ Error updating persona:', error)
       setError('Failed to update persona. Please try again.')
+    }
+  }
+
+  const handleConnectTwitter = async () => {
+    if (!selectedPersona) return
+    try {
+      setIsConnectingTwitter(true)
+      const res = await apiClient.connectTwitterAccount(selectedPersona.id)
+      if (res?.oauth_url) {
+        try {
+          localStorage.setItem('arcade_persona_id', selectedPersona.id)
+        } catch (e) {
+          // ignore storage errors
+        }
+        window.location.href = res.oauth_url
+      }
+    } catch (err: any) {
+      console.error('❌ Error initiating Twitter connect:', err)
+      setError(err?.message || 'Failed to start Twitter connection')
+    } finally {
+      setIsConnectingTwitter(false)
     }
   }
 
@@ -1004,6 +1037,12 @@ export default function Personas() {
                       <CardDescription className="mt-2 text-gray-400">
                         {selectedPersona.description || "No description provided"}
                       </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={handleConnectTwitter} disabled={isConnectingTwitter} size="sm" className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4" />
+                        {isConnectingTwitter ? 'Connecting…' : 'Connect Twitter account'}
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>

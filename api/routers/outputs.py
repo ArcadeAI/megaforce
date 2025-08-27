@@ -4,8 +4,10 @@ from typing import List
 import uuid
 
 from api.database import get_db
-from api.models import OutputSchema, ApprovalHistory
-from api.schemas import OutputSchemaResponse, OutputSchemaCreate, OutputSchemaUpdate, ApprovalRequest
+from api.models import OutputSchema, ApprovalHistory, OutputStatus
+from api.schemas import OutputSchemaResponse, OutputSchemaCreate, OutputSchemaUpdate, ApprovalRequest, ScheduleRequest, ScheduleResponse
+from datetime import datetime
+from api.tasks import post_output_to_x_task
 from api.auth import get_current_user
 
 router = APIRouter()
@@ -106,6 +108,53 @@ async def approve_output(
     db.commit()
     
     return {"message": "Output approved successfully"}
+
+
+@router.post("/{output_id}/schedule", response_model=ScheduleResponse)
+async def schedule_output(
+    output_id: str,
+    schedule: ScheduleRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Schedule an approved output to be posted later via Celery ETA."""
+    # Validate ownership
+    output = db.query(OutputSchema).join(OutputSchema.persona).filter(
+        OutputSchema.id == output_id,
+        OutputSchema.persona.has(owner_id=current_user.id)
+    ).first()
+    if not output:
+        raise HTTPException(status_code=404, detail="Output not found")
+
+    # Ensure approved first
+    print(f"DEBUG: Output status: {output.status}, {OutputStatus.APPROVED.value}, {output.status in {OutputStatus.APPROVED.value}}")
+    if output.status not in {OutputStatus.APPROVED.value}:
+        raise HTTPException(status_code=400, detail="Output must be approved before scheduling")
+
+    try:
+        eta = datetime.fromisoformat(schedule.schedule_time.replace(tzinfo=None).isoformat()) if isinstance(schedule.schedule_time, datetime) else datetime.fromisoformat(str(schedule.schedule_time).replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid schedule_time format; use ISO8601")
+
+    # Mark as approved/scheduled in workflow
+    previous_status = output.status
+    # Keep status as approved but record a scheduled action (no explicit enum for scheduled)
+    output.status = OutputStatus.APPROVED
+    approval_history = ApprovalHistory(
+        id=str(uuid.uuid4()),
+        output_schema_id=output_id,
+        action="scheduled",
+        previous_status=previous_status,
+        new_status=OutputStatus.APPROVED,
+        notes=f"Scheduled for {eta.isoformat()}"
+    )
+    db.add(approval_history)
+    db.commit()
+
+    # Enqueue Celery task with ETA
+    result = post_output_to_x_task.apply_async(args=[output_id], eta=eta)
+
+    return {"message": "Scheduled", "task_id": result.id, "scheduled_at": eta}
 
 @router.post("/{output_id}/reject")
 async def reject_output(

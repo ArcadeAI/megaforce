@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Edit3, 
-  Trash2, 
-  Send, 
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Edit3,
+  Trash2,
+  Send,
   ExternalLink,
   Filter,
   Star,
@@ -90,11 +90,11 @@ export default function ApprovalQueue() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  
+
   // Filters
   const [selectedPersona, setSelectedPersona] = useState<string>('all')
   const [selectedContentType, setSelectedContentType] = useState<string>('all')
-  
+
   // Modals
   const [deleteConfirmation, setDeleteConfirmation] = useState<{show: boolean, outputId: string, title: string}>({show: false, outputId: '', title: ''})
   const [approvalModal, setApprovalModal] = useState<{
@@ -102,26 +102,30 @@ export default function ApprovalQueue() {
     output: OutputSchema | null
     action: 'approve_as_is' | 'edit_approve' | 'reject'
   }>({ show: false, output: null, action: 'approve_as_is' })
-  
+
   const [approvalForm, setApprovalForm] = useState<ApprovalRequest>({
     score: 8,
     feedback: ''
   })
-  
+
   // Edit modal state
   const [editedContent, setEditedContent] = useState('')
   const [editedContentType, setEditedContentType] = useState('')
-  
+
   // Twitter credential modal
   const [twitterModal, setTwitterModal] = useState<{
     show: boolean
     output: OutputSchema | null
   }>({ show: false, output: null })
-  
+
   const [twitterCredentials, setTwitterCredentials] = useState({
     arcade_user_id: '',
     arcade_api_key: ''
   })
+
+  // Schedule modal state
+  const [scheduleModal, setScheduleModal] = useState<{show: boolean, output: OutputSchema | null}>({ show: false, output: null })
+  const [scheduleTime, setScheduleTime] = useState<string>('')
 
   // Fetch data
   const fetchData = async () => {
@@ -176,21 +180,21 @@ export default function ApprovalQueue() {
   // Handle approval/rejection
   const handleApproval = async () => {
     if (!approvalModal.output) return
-    
+
     try {
       if (approvalModal.action === 'reject') {
         // Reject the original output
         await apiClient.rejectOutput(
-          approvalModal.output.id, 
-          approvalForm.score || 8, 
+          approvalModal.output.id,
+          approvalForm.score || 8,
           approvalForm.feedback
         )
         setError('Output rejected successfully')
       } else if (approvalModal.action === 'approve_as_is') {
         // Approve the original output as-is
         await apiClient.approveOutput(
-          approvalModal.output.id, 
-          approvalForm.score || 8, 
+          approvalModal.output.id,
+          approvalForm.score || 8,
           approvalForm.feedback
         )
         setError('Output approved successfully')
@@ -199,7 +203,7 @@ export default function ApprovalQueue() {
         await handleEditAndApprove()
         return // handleEditAndApprove handles its own success/error messages
       }
-      
+
       setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
       setApprovalForm({ score: 8, feedback: '' })
       setEditedContent('')
@@ -209,52 +213,52 @@ export default function ApprovalQueue() {
       setError(`Failed to process approval`)
     }
   }
-  
+
   // Validate content length based on type
   const validateContentLength = (content: string, contentType: string): { isValid: boolean; message?: string } => {
     const trimmedContent = content.trim()
-    
+
     if (!trimmedContent) {
       return { isValid: false, message: 'Content cannot be empty' }
     }
-    
+
     // Twitter character limits
     if (contentType === 'tweet_single' || contentType === 'twitter' || contentType === 'x') {
       if (trimmedContent.length > 280) {
-        return { 
-          isValid: false, 
-          message: `Tweet too long: ${trimmedContent.length}/280 characters` 
+        return {
+          isValid: false,
+          message: `Tweet too long: ${trimmedContent.length}/280 characters`
         }
       }
     }
-    
+
     // LinkedIn post limits (approximate)
     if (contentType === 'linkedin_post' || contentType === 'linkedin_comment') {
       if (trimmedContent.length > 3000) {
-        return { 
-          isValid: false, 
-          message: `LinkedIn post too long: ${trimmedContent.length}/3000 characters` 
+        return {
+          isValid: false,
+          message: `LinkedIn post too long: ${trimmedContent.length}/3000 characters`
         }
       }
     }
-    
+
     return { isValid: true }
   }
-  
+
   // Handle edit and approve workflow
   const handleEditAndApprove = async () => {
     if (!approvalModal.output || !editedContent.trim()) {
       setError('Please provide edited content')
       return
     }
-    
+
     // Validate content length
     const validation = validateContentLength(editedContent, editedContentType)
     if (!validation.isValid) {
       setError(validation.message || 'Content validation failed')
       return
     }
-    
+
     try {
       // Create a new output with edited content using the direct output creation API
       const newOutput = {
@@ -264,10 +268,10 @@ export default function ApprovalQueue() {
         source_document_id: approvalModal.output.source_document_id,
         publish_config: approvalModal.output.publish_config
       }
-      
+
       // First create the new output
       const createdOutput = await apiClient.createOutput(newOutput)
-      
+
       // Then immediately approve it
       if (createdOutput && createdOutput.id) {
         await apiClient.approveOutput(
@@ -276,14 +280,14 @@ export default function ApprovalQueue() {
           `Edited version. Original feedback: ${approvalForm.feedback || 'None'}`
         )
       }
-      
+
       // Reject the original output with reference to the edited version
       await apiClient.rejectOutput(
         approvalModal.output.id,
         approvalForm.score || 8,
         `Replaced with edited version. ${approvalForm.feedback || ''}`
       )
-      
+
       setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
       setApprovalForm({ score: 8, feedback: '' })
       setEditedContent('')
@@ -302,10 +306,10 @@ export default function ApprovalQueue() {
     setTwitterModal({ show: true, output })
     setTwitterCredentials({ arcade_user_id: '', arcade_api_key: '' })
   }
-  
+
   const submitTwitterPost = async () => {
     if (!twitterModal.output) return
-    
+
     try {
       // Extract content from JSON if needed
       let content = twitterModal.output.generated_content
@@ -319,13 +323,13 @@ export default function ApprovalQueue() {
       }
 
       const result = await apiClient.postToTwitter(content, twitterCredentials)
-      
+
       // Update output status to "published" after successful posting
       await apiClient.updateOutput(twitterModal.output.id, {
         status: 'published',
         published_url: result.tweet_url || `https://twitter.com/i/web/status/${result.tweet_id}`
       })
-      
+
       await fetchData() // Refresh data to show updated status
       setError(`Content posted to X successfully! Tweet ID: ${result.tweet_id || 'N/A'}`)
       setTwitterModal({ show: false, output: null })
@@ -356,23 +360,23 @@ export default function ApprovalQueue() {
   const confirmDelete = async () => {
     const outputId = deleteConfirmation.outputId
     const title = deleteConfirmation.title
-    
+
     // Immediately hide the dialog to improve UX
     setDeleteConfirmation({show: false, outputId: '', title: ''})
-    
+
     // Show a loading message
     setError(`Deleting "${title}"...`)
-    
+
     try {
       console.log(`🗑️ DELETE API CALL: Deleting output ${outputId} - "${title}"`)
-      
+
       // Optimistically remove from UI first
       setOutputs(prevOutputs => prevOutputs.filter(output => output.id !== outputId))
-      
+
       // Call delete API
       await apiClient.deleteOutput(outputId)
       console.log('✅ Output deleted successfully:', outputId)
-      
+
       // Refresh data to ensure consistency
       await fetchData()
       setError('Output deleted successfully')
@@ -413,7 +417,7 @@ export default function ApprovalQueue() {
   const getPersonaBadgeColor = (personaId: string) => {
     const colors = [
       'bg-red-100 text-red-800',
-      'bg-blue-100 text-blue-800', 
+      'bg-blue-100 text-blue-800',
       'bg-green-100 text-green-800',
       'bg-yellow-100 text-yellow-800',
       'bg-purple-100 text-purple-800',
@@ -450,7 +454,7 @@ export default function ApprovalQueue() {
       {/* Filters */}
       <div className="flex gap-4 items-center bg-gray-800 p-4 rounded-lg">
         <Filter className="h-5 w-5 text-gray-400" />
-        
+
         {/* Persona Filter */}
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-300">Persona:</label>
@@ -509,7 +513,7 @@ export default function ApprovalQueue() {
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {columnOutputs.map((output: OutputSchema) => {
                   const persona = personas.find(p => p.id === output.persona_id)
-                  
+
                   return (
                     <div key={output.id} className="bg-gray-700 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors">
                       {/* Content Preview */}
@@ -544,12 +548,12 @@ export default function ApprovalQueue() {
                           {new Date(output.created_at).toLocaleDateString()}
                         </div>
                         {/* URL Link - Only for Posted items */}
-                        {output.status === 'posted' && (
+                        {output.status === 'published' && (
                           <div className="mt-1">
                             {output.published_url ? (
-                              <a 
-                                href={output.published_url} 
-                                target="_blank" 
+                              <a
+                                href={output.published_url}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-400 hover:underline text-xs"
                               >
@@ -566,9 +570,9 @@ export default function ApprovalQueue() {
                       <div className="flex gap-1">
                         {output.status === 'pending_review' && (
                           <>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7 text-green-400 border-green-600 hover:bg-green-900/20"
                               onClick={() => {
                                 setApprovalModal({
@@ -594,9 +598,9 @@ export default function ApprovalQueue() {
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Review
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7 text-red-400 border-red-600 hover:bg-red-900/20"
                               onClick={() => setApprovalModal({
                                 show: true,
@@ -612,23 +616,27 @@ export default function ApprovalQueue() {
 
                         {output.status === 'approved' && (
                           <>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7 text-blue-400 border-blue-600 hover:bg-blue-900/20"
                               onClick={() => {
-                                // TODO: Schedule post
+                                setScheduleModal({ show: true, output })
+                                // default to 30 minutes from now in local time
+                                const d = new Date(Date.now() + 30 * 60 * 1000)
+                                const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,16)
+                                setScheduleTime(local)
                               }}
                             >
                               <Calendar className="h-3 w-3 mr-1" />
                               Schedule
                             </Button>
-                            
+
                             {/* Only show Post to X for Twitter/X content */}
                             {(output.content_type === 'twitter' || output.content_type === 'x' || output.content_type === 'tweet_single' || output.content_type === 'tweet_thread' || output.content_type === 'twitter_reply') && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="text-xs h-7 text-green-400 border-green-600 hover:bg-green-900/20"
                                 onClick={() => handlePostToTwitter(output)}
                               >
@@ -636,12 +644,12 @@ export default function ApprovalQueue() {
                                 Post to X
                               </Button>
                             )}
-                            
+
                             {/* Show LinkedIn post button for LinkedIn content */}
                             {output.content_type === 'linkedin' && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="text-xs h-7 text-blue-400 border-blue-600 hover:bg-blue-900/20"
                                 onClick={() => {
                                   // TODO: Implement LinkedIn posting
@@ -652,12 +660,12 @@ export default function ApprovalQueue() {
                                 Post to LinkedIn
                               </Button>
                             )}
-                            
+
                             {/* Generic post button for other content types */}
                             {!['twitter', 'x', 'linkedin', 'tweet_single', 'tweet_thread', 'twitter_reply'].includes(output.content_type) && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="text-xs h-7 text-gray-400 border-gray-600 hover:bg-gray-700/20"
                                 onClick={() => {
                                   setError(`Direct posting not available for ${output.content_type} content. Use Schedule instead.`)
@@ -672,9 +680,9 @@ export default function ApprovalQueue() {
 
                         {/* URL for posted items */}
                         {output.published_url && (
-                          <a 
-                            href={output.published_url} 
-                            target="_blank" 
+                          <a
+                            href={output.published_url}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-400 hover:underline text-xs px-2 py-1 border border-blue-600 rounded hover:bg-blue-900/20"
                           >
@@ -683,9 +691,9 @@ export default function ApprovalQueue() {
                           </a>
                         )}
 
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="text-xs h-7 text-red-600 border-red-300 ml-auto"
                           onClick={() => handleDelete(output.id)}
                         >
@@ -745,7 +753,7 @@ export default function ApprovalQueue() {
                       <option value="social_comment">Social Comment</option>
                     </select>
                   </div>
-                  
+
                   {/* Content Editor */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -758,7 +766,7 @@ export default function ApprovalQueue() {
                       rows={6}
                       placeholder="Edit the content..."
                     />
-                    
+
                     {/* Character count and validation */}
                     <div className="flex justify-between items-center mt-2 text-sm">
                       <div className="text-gray-400">
@@ -776,7 +784,7 @@ export default function ApprovalQueue() {
                           </span>
                         )}
                       </div>
-                      
+
                       {(() => {
                         const validation = validateContentLength(editedContent, editedContentType)
                         if (!validation.isValid) {
@@ -858,8 +866,8 @@ export default function ApprovalQueue() {
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Save & Approve Edit
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setApprovalModal({ ...approvalModal, action: 'approve_as_is' })}
                       className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                     >
@@ -870,11 +878,12 @@ export default function ApprovalQueue() {
                   <>
                     <Button
                       onClick={async () => {
+                        if (!approvalModal.output) return
                         // Set action and handle approval directly
                         try {
                           await apiClient.approveOutput(
-                            approvalModal.output.id, 
-                            approvalForm.score || 8, 
+                            approvalModal.output.id,
+                            approvalForm.score || 8,
                             approvalForm.feedback
                           )
                           setError('Output approved successfully')
@@ -912,8 +921,8 @@ export default function ApprovalQueue() {
                     </Button>
                   </>
                 )}
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setApprovalModal({ show: false, output: null, action: 'approve_as_is' })
                     setApprovalForm({ score: 8, feedback: '' })
@@ -1010,24 +1019,81 @@ export default function ApprovalQueue() {
         </div>
       )}
 
+      {/* Schedule Modal */}
+      {scheduleModal.show && scheduleModal.output && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-white">📅 Schedule Post</h3>
+              <p className="text-gray-400 text-sm mt-1">Choose when to post this content</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Scheduled time</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Your local timezone; will be converted to UTC.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button
+                onClick={() => setScheduleModal({ show: false, output: null })}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!scheduleModal.output) return
+                  try {
+                    // Convert local datetime-local value to ISO with Z
+                    const local = new Date(scheduleTime)
+                    const iso = new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString()
+                    await apiClient.scheduleOutput(scheduleModal.output.id, iso)
+                    // Move item to approved/scheduled state in UI
+                    setOutputs(prev => prev.map(o => o.id === scheduleModal.output!.id ? { ...o, status: 'approved' } : o))
+                    setError('Post scheduled successfully')
+                    setScheduleModal({ show: false, output: null })
+                  } catch (err: any) {
+                    setError(err?.message || 'Failed to schedule post')
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!scheduleTime}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-white mb-4">Confirm Deletion</h3>
             <p className="text-gray-300 mb-6">
-              Are you sure you want to permanently delete "{deleteConfirmation.title}"? 
+              Are you sure you want to permanently delete "{deleteConfirmation.title}"?
               This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={cancelDelete}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >

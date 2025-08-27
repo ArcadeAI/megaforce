@@ -1,9 +1,10 @@
 // API Client for Megaforce Backend Integration
 // Connects the Next.js frontend to the existing FastAPI backend
 
-// Use Next.js proxy for API requests (configured in next.config.mjs)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-console.log('🔧 Using Next.js API proxy to backend')
+// Use Next.js internal proxy route so Authorization headers are preserved across redirects
+// Force same-origin path; proxy route reads NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_API_URL on the server
+const API_BASE_URL = '/api/proxy'
+console.log('🔧 Using internal proxy route for backend requests')
 // Types for API responses (based on existing backend schemas)
 export interface User {
   id: string
@@ -156,8 +157,12 @@ class ApiClient {
   ): Promise<T> {
     const token = TokenManager.getToken()
     
+    // Debug whether we have an auth token available for this request
+    try { console.debug('🔐 Auth token present:', Boolean(token), '→', endpoint) } catch {}
+
     const config: RequestInit = {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -170,30 +175,57 @@ class ApiClient {
     console.log(`📥 API response status: ${response.status} ${response.statusText}`)
     
     if (!response.ok) {
-      let errorData: any;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+      // Try to extract a meaningful error payload regardless of content-type
+      const contentType = response.headers.get('content-type') || ''
+      let errorData: any = undefined
+      if (contentType.includes('application/json')) {
+        try {
+          errorData = await response.json()
+        } catch {}
+      } else {
+        try {
+          const text = await response.text()
+          if (text && text.trim().length > 0) {
+            errorData = { detail: text.trim().slice(0, 500) }
+          }
+        } catch {}
       }
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+      if (!errorData) {
+        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` }
+      }
+
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`
       if (errorData?.detail) {
         if (Array.isArray(errorData.detail)) {
           // Handle FastAPI validation errors
-          const validationErrors = errorData.detail.map((err: any) => 
-            `${err.loc?.join('.') || 'field'}: ${err.msg || err.message || 'validation error'}`
-          ).join(', ');
-          errorMessage = `Validation error: ${validationErrors}`;
+          const validationErrors = errorData.detail
+            .map((err: any) => `${err.loc?.join('.') || 'field'}: ${err.msg || err.message || 'validation error'}`)
+            .join(', ')
+          errorMessage = `Validation error: ${validationErrors}`
         } else if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail;
+          errorMessage = errorData.detail
         } else {
-          errorMessage = JSON.stringify(errorData.detail);
+          try {
+            errorMessage = JSON.stringify(errorData.detail)
+          } catch {
+            errorMessage = String(errorData.detail)
+          }
         }
       } else if (errorData?.message) {
-        errorMessage = errorData.message;
+        errorMessage = errorData.message
       }
-      console.error('💥 API Error Details:', errorData);
-      throw new Error(errorMessage);
+
+      // Normalize and handle unauthorized cases centrally
+      if (response.status === 401 || response.status === 403) {
+        // FastAPI HTTPBearer returns 403 with detail "Not authenticated" when missing/invalid token
+        try { TokenManager.removeToken() } catch {}
+        errorMessage = 'Not authenticated'
+      }
+
+      // Use warn to avoid Next.js overlay for expected/handled errors
+      console.warn('💥 API Error Details (handled):', errorData, 'for', endpoint)
+      throw new Error(errorMessage)
     }
     
     // For DELETE requests or empty responses (204 No Content), return empty object
@@ -262,6 +294,13 @@ class ApiClient {
     return this.request('/api/v1/twitter/post', {
       method: 'POST',
       body: JSON.stringify(payload),
+    })
+  }
+
+  async connectTwitterAccount(personaId: string): Promise<{ oauth_url: string; state: string; message?: string }> {
+    return this.request('/api/v1/twitter/connect', {
+      method: 'POST',
+      body: JSON.stringify({ persona_id: personaId })
     })
   }
   
@@ -462,6 +501,13 @@ class ApiClient {
     return this.request(`/api/v1/outputs/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData),
+    })
+  }
+
+  async scheduleOutput(id: string, scheduleTimeISO: string): Promise<any> {
+    return this.request(`/api/v1/outputs/${id}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify({ schedule_time: scheduleTimeISO }),
     })
   }
 

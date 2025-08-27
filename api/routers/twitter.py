@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from api.database import get_db
@@ -11,17 +11,84 @@ from api.auth import get_current_active_user
 from api.models import User, InputSource, Run, Document, InputSourceType
 from api.schemas import (
     TwitterSearchRequest, TwitterSearchResponse, DocumentResponse,
-    InputSourceCreate, InputSourceResponse, RunResponse,
+    InputSourceCreate, InputSourceResponse,
     TwitterPostRequest, TwitterPostResponse,
-    TwitterDeleteRequest, TwitterDeleteResponse
+    TwitterDeleteRequest, TwitterDeleteResponse,
+    TwitterConnectRequest, TwitterConnectResponse
 )
 
 # Import the existing Twitter agents (DO NOT CHANGE AGENT LOGIC)
-from parser_agents.x.agent import get_content
-from parser_agents.x.schemas import InputSchema, SearchType
-from posting_agents.x.agent import post_tweet, delete_tweet
+from megaforce.parser_agents.x.agent import get_content
+from megaforce.parser_agents.x.schemas import InputSchema, SearchType
+from megaforce.posting_agents.x.agent import post_tweet, delete_tweet
+from arcadepy import AsyncArcade
 
 router = APIRouter()
+
+
+@router.post("/connect", response_model=TwitterConnectResponse)
+async def connect_twitter_account(
+    request: TwitterConnectRequest,
+    response: Response,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Initiate Twitter/X OAuth via Arcade for a given persona.
+
+    Placeholder implementation: returns a dummy OAuth URL and state. The
+    real Arcade integration should generate a provider-specific authorization URL
+    and persist any necessary state for later verification.
+    """
+    try:
+        # Basic validation that persona exists and belongs to user
+        from api.models import Persona
+        persona = db.query(Persona).filter(
+            Persona.id == request.persona_id,
+            Persona.owner_id == current_user.id
+        ).first()
+        if not persona:
+            raise HTTPException(status_code=404, detail="Persona not found")
+
+        client = AsyncArcade()
+        auth_request = await client.tools.authorize(
+            tool_name="X.PostTweet",
+            user_id=request.persona_id
+        )
+
+        if auth_request.status != "completed":
+            # Store persona_id in a short-lived, HTTP-only cookie for the verifier to read
+            # Configure cookie attributes for cross-site flows (HTTPS required for SameSite=None)
+            try:
+                import os as _os
+                cookie_secure = _os.getenv("COOKIE_SECURE", "false").lower() == "true"
+            except Exception:
+                cookie_secure = False
+            cookie_samesite = "none" if cookie_secure else "lax"
+            response.set_cookie(
+                key="arcade_auth_persona_id",
+                value=request.persona_id,
+                httponly=True,
+                max_age=600,
+                samesite=cookie_samesite,
+                secure=cookie_secure,
+            )
+
+            return TwitterConnectResponse(
+                oauth_url=auth_request.url,
+                state=auth_request.status,
+                message="Use oauth_url to connect your Twitter account."
+            )
+        else:
+            return TwitterConnectResponse(
+                oauth_url="",
+                state="completed",
+                message="Twitter account is already connected for this persona."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initiate Twitter connect: {str(e)}")
+
 
 @router.post("/search", response_model=TwitterSearchResponse)
 async def search_twitter(

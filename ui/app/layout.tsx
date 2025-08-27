@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="h-full overflow-scroll">
+      <body className="h-screen overflow-hidden text-white">
         <AuthProvider>
           {children}
         </AuthProvider>
