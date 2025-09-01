@@ -57,7 +57,7 @@ services:
   - type: worker
     name: megaforce-worker
     runtime: docker
-    plan: free
+    plan: starter
     dockerfilePath: api/Dockerfile.worker
     dockerContext: .
     autoDeploy: true
