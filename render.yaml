@@ -7,6 +7,9 @@ services:
     dockerContext: .
     healthCheckPath: /health
     autoDeploy: true
+    # Attach custom domain for API
+    domains:
+      - api.megaforce.tech
     envVars:
       - key: REDIS_URL
         fromService:
@@ -123,6 +126,9 @@ services:
           name: megaforce-api
           type: web
           property: port
+      # Prefer explicit API_BASE_URL in production for cross-domain calls
+      - key: API_BASE_URL
+        value: https://api.megaforce.tech
 
 databases:
   - name: megaforce-db

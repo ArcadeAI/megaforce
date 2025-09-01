@@ -67,18 +67,32 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# Allow localhost for development and custom domains configured via env
+_default_allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+]
+
+# Include known production domains by default
+_default_allowed_origins.extend([
+    "https://megaforce.tech",
+    "https://www.megaforce.tech",
+])
+
+_cors_env = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+if _cors_env:
+    _extra = [o.strip() for o in _cors_env.split(",") if o.strip()]
+    _default_allowed_origins.extend(_extra)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002",
-        "http://127.0.0.1:3003",
-    ],
+    allow_origins=_default_allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
