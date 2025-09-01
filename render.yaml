@@ -56,10 +56,10 @@ services:
 
   - type: worker
     name: megaforce-worker
-    runtime: docker
     plan: starter
-    dockerfilePath: api/Dockerfile.worker
-    dockerContext: .
+    runtime: python
+    buildCommand: "build-worker.sh"
+    startCommand: "celery --app tasks worker --loglevel info --concurrency 4"
     autoDeploy: true
     envVars:
       - key: REDIS_URL

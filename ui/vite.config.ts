@@ -24,8 +24,10 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, './src'),
-    },
+    alias: [
+      // Ensure extensionless imports like "@/lib/utils" resolve correctly in all environments
+      { find: /^@\/lib\/utils$/, replacement: resolve(__dirname, './src/lib/utils.ts') },
+      { find: '@', replacement: resolve(__dirname, './src') },
+    ],
   },
 })
