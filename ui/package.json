@@ -79,6 +79,6 @@
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
     "jsdom": "^26.0.0",
-    "prettier": "^3.5.3",
+    "prettier": "^3.5.3"
   }
 }
