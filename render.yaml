@@ -130,7 +130,7 @@ services:
     name: megaforce-frontend
     runtime: node
     buildCommand: cd ui && npm install --no-audit --no-fund --include=dev && npm run build
-    startCommand: cd ui && npx vite preview --host --port $PORT | cat
+    startCommand: cd ui && npx vite preview --host --port $PORT
     autoDeploy: true
     envVars:
       - key: VITE_API_BASE_URL

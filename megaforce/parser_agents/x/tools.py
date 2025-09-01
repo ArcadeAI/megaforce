@@ -32,6 +32,7 @@ async def search_tweets(
     search_query: str = "",
     limit: int = 100,
 ) -> List[dict]:
+
     if client is None:
         from dotenv import load_dotenv
         load_dotenv()

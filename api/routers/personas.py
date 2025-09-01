@@ -45,7 +45,7 @@ async def create_persona(
 @router.get("/verify", response_model=VerifyResponse)
 async def verify_authorization(
     flow_id: str = Query(..., description="Arcade authorization flow_id from the redirect query string"),
-    redirect: bool = Query(True, description="Redirect to Arcade's next_uri if available"),
+    redirect: bool = Query(False, description="Redirect to Arcade's next_uri if available"),
     persona_id: str | None = Query(None, description="Optional persona_id fallback if cookie not available"),
     integration_key: str | None = Query(None, description="Optional integration key to mark connection (e.g., 'twitter')"),
     db: Session = Depends(get_db),

@@ -14,20 +14,26 @@ function App() {
           Welcome to Megaforce
         </h1>
         <p className="text-pretty text-muted-foreground">
-          A minimal example showing authentication and a styled dashboard using Tailwind
-          and shadcn/ui.
+          A tool to help you create content using your own style.
+        </p>
+        <p className="text-pretty text-muted-foreground">
+          Using a combination of AI agents, you can:
+          <ul className="list-disc list-inside">
+            <li>Create multiple "personas", each with their own style, which is automatically inferred from your writing style</li>
+            <li>Generate content for your social media profiles</li>
+            <li>Generate content for your blog</li>
+          </ul>
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Button asChild size="lg" variant="outline">
-          <a href="/dashboard">Go to Dashboard</a>
+          <a href="/personas">Manage Personas</a>
         </Button>
       </div>
       <Card className="w-full">
         <CardContent className="p-6 text-left text-sm text-muted-foreground">
           <p>
-            Tip: Use the header to toggle theme. Explore the dashboard to see your
-            authenticated user details rendered with shadcn components.
+            Tip: Use the icon on the bottom of the sidebar to toggle the theme.
           </p>
         </CardContent>
       </Card>
