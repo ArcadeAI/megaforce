@@ -1,4 +1,5 @@
 import { createFileRoute, useParams } from '@tanstack/react-router'
+import { apiFetch } from '@/lib/api'
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -95,7 +96,7 @@ function JobDetailPage() {
 
   async function loadJob() {
     try {
-      const res = await fetch(`/api/v1/jobs/${jobId}`, { credentials: 'include' })
+      const res = await apiFetch(`/api/v1/jobs/${jobId}`)
       if (!res.ok) throw new Error('Failed to load job')
       const data = (await res.json()) as GenerationJob
       setJob(data)
@@ -106,7 +107,7 @@ function JobDetailPage() {
 
   async function loadPersonas() {
     try {
-      const res = await fetch('/api/v1/personas', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/personas')
       if (!res.ok) return
       setPersonas(await res.json())
     } catch {}
@@ -118,7 +119,7 @@ function JobDetailPage() {
     // Try to load app settings to determine timezone
     ;(async () => {
       try {
-        const res = await fetch('/api/v1/settings/', { credentials: 'include' })
+        const res = await apiFetch('/api/v1/settings/')
         if (res.ok) {
           const s = (await res.json()) as { timezone?: string }
           if (s?.timezone) setTimezone(s.timezone)
@@ -146,7 +147,7 @@ function JobDetailPage() {
     if (!job) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/v1/jobs/${job.id}`, {
+      const res = await apiFetch(`/api/v1/jobs/${job.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -171,7 +172,7 @@ function JobDetailPage() {
     if (!job) return
     setPosting(true)
     try {
-      const res = await fetch(`/api/v1/jobs/${job.id}/post`, { method: 'POST', credentials: 'include' })
+      const res = await apiFetch(`/api/v1/jobs/${job.id}/post`, { method: 'POST' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Failed to post' }))
         throw new Error(err?.detail || 'Failed to post')
@@ -199,7 +200,7 @@ function JobDetailPage() {
     }
     setScheduling(true)
     try {
-      const res = await fetch(`/api/v1/jobs/${job.id}/schedule`, {
+      const res = await apiFetch(`/api/v1/jobs/${job.id}/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

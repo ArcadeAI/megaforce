@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { MeResponse } from '@/types/auth'
+import { apiFetch, API_BASE_URL } from '@/lib/api'
 import { Route as RootRoute } from './__root'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -111,7 +112,7 @@ function Settings() {
   async function fetchSettings() {
     setLoadingSettings(true)
     try {
-      const res = await fetch('/api/v1/settings/', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/settings/')
       if (res.status === 403) {
         setIsAdmin(false)
         return
@@ -130,7 +131,7 @@ function Settings() {
 
   async function fetchIntegrations() {
     try {
-      const res = await fetch('/api/v1/integrations/', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/integrations/')
       if (!res.ok) return
       const data = (await res.json()) as typeof integrations
       setIntegrations(data)
@@ -151,7 +152,7 @@ function Settings() {
   async function handleTwitterConnectAdmin() {
     try {
       setConnectingTwitter(true)
-      const res = await fetch('/api/v1/settings/twitter/connect', {
+      const res = await apiFetch('/api/v1/settings/twitter/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -185,7 +186,7 @@ function Settings() {
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/v1/settings/', {
+      const res = await apiFetch('/api/v1/settings/', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -216,7 +217,7 @@ function Settings() {
             <p className="text-muted-foreground">Loading your account…</p>
           </div>
           <Button asChild variant="outline">
-            <a href="/api/v1/auth/logout">Sign out</a>
+            <a href={`${API_BASE_URL}/api/v1/auth/logout`}>Sign out</a>
           </Button>
         </div>
       </div>
@@ -231,7 +232,7 @@ function Settings() {
           <p className="text-muted-foreground">You're signed in.</p>
         </div>
         <Button asChild variant="outline">
-          <a href="/api/v1/auth/logout">Sign out</a>
+          <a href={`${API_BASE_URL}/api/v1/auth/logout`}>Sign out</a>
         </Button>
       </div>
 

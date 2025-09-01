@@ -1,4 +1,5 @@
 import { createFileRoute, useParams } from '@tanstack/react-router'
+import { apiFetch } from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -90,7 +91,7 @@ function PersonaDetailPage() {
         rank_tweets: false,
         persona_id: assignToPersona ? personaId : undefined,
       }
-      const res = await fetch('/api/v1/twitter/search', {
+      const res = await apiFetch('/api/v1/twitter/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -115,7 +116,7 @@ function PersonaDetailPage() {
   async function handleTwitterConnect() {
     try {
       setConnectingTwitter(true)
-      const res = await fetch('/api/v1/twitter/connect', {
+      const res = await apiFetch('/api/v1/twitter/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -145,7 +146,7 @@ function PersonaDetailPage() {
 
   async function fetchPersona() {
     try {
-      const res = await fetch(`/api/v1/personas/${personaId}`, { credentials: 'include' })
+      const res = await apiFetch(`/api/v1/personas/${personaId}`)
       if (!res.ok) throw new Error('Failed to load persona')
       const data = (await res.json()) as Persona
       setPersona(data)
@@ -162,7 +163,7 @@ function PersonaDetailPage() {
 
   async function fetchPersonaDocuments() {
     try {
-      const res = await fetch(`/api/v1/documents?persona_id=${personaId}`, { credentials: 'include' })
+      const res = await apiFetch(`/api/v1/documents?persona_id=${personaId}`)
       if (!res.ok) throw new Error('Failed to load documents')
       const data = (await res.json()) as PersonaDocument[]
       setPersonaDocs(data)
@@ -173,7 +174,7 @@ function PersonaDetailPage() {
 
   async function fetchIntegrations() {
     try {
-      const res = await fetch('/api/v1/integrations/', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/integrations/')
       if (!res.ok) throw new Error('Failed to load integrations')
       const data = (await res.json()) as typeof integrations
       setIntegrations(data)
@@ -184,7 +185,7 @@ function PersonaDetailPage() {
 
   async function fetchPersonaConnections() {
     try {
-      const res = await fetch(`/api/v1/integrations/personas/${personaId}`, { credentials: 'include' })
+      const res = await apiFetch(`/api/v1/integrations/personas/${personaId}`)
       if (!res.ok) throw new Error('Failed to load persona integrations')
       const data = (await res.json()) as typeof personaConnections
       setPersonaConnections(data)
@@ -238,7 +239,7 @@ function PersonaDetailPage() {
       const createdResults = await Promise.all(
         docs.map(async (d) => {
           try {
-            const res = await fetch('/api/v1/url', {
+            const res = await apiFetch('/api/v1/url', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
@@ -261,7 +262,7 @@ function PersonaDetailPage() {
         toast.success('URLs added', { description: `Created ${createdCount} document${createdCount === 1 ? '' : 's'}` })
       }
 
-      const res = await fetch(`/api/v1/personas/${personaId}`, {
+      const res = await apiFetch(`/api/v1/personas/${personaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

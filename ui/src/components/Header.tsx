@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
+import { API_BASE_URL } from '@/lib/api'
 import { Separator } from '@/components/ui/separator'
 import logo from '@/logo.svg'
 
@@ -23,7 +24,7 @@ export default function Header() {
           <Separator orientation="vertical" className="h-6" />
           <ThemeToggle />
           <Button asChild variant="outline" size="sm">
-            <a href="/api/v1/auth/logout">Sign out</a>
+            <a href={`${API_BASE_URL}/api/v1/auth/logout`}>Sign out</a>
           </Button>
         </div>
       </div>

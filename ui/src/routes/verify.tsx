@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { apiFetch } from '@/lib/api'
 
 export const Route = createFileRoute('/verify')({
   component: VerifyPage,
@@ -46,7 +47,7 @@ function VerifyPage() {
       if (integrationKey) qp.set('integration_key', integrationKey)
 
       // Call the backend to confirm and wait; then redirect to next_uri if provided
-      fetch(`/api/v1/personas/verify?${qp.toString()}`, { credentials: 'include' })
+      apiFetch(`/api/v1/personas/verify?${qp.toString()}`)
         .then(async (res) => {
           const data = await res.json().catch(() => null)
           if (res.ok && data?.success) {

@@ -1,4 +1,5 @@
 import { createFileRoute, useParams } from '@tanstack/react-router'
+import { apiFetch } from '@/lib/api'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,7 +51,7 @@ function RunDetailPage() {
   async function loadRun() {
     // No GET /generation-runs/{id}; fetch all and find
     try {
-      const res = await fetch('/api/v1/generation-runs', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/generation-runs')
       if (!res.ok) return
       const list = (await res.json()) as GenerationRun[]
       const found = list.find(r => r.id === runId) || null
@@ -62,7 +63,7 @@ function RunDetailPage() {
 
   async function loadPersonas() {
     try {
-      const res = await fetch('/api/v1/personas', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/personas')
       if (!res.ok) return
       const data = (await res.json()) as Persona[]
       setPersonas(data)
@@ -75,7 +76,7 @@ function RunDetailPage() {
   async function loadDocuments() {
     setLoadingDocs(true)
     try {
-      const res = await fetch('/api/v1/documents?limit=1000', { credentials: 'include' })
+      const res = await apiFetch('/api/v1/documents?limit=1000')
       if (!res.ok) throw new Error('Failed to load documents')
       const data = (await res.json()) as DocumentRow[]
       setDocs(data)
@@ -101,7 +102,7 @@ function RunDetailPage() {
   async function loadJobs() {
     setLoadingJobs(true)
     try {
-      const res = await fetch(`/api/v1/generation-runs/${runId}/jobs`, { credentials: 'include' })
+      const res = await apiFetch(`/api/v1/generation-runs/${runId}/jobs`)
       if (!res.ok) throw new Error('Failed to load jobs')
       const data = (await res.json()) as GenerationJob[]
       setJobs(data)
@@ -142,7 +143,7 @@ function RunDetailPage() {
         content_type: 'tweet_single',
         source_selection: 'all',
       }
-      const res = await fetch(`/api/v1/generation-runs/${runId}/jobs`, {
+      const res = await apiFetch(`/api/v1/generation-runs/${runId}/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

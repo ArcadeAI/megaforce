@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiFetch } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,7 +51,7 @@ export default function AddSourcesForm({ generationRunId, onLoaded, onRunCreated
     try {
       let runId = generationRunId
       if (!runId) {
-        const createRes = await fetch('/api/v1/generation-runs', {
+        const createRes = await apiFetch('/api/v1/generation-runs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -64,7 +65,7 @@ export default function AddSourcesForm({ generationRunId, onLoaded, onRunCreated
       }
       const results: Array<boolean> = []
       for (const u of urls) {
-        const res = await fetch('/api/v1/url', {
+        const res = await apiFetch('/api/v1/url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -81,7 +82,7 @@ export default function AddSourcesForm({ generationRunId, onLoaded, onRunCreated
           rank_tweets: false,
           generation_run_id: runId,
         }
-        const res = await fetch('/api/v1/twitter/search', {
+        const res = await apiFetch('/api/v1/twitter/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

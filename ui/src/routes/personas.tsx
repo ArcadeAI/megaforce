@@ -1,4 +1,5 @@
 import { Link, Outlet, MatchRoute, createFileRoute } from '@tanstack/react-router'
+import { apiFetch } from '@/lib/api'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -38,7 +39,7 @@ function PersonasPage() {
   async function fetchPersonas() {
     try {
       setLoading(true)
-      const res = await fetch('/api/v1/personas/', {
+      const res = await apiFetch('/api/v1/personas/', {
         credentials: 'include',
       })
       if (!res.ok) throw new Error('Failed to load personas')
@@ -66,7 +67,7 @@ function PersonasPage() {
 
   async function onSubmit(values: FormValues) {
     try {
-      const res = await fetch('/api/v1/personas/', {
+      const res = await apiFetch('/api/v1/personas/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

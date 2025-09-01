@@ -13,6 +13,7 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
+import { API_BASE_URL } from '@/lib/api'
 import { ThemeToggle } from '@/components/theme-toggle'
 import logo from '@/logo.svg'
 
@@ -59,7 +60,7 @@ export default function AppSidebar() {
         <div className="flex items-center justify-between gap-2">
           <ThemeToggle />
           <Button asChild variant="outline" size="sm">
-            <a href="/api/v1/auth/logout">Sign out</a>
+            <a href={`${API_BASE_URL}/api/v1/auth/logout`}>Sign out</a>
           </Button>
         </div>
       </SidebarFooter>

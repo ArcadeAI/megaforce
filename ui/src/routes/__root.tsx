@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { apiFetch, API_BASE_URL } from '@/lib/api'
 import type { MeResponse } from '@/types/auth'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanstackDevtools } from '@tanstack/react-devtools'
@@ -15,7 +16,7 @@ export const Route = createRootRoute({
   staleTime: Infinity,
   preloadStaleTime: Infinity,
   loader: async () => {
-    const res = await fetch('/api/v1/auth/me', { credentials: 'include' })
+    const res = await apiFetch('/api/v1/auth/me')
     if (!res.ok) {
       return { authenticated: false } satisfies Partial<MeResponse>
     }
@@ -50,7 +51,7 @@ export const Route = createRootRoute({
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <a className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-                    href="/api/v1/auth/login">Sign in</a>
+                    href={`${API_BASE_URL}/api/v1/auth/login`}>Sign in</a>
                 </div>
               </section>
             </main>

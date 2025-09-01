@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, useRouterState } from '@tanstack/react-router'
+import { apiFetch } from '@/lib/api'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -31,7 +32,7 @@ function GeneratePage() {
   const [timezone, setTimezone] = useState<string>('')
 
   async function loadRuns() {
-    const res = await fetch('/api/v1/generation-runs', { credentials: 'include' })
+    const res = await apiFetch('/api/v1/generation-runs')
     if (!res.ok) return
     const data = (await res.json()) as GenerationRun[]
     setRuns(data)
@@ -42,7 +43,7 @@ function GeneratePage() {
     // Try to load app settings for timezone (admin-only route; ignore if forbidden)
     ;(async () => {
       try {
-        const res = await fetch('/api/v1/settings/', { credentials: 'include' })
+        const res = await apiFetch('/api/v1/settings/')
         if (res.ok) {
           const s = (await res.json()) as { timezone?: string }
           if (s?.timezone) setTimezone(s.timezone)

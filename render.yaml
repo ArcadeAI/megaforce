@@ -110,25 +110,16 @@ services:
 
   - type: web
     name: megaforce-frontend
-    runtime: docker
-    plan: free
-    dockerfilePath: ui/Dockerfile
-    dockerContext: ui
+    runtime: node
+    buildCommand: cd ui && npm ci && npm run build
+    startCommand: cd ui && npx vite preview --host --port $PORT | cat
     autoDeploy: true
     envVars:
-      - key: API_HOST
-        fromService:
-          name: megaforce-api
-          type: web
-          property: host
-      - key: API_PORT
-        fromService:
-          name: megaforce-api
-          type: web
-          property: port
-      # Prefer explicit API_BASE_URL in production for cross-domain calls
-      - key: API_BASE_URL
+      - key: VITE_API_BASE_URL
         value: https://api.megaforce.tech
+    domains:
+      - megaforce.tech
+      - www.megaforce.tech
 
 databases:
   - name: megaforce-db
