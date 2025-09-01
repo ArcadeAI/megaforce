@@ -88,32 +88,32 @@ services:
         fromService:
           name: megaforce-api
           type: web
-          property: SECRET_KEY
+          envVarKey: SECRET_KEY
       - key: OPENAI_API_KEY
         fromService:
           name: megaforce-api
           type: web
-          property: OPENAI_API_KEY
+          envVarKey: OPENAI_API_KEY
       - key: GOOGLE_API_KEY
         fromService:
           name: megaforce-api
           type: web
-          property: GOOGLE_API_KEY
+          envVarKey: GOOGLE_API_KEY
       - key: ANTHROPIC_API_KEY
         fromService:
           name: megaforce-api
           type: web
-          property: ANTHROPIC_API_KEY
+          envVarKey: ANTHROPIC_API_KEY
       - key: ARCADE_API_KEY
         fromService:
           name: megaforce-api
           type: web
-          property: ARCADE_API_KEY
+          envVarKey: ARCADE_API_KEY
       - key: USER_ID
         fromService:
           name: megaforce-api
           type: web
-          property: USER_ID
+          envVarKey: USER_ID
       - key: LLM_PROVIDER
         value: openai
       - key: LLM_MODEL
