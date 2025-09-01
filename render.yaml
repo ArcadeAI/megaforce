@@ -117,6 +117,8 @@ services:
     envVars:
       - key: VITE_API_BASE_URL
         value: https://api.megaforce.tech
+      - key: NODE_ENV
+        value: production
     domains:
       - megaforce.tech
       - www.megaforce.tech
