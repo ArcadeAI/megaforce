@@ -62,7 +62,7 @@ services:
     plan: starter
     runtime: python
     buildCommand: "uv sync --frozen"
-    startCommand: "uv run celery --app tasks worker --loglevel info --concurrency 2"
+    startCommand: "uv run celery --app api.celery_app.celery worker --loglevel info --concurrency 2"
     autoDeploy: true
     envVars:
       - key: REDIS_URL
@@ -111,7 +111,7 @@ services:
   - type: web
     name: megaforce-frontend
     runtime: node
-    buildCommand: cd ui && npm ci && npm run build
+    buildCommand: cd ui && npm install --no-audit --no-fund && npm run build
     startCommand: cd ui && npx vite preview --host --port $PORT | cat
     autoDeploy: true
     envVars:
