@@ -72,7 +72,7 @@ async def callback(code: str, db = Depends(get_db)):
                 db.add(User(id=workos_user_id, role=UserRole.USER))
                 db.commit()
 
-        response = RedirectResponse(url="/")
+        response = RedirectResponse(url="https://megaforce.tech")
 
 
         # store the session in a cookie
