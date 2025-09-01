@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { API_BASE_URL } from '@/lib/api'
 import { ThemeToggle } from '@/components/theme-toggle'
-import logo from '@/logo.svg'
+import logo from '@/Megaforce.svg'
 
 export default function AppSidebar() {
   return (

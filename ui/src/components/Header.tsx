@@ -3,7 +3,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { API_BASE_URL } from '@/lib/api'
 import { Separator } from '@/components/ui/separator'
-import logo from '@/logo.svg'
+import logo from '@/Megaforce.svg'
 
 export default function Header() {
   return (

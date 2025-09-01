@@ -276,7 +276,7 @@ def process_generation_job_task(job_id: str) -> dict:
                         url=ref.url or "https://example.com/style-reference",
                         type=StyleContentType.TWITTER,
                         category=StyleDocumentCategory.CASUAL,
-                        content=ref.content,
+                        content=_extract_text(ref.content),
                         title=ref.title,
                         author=ref.author,
                     )
