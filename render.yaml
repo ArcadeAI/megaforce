@@ -61,8 +61,8 @@ services:
     name: megaforce-worker
     plan: starter
     runtime: python
-    buildCommand: "build-worker.sh"
-    startCommand: "celery --app tasks worker --loglevel info --concurrency 2"
+    buildCommand: "uv sync --frozen"
+    startCommand: "uv run celery --app tasks worker --loglevel info --concurrency 2"
     autoDeploy: true
     envVars:
       - key: REDIS_URL
