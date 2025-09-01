@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
 /** @type {import('vite').UserConfig} */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
     viteReact(),
@@ -34,4 +34,9 @@ export default defineConfig({
       { find: '@', replacement: resolve(__dirname, './src') },
     ],
   },
-})
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(
+      process.env.NODE_ENV || (mode === 'production' ? 'production' : 'development')
+    ),
+  },
+}))

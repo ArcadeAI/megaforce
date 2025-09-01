@@ -57,17 +57,19 @@ export const Route = createRootRoute({
             </main>
           )}
           <Toaster position="top-right" richColors closeButton />
-          <TanstackDevtools
-            config={{
-              position: 'bottom-left',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
+          {process.env.NODE_ENV !== 'production' && (
+            <TanstackDevtools
+              config={{
+                position: 'bottom-left',
+              }}
+              plugins={[
+                {
+                  name: 'Tanstack Router',
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
+          )}
         </div>
       </ThemeProvider>
     )
