@@ -8,8 +8,6 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: PORT
-        value: 8000
       - key: REDIS_URL
         fromService:
           name: megaforce-redis
@@ -39,6 +37,22 @@ services:
         sync: false
       - key: ARCADE_API_KEY
         sync: false
+      - key: USER_ID
+        sync: false
+      - key: WORKOS_API_KEY
+        sync: false
+      - key: WORKOS_CLIENT_ID
+        sync: false
+      - key: WORKOS_REDIRECT_URI
+        sync: false
+      - key: WORKOS_COOKIE_PASSWORD
+        sync: false
+      - key: LLM_PROVIDER
+        value: openai
+      - key: LLM_MODEL
+        value: gpt-4o-2024-08-06
+      - key: SQL_DEBUG
+        value: "false"
 
   - type: worker
     name: megaforce-worker
@@ -77,6 +91,14 @@ services:
         sync: false
       - key: ARCADE_API_KEY
         sync: false
+      - key: USER_ID
+        sync: false
+      - key: LLM_PROVIDER
+        value: openai
+      - key: LLM_MODEL
+        value: gpt-4o-2024-08-06
+      - key: SQL_DEBUG
+        value: "false"
 
   - type: redis
     name: megaforce-redis
@@ -91,8 +113,6 @@ services:
     dockerContext: ui
     autoDeploy: true
     envVars:
-      - key: PORT
-        value: 10000
       - key: API_HOST
         fromService:
           name: megaforce-api
