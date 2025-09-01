@@ -93,11 +93,16 @@ services:
     envVars:
       - key: PORT
         value: 10000
-      - key: API_BASE_URL
+      - key: API_HOST
         fromService:
           name: megaforce-api
           type: web
-          property: url
+          property: host
+      - key: API_PORT
+        fromService:
+          name: megaforce-api
+          type: web
+          property: port
 
 databases:
   - name: megaforce-db

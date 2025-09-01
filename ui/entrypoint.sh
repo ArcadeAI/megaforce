@@ -4,7 +4,14 @@ set -e
 # Render provides PORT; default to 10000
 : "${PORT:=10000}"
 
-# API_BASE_URL must end with / for our proxy_pass
+# Build API_BASE_URL from host/port if not provided
+if [ -z "${API_BASE_URL}" ]; then
+  if [ -n "${API_HOST}" ] && [ -n "${API_PORT}" ]; then
+    export API_BASE_URL="http://${API_HOST}:${API_PORT}/"
+  fi
+fi
+
+# Ensure trailing slash for proxy_pass
 if [ -n "${API_BASE_URL}" ]; then
   case "$API_BASE_URL" in
     */) ;;
