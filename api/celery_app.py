@@ -28,9 +28,9 @@ celery.conf.update(
 
 # Import tasks so Celery sees them
 try:
-    # noqa: F401  (import for side-effects)
-    import api.tasks  # pylint: disable=unused-import
-except Exception:  # pragma: no cover - avoid failing import during partial setups
-    pass
+    # import for side-effects
+    import api.tasks  # noqa: F401  # pylint: disable=unused-import
+except Exception as e:  # pragma: no cover - avoid failing import during partial setups
+    print(f"[celery_app] WARNING: Failed to import api.tasks: {e}", flush=True)
 
 

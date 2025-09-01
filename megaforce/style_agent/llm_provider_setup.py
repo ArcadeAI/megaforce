@@ -22,7 +22,7 @@ def get_llm(provider: str, model: str | None = None, temperature: float = 0.7):
     # Set default models for each provider if not specified
     if model is None:
         default_models = {
-            "openai": "gpt-3.5-turbo",
+            "openai": "gpt-4",
             "anthropic": "claude-3-haiku-20240307",
             "google_genai": "gemini-1.5-flash",
         }

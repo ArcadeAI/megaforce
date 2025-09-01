@@ -9,14 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PersonasRouteImport } from './routes/personas'
 import { Route as GenerateRouteImport } from './routes/generate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PersonasPersonaIdRouteImport } from './routes/personas.$personaId'
+import { Route as JobJobIdRouteImport } from './routes/job.$jobId'
 import { Route as GenerateRunIdRouteImport } from './routes/generate.$runId'
 
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -47,6 +54,11 @@ const PersonasPersonaIdRoute = PersonasPersonaIdRouteImport.update({
   path: '/$personaId',
   getParentRoute: () => PersonasRoute,
 } as any)
+const JobJobIdRoute = JobJobIdRouteImport.update({
+  id: '/job/$jobId',
+  path: '/job/$jobId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GenerateRunIdRoute = GenerateRunIdRouteImport.update({
   id: '/$runId',
   path: '/$runId',
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/generate': typeof GenerateRouteWithChildren
   '/personas': typeof PersonasRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/verify': typeof VerifyRoute
   '/generate/$runId': typeof GenerateRunIdRoute
+  '/job/$jobId': typeof JobJobIdRoute
   '/personas/$personaId': typeof PersonasPersonaIdRoute
 }
 export interface FileRoutesByTo {
@@ -68,7 +82,9 @@ export interface FileRoutesByTo {
   '/generate': typeof GenerateRouteWithChildren
   '/personas': typeof PersonasRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/verify': typeof VerifyRoute
   '/generate/$runId': typeof GenerateRunIdRoute
+  '/job/$jobId': typeof JobJobIdRoute
   '/personas/$personaId': typeof PersonasPersonaIdRoute
 }
 export interface FileRoutesById {
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/generate': typeof GenerateRouteWithChildren
   '/personas': typeof PersonasRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/verify': typeof VerifyRoute
   '/generate/$runId': typeof GenerateRunIdRoute
+  '/job/$jobId': typeof JobJobIdRoute
   '/personas/$personaId': typeof PersonasPersonaIdRoute
 }
 export interface FileRouteTypes {
@@ -89,7 +107,9 @@ export interface FileRouteTypes {
     | '/generate'
     | '/personas'
     | '/settings'
+    | '/verify'
     | '/generate/$runId'
+    | '/job/$jobId'
     | '/personas/$personaId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -98,7 +118,9 @@ export interface FileRouteTypes {
     | '/generate'
     | '/personas'
     | '/settings'
+    | '/verify'
     | '/generate/$runId'
+    | '/job/$jobId'
     | '/personas/$personaId'
   id:
     | '__root__'
@@ -107,7 +129,9 @@ export interface FileRouteTypes {
     | '/generate'
     | '/personas'
     | '/settings'
+    | '/verify'
     | '/generate/$runId'
+    | '/job/$jobId'
     | '/personas/$personaId'
   fileRoutesById: FileRoutesById
 }
@@ -117,10 +141,19 @@ export interface RootRouteChildren {
   GenerateRoute: typeof GenerateRouteWithChildren
   PersonasRoute: typeof PersonasRouteWithChildren
   SettingsRoute: typeof SettingsRoute
+  VerifyRoute: typeof VerifyRoute
+  JobJobIdRoute: typeof JobJobIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -163,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PersonasPersonaIdRouteImport
       parentRoute: typeof PersonasRoute
     }
+    '/job/$jobId': {
+      id: '/job/$jobId'
+      path: '/job/$jobId'
+      fullPath: '/job/$jobId'
+      preLoaderRoute: typeof JobJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/generate/$runId': {
       id: '/generate/$runId'
       path: '/$runId'
@@ -203,6 +243,8 @@ const rootRouteChildren: RootRouteChildren = {
   GenerateRoute: GenerateRouteWithChildren,
   PersonasRoute: PersonasRouteWithChildren,
   SettingsRoute: SettingsRoute,
+  VerifyRoute: VerifyRoute,
+  JobJobIdRoute: JobJobIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from api.models import UserRole, InputSourceType, OutputStatus, OutputType
+from api.models import UserRole, InputSourceType, OutputStatus, OutputType, GenerationJobStatus
 from megaforce.common.schemas import ReferenceStyle
 
 
@@ -98,6 +98,28 @@ class PersonaResponse(PersonaBase):
 
     class Config:
         from_attributes = True
+# Integration schemas
+class IntegrationResponse(BaseModel):
+    id: str
+    key: str
+    name: str
+    description: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class PersonaIntegrationResponse(BaseModel):
+    id: str
+    persona_id: str
+    integration: IntegrationResponse
+    connected: bool
+    metadata: Dict[str, Any] | None = None
+    
+    class Config:
+        from_attributes = True
+
+
 
 
 # Input Source schemas
@@ -165,6 +187,29 @@ class GenerationRunResponse(GenerationRunBase):
     owner_id: str
     created_at: datetime
     sources_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+# Generation Job schemas
+class GenerationJobBase(BaseModel):
+    persona_id: str
+    content_type: OutputType
+    source_selection: str = Field("all", description="Which source documents to use; only 'all' supported")
+
+
+class GenerationJobCreate(GenerationJobBase):
+    pass
+
+
+class GenerationJobResponse(GenerationJobBase):
+    id: str
+    generation_run_id: str
+    status: GenerationJobStatus
+    generated_content: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

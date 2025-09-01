@@ -8,8 +8,10 @@ from sqlalchemy import text
 # Auth from workOS
 from workos import WorkOSClient
 
-from api.database import get_db, engine, Base
+from api.database import get_db, engine, Base, SessionLocal
 from api.routers import auth, input_sources, runs, documents, outputs, twitter, style, personas
+from api.routers import jobs as jobs_router
+from api.routers import integrations as integrations_router
 from api.routers import generation_runs as generation_runs_router
 from api.routers import url as url_router
 from api.routers import settings as settings_router
@@ -36,6 +38,26 @@ logger = logging.getLogger(__name__)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Seed default integrations if missing
+try:
+    from api.models import Integration
+    with SessionLocal() as _db:
+        existing = _db.query(Integration).all()
+        keys = {i.key for i in existing}
+        seeds = [
+            {"key": "twitter", "name": "Twitter / X", "description": "Connect a Twitter account for this persona."},
+        ]
+        new_items = []
+        import uuid as _uuid
+        for s in seeds:
+            if s["key"] not in keys:
+                new_items.append(Integration(id=str(_uuid.uuid4()), **s))
+        if new_items:
+            _db.add_all(new_items)
+            _db.commit()
+except Exception as _seed_err:
+    logger.warning(f"Integration seeding skipped or failed: {_seed_err}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -68,9 +90,11 @@ app.include_router(input_sources.router, prefix="/api/v1/input-sources", tags=["
 app.include_router(runs.router, prefix="/api/v1/runs", tags=["runs"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])
 app.include_router(outputs.router, prefix="/api/v1/outputs", tags=["outputs"])
+app.include_router(jobs_router.router, prefix="/api/v1/jobs", tags=["jobs"])
 app.include_router(personas.router, prefix="/api/v1/personas", tags=["personas"])
 
 app.include_router(twitter.router, prefix="/api/v1/twitter", tags=["twitter"])
+app.include_router(integrations_router.router, prefix="/api/v1/integrations", tags=["integrations"])
 
 # URL ingestion
 app.include_router(url_router.router, prefix="/api/v1/url", tags=["url"])

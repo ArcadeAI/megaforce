@@ -81,8 +81,18 @@ async def connect_twitter_account(
                 secure=cookie_secure,
             )
 
+            # Append integration_key for verifier to persist connection state
+            try:
+                from urllib.parse import urlencode, urlparse, parse_qsl, urlunparse
+                parsed = urlparse(auth_request.url)
+                q = dict(parse_qsl(parsed.query))
+                q["integration_key"] = "twitter"
+                oauth_url = urlunparse(parsed._replace(query=urlencode(q)))
+            except Exception:
+                oauth_url = auth_request.url
+
             return TwitterConnectResponse(
-                oauth_url=auth_request.url,
+                oauth_url=oauth_url,
                 state=auth_request.status,
                 message="Use oauth_url to connect your Twitter account."
             )

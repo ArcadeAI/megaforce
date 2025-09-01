@@ -67,6 +67,9 @@ function PersonaDetailPage() {
   const [twitterQuery, setTwitterQuery] = useState<string>('')
   const [twitterSearching, setTwitterSearching] = useState<boolean>(false)
   const [assignToPersona] = useState<boolean>(true)
+  const [connectingTwitter, setConnectingTwitter] = useState<boolean>(false)
+  const [integrations, setIntegrations] = useState<{ id: string; key: string; name: string; description?: string }[]>([])
+  const [personaConnections, setPersonaConnections] = useState<{ id: string; persona_id: string; integration: { id: string; key: string; name: string }; connected: boolean }[]>([])
 
   async function handleTwitterSearch() {
     if (!twitterQuery) {
@@ -109,6 +112,37 @@ function PersonaDetailPage() {
     }
   }
 
+  async function handleTwitterConnect() {
+    try {
+      setConnectingTwitter(true)
+      const res = await fetch('/api/v1/twitter/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ persona_id: personaId }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Failed to initiate Twitter connect' }))
+        throw new Error(err?.detail || 'Failed to initiate Twitter connect')
+      }
+      const data = await res.json()
+      if (data?.oauth_url) {
+        try {
+          localStorage.setItem('arcade_persona_id', personaId)
+          localStorage.setItem('arcade_integration_key', 'twitter')
+        } catch {}
+        window.location.assign(data.oauth_url)
+      } else {
+        toast.message('Twitter connection', { description: data?.message || 'No authorization URL returned' })
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Something went wrong'
+      toast.error('Error', { description: message })
+    } finally {
+      setConnectingTwitter(false)
+    }
+  }
+
   async function fetchPersona() {
     try {
       const res = await fetch(`/api/v1/personas/${personaId}`, { credentials: 'include' })
@@ -137,11 +171,33 @@ function PersonaDetailPage() {
     }
   }
 
+  async function fetchIntegrations() {
+    try {
+      const res = await fetch('/api/v1/integrations/', { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load integrations')
+      const data = (await res.json()) as typeof integrations
+      setIntegrations(data)
+    } catch (e) {
+      // silent
+    }
+  }
+
+  async function fetchPersonaConnections() {
+    try {
+      const res = await fetch(`/api/v1/integrations/personas/${personaId}`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load persona integrations')
+      const data = (await res.json()) as typeof personaConnections
+      setPersonaConnections(data)
+    } catch (e) {
+      // silent
+    }
+  }
+
   useEffect(() => {
     if (fetchedRef.current === personaId) return
     fetchedRef.current = personaId
     setLoading(true)
-    Promise.all([fetchPersona(), fetchPersonaDocuments()])
+    Promise.all([fetchPersona(), fetchPersonaDocuments(), fetchIntegrations(), fetchPersonaConnections()])
       .catch(() => {})
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -391,6 +447,45 @@ function PersonaDetailPage() {
               Clear URLs
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Connected accounts</CardTitle>
+          <CardDescription>Connect this persona to external services.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {integrations.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No integrations configured.</div>
+          ) : (
+            <div className="space-y-3">
+              {integrations.map((integ) => {
+                const link = personaConnections.find((l) => l.integration.id === integ.id)
+                const connected = Boolean(link?.connected)
+                const isTwitter = integ.key === 'twitter'
+                return (
+                  <div key={integ.id} className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <div className="text-sm font-medium">{integ.name}</div>
+                      <div className="text-xs text-muted-foreground">{connected ? 'Connected' : 'Not connected'}</div>
+                    </div>
+                    <div>
+                      {isTwitter ? (
+                        <Button size="sm" onClick={handleTwitterConnect} disabled={connectingTwitter}>
+                          {connected ? 'Reconnect' : connectingTwitter ? 'Connecting…' : 'Connect'}
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" disabled>
+                          Coming soon
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

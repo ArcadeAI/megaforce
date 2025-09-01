@@ -39,9 +39,11 @@ function RunDetailPage() {
   // Output creation form state
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>('')
   const [selectedContentType, setSelectedContentType] = useState<string>('tweet_single')
-  const [selectedSourceDocId, setSelectedSourceDocId] = useState<string>('')
+  // Source selection is fixed to ALL for now
   const [generatedContent, setGeneratedContent] = useState<string>('')
-  const [submittingOutput, setSubmittingOutput] = useState<boolean>(false)
+  const [creatingJob, setCreatingJob] = useState<boolean>(false)
+  const [jobs, setJobs] = useState<GenerationJob[]>([])
+  const [loadingJobs, setLoadingJobs] = useState<boolean>(true)
 
   const runDocs = useMemo(() => docs.filter(d => (d as any).generation_run_id === runId), [docs, runId])
 
@@ -84,56 +86,78 @@ function RunDetailPage() {
     }
   }
 
+  type GenerationJob = {
+    id: string
+    generation_run_id: string
+    persona_id: string
+    content_type: string
+    source_selection: string
+    status: string
+    generated_content?: string | null
+    created_at: string
+    updated_at?: string | null
+  }
+
+  async function loadJobs() {
+    setLoadingJobs(true)
+    try {
+      const res = await fetch(`/api/v1/generation-runs/${runId}/jobs`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load jobs')
+      const data = (await res.json()) as GenerationJob[]
+      setJobs(data)
+    } catch (e) {
+      toast.error('Error', { description: 'Failed to load generation jobs' })
+    } finally {
+      setLoadingJobs(false)
+    }
+  }
+
   useEffect(() => {
     if (loadedRef.current) return
     loadedRef.current = true
-    Promise.all([loadRun(), loadPersonas(), loadDocuments()]).catch(() => {})
+    Promise.all([loadRun(), loadPersonas(), loadDocuments(), loadJobs()]).catch(() => {})
   }, [])
 
   // Refresh docs when window/tab gains focus (keeps updated if persona page adds docs)
   useEffect(() => {
     function onFocus() {
       loadDocuments()
+      loadJobs()
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [])
 
-  async function handleCreateOutput() {
+  // Deprecated manual output creation flow removed in favor of generation job
+
+  async function handleCreateJobAllSources() {
     if (!selectedPersonaId) {
       toast.message('Select a persona', { description: 'Persona is required' })
       return
     }
-    if (!generatedContent.trim()) {
-      toast.message('Add content', { description: 'Generated content cannot be empty' })
-      return
-    }
-    setSubmittingOutput(true)
+    setCreatingJob(true)
     try {
       const body: any = {
-        content_type: selectedContentType,
-        generated_content: generatedContent,
         persona_id: selectedPersonaId,
+        content_type: 'tweet_single',
+        source_selection: 'all',
       }
-      if (selectedSourceDocId) body.source_document_id = selectedSourceDocId
-      const res = await fetch('/api/v1/outputs/', {
+      const res = await fetch(`/api/v1/generation-runs/${runId}/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(body),
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Failed to create output' }))
-        throw new Error(err?.detail || 'Failed to create output')
+        const err = await res.json().catch(() => ({ detail: 'Failed to create job' }))
+        throw new Error(err?.detail || 'Failed to create job')
       }
-      setGeneratedContent('')
-      setSelectedSourceDocId('')
-      toast.success('Output created', { description: 'Your output was created as draft' })
+      toast.success('Job created', { description: 'Generation job queued' })
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Something went wrong'
       toast.error('Error', { description: message })
     } finally {
-      setSubmittingOutput(false)
+      setCreatingJob(false)
     }
   }
 
@@ -152,6 +176,7 @@ function RunDetailPage() {
           <a href="/generate">Back to Runs</a>
         </Button>
       </div>
+
 
       <Card>
         <CardHeader>
@@ -179,31 +204,19 @@ function RunDetailPage() {
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 value={selectedContentType}
                 onChange={(e) => setSelectedContentType(e.target.value)}
+                disabled
               >
                 <option value="tweet_single">Tweet (single)</option>
-                <option value="tweet_thread">Tweet thread</option>
-                <option value="social_comment">Social comment</option>
-                <option value="twitter_reply">Twitter reply</option>
-                <option value="linkedin_post">LinkedIn post</option>
-                <option value="linkedin_comment">LinkedIn comment</option>
-                <option value="blog_post">Blog post</option>
-                <option value="reddit_comment">Reddit comment</option>
-                <option value="facebook_comment">Facebook comment</option>
-                <option value="instagram_comment">Instagram comment</option>
-                <option value="youtube_comment">YouTube comment</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Source document (optional)</Label>
+              <Label>Source documents</Label>
               <select
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                value={selectedSourceDocId}
-                onChange={(e) => setSelectedSourceDocId(e.target.value)}
+                value="all"
+                disabled
               >
-                <option value="">None</option>
-                {runDocs.map(d => (
-                  <option key={d.id} value={d.id}>{d.title || d.url || d.id}</option>
-                ))}
+                <option value="all">ALL</option>
               </select>
             </div>
           </div>
@@ -212,8 +225,8 @@ function RunDetailPage() {
             <Textarea rows={5} value={generatedContent} onChange={(e) => setGeneratedContent(e.target.value)} placeholder="Write or paste generated content…" />
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleCreateOutput} disabled={submittingOutput || !selectedPersonaId || !generatedContent.trim()}>
-              {submittingOutput ? 'Creating…' : 'Create output'}
+            <Button onClick={handleCreateJobAllSources} disabled={creatingJob || !selectedPersonaId}>
+              {creatingJob ? 'Queuing…' : 'Create generation job'}
             </Button>
           </div>
         </CardContent>
@@ -233,6 +246,66 @@ function RunDetailPage() {
           <AddSourcesForm generationRunId={runId} onLoaded={loadDocuments} />
         </CollapsibleContent>
       </Collapsible>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Generation jobs</CardTitle>
+          <CardDescription>Jobs created for this run and their statuses.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingJobs ? (
+            <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : jobs.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No jobs yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="py-2 pr-4">Created</th>
+                    <th className="py-2 pr-4">Persona</th>
+                    <th className="py-2 pr-4">Type</th>
+                    <th className="py-2 pr-4">Sources</th>
+                    <th className="py-2 pr-4">Status</th>
+                    <th className="py-2 pr-4">Content</th>
+                    <th className="py-2 pr-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jobs.map(j => {
+                    const personaName = personas.find(p => p.id === j.persona_id)?.name || j.persona_id
+                    return (
+                      <tr key={j.id} className="border-t">
+                        <td className="py-2 pr-4 whitespace-nowrap">{new Date(j.created_at).toLocaleString()}</td>
+                        <td className="py-2 pr-4">{personaName}</td>
+                        <td className="py-2 pr-4">{j.content_type}</td>
+                        <td className="py-2 pr-4 uppercase">{j.source_selection}</td>
+                        <td className="py-2 pr-4">{j.status}</td>
+                        <td className="py-2 pr-4 max-w-[380px]">
+                          {j.generated_content ? (
+                            <details>
+                              <summary className="cursor-pointer select-none text-blue-600 hover:underline">View</summary>
+                              <pre className="mt-2 whitespace-pre-wrap break-words text-xs bg-muted/40 p-2 rounded">{j.generated_content}</pre>
+                            </details>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4">
+                          <a className="text-blue-600 hover:underline" href={`/job/${j.id}`}>Open</a>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" variant="outline" onClick={loadJobs}>Refresh</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

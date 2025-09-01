@@ -47,6 +47,7 @@ async def verify_authorization(
     flow_id: str = Query(..., description="Arcade authorization flow_id from the redirect query string"),
     redirect: bool = Query(True, description="Redirect to Arcade's next_uri if available"),
     persona_id: str | None = Query(None, description="Optional persona_id fallback if cookie not available"),
+    integration_key: str | None = Query(None, description="Optional integration key to mark connection (e.g., 'twitter')"),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_active_user)
 ):
@@ -102,9 +103,41 @@ async def verify_authorization(
             return RedirectResponse(url=next_url, status_code=303)
 
         # Otherwise, wait for completion and return a JSON response
+        print(f"DEBUG: Waiting for completion of auth_id={result.auth_id}")
         auth_response = await client.auth.wait_for_completion(result.auth_id)
 
         if getattr(auth_response, "status", None) == "completed":
+            print("DEBUG: Auth response status is completed")
+            # If an integration_key is provided, mark persona as connected for that integration
+            try:
+                print(f"DEBUG: Marking persona as connected for integration_key={integration_key}")
+                if resolved_persona_id and integration_key:
+                    from api.models import Integration, PersonaIntegration
+                    # Find integration by key
+                    integration = db.query(Integration).filter(Integration.key == integration_key).first()
+                    if integration:
+                        # Ensure a PersonaIntegration exists and mark connected
+                        link = db.query(PersonaIntegration).filter(
+                            PersonaIntegration.persona_id == resolved_persona_id,
+                            PersonaIntegration.integration_id == integration.id,
+                        ).first()
+                        if not link:
+                            import uuid as _uuid
+                            link = PersonaIntegration(
+                                id=str(_uuid.uuid4()),
+                                persona_id=resolved_persona_id,
+                                integration_id=integration.id,
+                                connected=True,
+                                meta={"auth_id": result.auth_id},
+                            )
+                            db.add(link)
+                        else:
+                            link.connected = True
+                            link.meta = {"auth_id": result.auth_id}
+                        db.commit()
+            except Exception:
+                # Do not fail verification if recording the connection fails
+                pass
             return VerifyResponse(
                 success=True,
                 auth_id=result.auth_id,

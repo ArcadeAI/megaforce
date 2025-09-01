@@ -16,7 +16,7 @@ from megaforce.common.schemas import (
 
 async def generate_related_content(
     request: StyleTransferRequest,
-    llm_provider: str = "google_genai",
+    llm_provider: str = "openai",
     model: str | None = None,
     temperature: float = 0.7,
 ) -> list[ContentGenerationResponse]:
@@ -25,7 +25,7 @@ async def generate_related_content(
     Args:
         request: Style transfer request with reference styles and target content
         llm_provider: Model provider (openai, anthropic, google_genai).
-            Defaults to "google_genai".
+            Defaults to "openai".
         model: Model name. If None, will use provider defaults.
         temperature: Model temperature (0.0 to 1.0). Defaults to 0.7.
 

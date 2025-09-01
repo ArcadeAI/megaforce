@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, JSON, Enum, Float
+from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, JSON, Enum, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -68,6 +68,7 @@ class Persona(Base):
     # Relationships
     owner = relationship("User", back_populates="personas")
     output_schemas = relationship("OutputSchema", back_populates="persona")
+    connections = relationship("PersonaIntegration", back_populates="persona", cascade="all, delete-orphan")
 
 
 class InputSource(Base):
@@ -201,3 +202,70 @@ class GenerationRun(Base):
 
     # Relationships
     documents = relationship("Document", back_populates="generation_run", cascade="all, delete-orphan")
+
+
+class GenerationJobStatus(str, enum.Enum):
+    CREATED = "created"
+    PROCESSING = "processing"
+    APPROVED = "approved"
+    SCHEDULED = "scheduled"
+    POSTED = "posted"
+    FAILED = "failed"
+
+
+class GenerationJob(Base):
+    """A job to generate content from a generation run's sources for a persona."""
+    __tablename__ = "generation_jobs"
+
+    id = Column(String, primary_key=True, index=True)
+    generation_run_id = Column(String, ForeignKey("generation_runs.id"), nullable=False)
+    persona_id = Column(String, ForeignKey("personas.id"), nullable=False)
+    content_type = Column(Enum(OutputType), nullable=False)
+    source_selection = Column(String, default="all")  # For now only "all"
+    status = Column(Enum(GenerationJobStatus), default=GenerationJobStatus.CREATED)
+    generated_content = Column(Text)  # JSON string from LLM output
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    generation_run = relationship("GenerationRun")
+    persona = relationship("Persona")
+
+
+class Integration(Base):
+    """Supported external integrations (e.g., Twitter, LinkedIn)."""
+    __tablename__ = "integrations"
+
+    id = Column(String, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)  # e.g., "twitter", "linkedin"
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    persona_connections = relationship("PersonaIntegration", back_populates="integration", cascade="all, delete-orphan")
+
+
+class PersonaIntegration(Base):
+    """Join table linking a Persona to an Integration with metadata and status.
+
+    Each persona can have at most one connection per integration type.
+    """
+    __tablename__ = "persona_integrations"
+
+    id = Column(String, primary_key=True, index=True)
+    persona_id = Column(String, ForeignKey("personas.id"), nullable=False)
+    integration_id = Column(String, ForeignKey("integrations.id"), nullable=False)
+    connected = Column(Boolean, default=False)
+    meta = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("persona_id", "integration_id", name="uq_persona_integration"),
+    )
+
+    # Relationships
+    persona = relationship("Persona", back_populates="connections")
+    integration = relationship("Integration", back_populates="persona_connections")

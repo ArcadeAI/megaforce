@@ -105,6 +105,8 @@ function Settings() {
   }
   const [loadingSettings, setLoadingSettings] = useState<boolean>(false)
   const [saving, setSaving] = useState<boolean>(false)
+  const [integrations, setIntegrations] = useState<{ id: string; key: string; name: string; description?: string }[]>([])
+  const [connectingTwitter, setConnectingTwitter] = useState<boolean>(false)
 
   async function fetchSettings() {
     setLoadingSettings(true)
@@ -126,11 +128,55 @@ function Settings() {
     }
   }
 
+  async function fetchIntegrations() {
+    try {
+      const res = await fetch('/api/v1/integrations/', { credentials: 'include' })
+      if (!res.ok) return
+      const data = (await res.json()) as typeof integrations
+      setIntegrations(data)
+    } catch {}
+  }
+
   useEffect(() => {
     // Try to load admin-only settings; ignore errors
     void fetchSettings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (isAdmin) void fetchIntegrations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
+
+  async function handleTwitterConnectAdmin() {
+    try {
+      setConnectingTwitter(true)
+      const res = await fetch('/api/v1/settings/twitter/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Failed to initiate Twitter connect' }))
+        throw new Error(err?.detail || 'Failed to initiate Twitter connect')
+      }
+      const data = await res.json()
+      if (data?.oauth_url) {
+        try {
+          localStorage.setItem('arcade_admin_connect', 'true')
+          localStorage.setItem('arcade_integration_key', 'twitter')
+        } catch {}
+        window.location.assign(data.oauth_url)
+      } else {
+        toast.message('Twitter connection', { description: data?.message || 'No authorization URL returned' })
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Something went wrong'
+      toast.error('Error', { description: message })
+    } finally {
+      setConnectingTwitter(false)
+    }
+  }
 
   async function handleSave() {
     if (!tz) {
@@ -283,6 +329,44 @@ function Settings() {
                     </Button>
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+        {isAdmin ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Connect accounts</CardTitle>
+              <CardDescription>Authorize admin-level connections for supported services.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {integrations.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No integrations configured.</div>
+              ) : (
+                <div className="space-y-3">
+                  {integrations.map((integ) => {
+                    const isTwitter = integ.key === 'twitter'
+                    return (
+                      <div key={integ.id} className="flex items-center justify-between rounded-md border p-3">
+                        <div>
+                          <div className="text-sm font-medium">{integ.name}</div>
+                          <div className="text-xs text-muted-foreground">Admin-level connection</div>
+                        </div>
+                        <div>
+                          {isTwitter ? (
+                            <Button size="sm" onClick={handleTwitterConnectAdmin} disabled={connectingTwitter}>
+                              {connectingTwitter ? 'Connecting…' : 'Connect'}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" disabled>
+                              Coming soon
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

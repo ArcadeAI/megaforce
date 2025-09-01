@@ -5,8 +5,8 @@ import uuid
 
 from api.database import get_db
 from api.auth import get_current_active_user
-from api.models import GenerationRun, Document
-from api.schemas import GenerationRunCreate, GenerationRunResponse, DocumentResponse
+from api.models import GenerationRun, Document, GenerationJob, GenerationJobStatus, OutputType
+from api.schemas import GenerationRunCreate, GenerationRunResponse, DocumentResponse, GenerationJobCreate, GenerationJobResponse
 from api.routers.documents import populate_document_response
 
 router = APIRouter()
@@ -70,6 +70,8 @@ async def list_generation_runs(
             sources_count=int(counts.get(g.id, 0)),
         ))
     return responses
+
+
 @router.get("/{run_id}", response_model=GenerationRunResponse)
 async def get_generation_run(
     run_id: str,
@@ -126,6 +128,97 @@ async def list_generation_run_documents(
         .all()
     )
     return [populate_document_response(d) for d in docs]
+
+
+@router.post("/{run_id}/jobs", response_model=GenerationJobResponse)
+async def create_generation_job(
+    run_id: str,
+    request: GenerationJobCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    # Validate run ownership
+    gen = (
+        db.query(GenerationRun)
+        .filter(GenerationRun.id == run_id, GenerationRun.owner_id == current_user.id)
+        .first()
+    )
+    if not gen:
+        raise HTTPException(status_code=404, detail="Generation run not found")
+
+    # Only allow tweet_single for now
+    if request.content_type != OutputType.TWEET_SINGLE:
+        raise HTTPException(status_code=400, detail="Only tweet_single is supported")
+
+    job = GenerationJob(
+        id=str(uuid.uuid4()),
+        generation_run_id=run_id,
+        persona_id=request.persona_id,
+        content_type=request.content_type,
+        source_selection=request.source_selection or "all",
+        status=GenerationJobStatus.CREATED,
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    # Kick off async processing via Celery
+    try:
+        from api.tasks import process_generation_job_task  # Lazy import to avoid circulars
+        process_generation_job_task.delay(job.id)
+    except Exception:
+        # Non-fatal; job can be picked up by a scheduler later
+        pass
+
+    return GenerationJobResponse(
+        id=job.id,
+        generation_run_id=job.generation_run_id,
+        persona_id=job.persona_id,
+        content_type=job.content_type,
+        source_selection=job.source_selection,
+        status=job.status,
+        generated_content=job.generated_content,
+        created_at=job.created_at,
+        updated_at=job.updated_at,
+    )
+
+
+@router.get("/{run_id}/jobs", response_model=list[GenerationJobResponse])
+async def list_generation_jobs(
+    run_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    # Validate run ownership
+    gen = (
+        db.query(GenerationRun)
+        .filter(GenerationRun.id == run_id, GenerationRun.owner_id == current_user.id)
+        .first()
+    )
+    if not gen:
+        raise HTTPException(status_code=404, detail="Generation run not found")
+
+    jobs = (
+        db.query(GenerationJob)
+        .filter(GenerationJob.generation_run_id == run_id)
+        .order_by(GenerationJob.created_at.desc())
+        .all()
+    )
+
+    responses: list[GenerationJobResponse] = []
+    for j in jobs:
+        responses.append(GenerationJobResponse(
+            id=j.id,
+            generation_run_id=j.generation_run_id,
+            persona_id=j.persona_id,
+            content_type=j.content_type,
+            source_selection=j.source_selection,
+            status=j.status,
+            generated_content=j.generated_content,
+            created_at=j.created_at,
+            updated_at=j.updated_at,
+        ))
+    return responses
 
 
 
