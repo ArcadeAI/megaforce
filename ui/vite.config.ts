@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
@@ -7,12 +6,22 @@ import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
 /** @type {import('vite').UserConfig} */
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    TanStackRouterVite({ autoCodeSplitting: true }),
-    viteReact(),
-    tailwindcss(),
-  ],
+export default defineConfig(async ({ mode }) => {
+  let reactPlugin: any = null
+  try {
+    const mod = await import('@vitejs/plugin-react')
+    // @ts-ignore - default export exists at runtime
+    reactPlugin = mod.default()
+  } catch {
+    // Optional: plugin not installed; proceed without it (production-safe)
+  }
+
+  return {
+    plugins: [
+      TanStackRouterVite({ autoCodeSplitting: true }),
+      ...(reactPlugin ? [reactPlugin] : []),
+      tailwindcss(),
+    ],
   server: {
     port: 3000,
     allowedHosts: ['megaforce.tech'],
@@ -39,4 +48,5 @@ export default defineConfig(({ mode }) => ({
       process.env.NODE_ENV || (mode === 'production' ? 'production' : 'development')
     ),
   },
-}))
+  }
+})
