@@ -1,0 +1,25 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install uv
+
+COPY pyproject.toml uv.lock README.md ./
+
+RUN uv sync --frozen
+
+COPY . .
+
+ENV PYTHONPATH=/app
+
+# Celery worker doesn't expose HTTP traffic, but keep a dummy port for parity
+ENV PORT=8001
+
+CMD ["sh", "-c", "uv run celery -A api.celery_app.celery worker --loglevel=INFO"]
+
+

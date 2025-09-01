@@ -1,0 +1,107 @@
+services:
+  - type: web
+    name: megaforce-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: REDIS_URL
+        fromService:
+          name: megaforce-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: megaforce-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: megaforce-redis
+          type: redis
+          property: connectionString
+      - key: SUPABASE_DATABASE_URL
+        fromDatabase:
+          name: megaforce-db
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ARCADE_API_KEY
+        sync: false
+
+  - type: worker
+    name: megaforce-worker
+    runtime: docker
+    plan: starter
+    dockerfilePath: api/Dockerfile.worker
+    dockerContext: .
+    autoDeploy: true
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: megaforce-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: megaforce-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: megaforce-redis
+          type: redis
+          property: connectionString
+      - key: SUPABASE_DATABASE_URL
+        fromDatabase:
+          name: megaforce-db
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ARCADE_API_KEY
+        sync: false
+
+  - type: redis
+    name: megaforce-redis
+    plan: starter
+    ipAllowList: []
+
+  - type: web
+    name: megaforce-frontend
+    runtime: docker
+    plan: starter
+    dockerfilePath: ui/Dockerfile
+    dockerContext: ui
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: API_BASE_URL
+        fromService:
+          name: megaforce-api
+          type: web
+          property: url
+
+databases:
+  - name: megaforce-db
+    plan: starter
+    ipAllowList: []
+
+
