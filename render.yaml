@@ -2,7 +2,7 @@ services:
   - type: web
     name: megaforce-api
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: api/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -43,7 +43,7 @@ services:
   - type: worker
     name: megaforce-worker
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: api/Dockerfile.worker
     dockerContext: .
     autoDeploy: true
@@ -80,13 +80,13 @@ services:
 
   - type: redis
     name: megaforce-redis
-    plan: starter
+    plan: free
     ipAllowList: []
 
   - type: web
     name: megaforce-frontend
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ui/Dockerfile
     dockerContext: ui
     autoDeploy: true
@@ -106,7 +106,7 @@ services:
 
 databases:
   - name: megaforce-db
-    plan: starter
+    plan: free
     ipAllowList: []
 
 
