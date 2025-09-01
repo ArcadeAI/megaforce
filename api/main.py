@@ -83,6 +83,9 @@ _default_allowed_origins = [
 _default_allowed_origins.extend([
     "https://megaforce.tech",
     "https://www.megaforce.tech",
+    # While not strictly necessary (allowed origins are client origins), including the API
+    # domain can help in some proxy setups where redirects or intermediate responses occur.
+    "https://api.megaforce.tech",
 ])
 
 _cors_env = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
@@ -90,9 +93,13 @@ if _cors_env:
     _extra = [o.strip() for o in _cors_env.split(",") if o.strip()]
     _default_allowed_origins.extend(_extra)
 
+# Support wildcard subdomains for megaforce.tech via regex while keeping explicit list
+# to ensure credentials can be used safely. If env provides additional origins,
+# they are appended above.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_default_allowed_origins,
+    allow_origin_regex=r"https:\/\/(.*\\.)?megaforce\\.tech$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
