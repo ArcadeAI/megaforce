@@ -59,7 +59,7 @@ services:
     plan: starter
     runtime: python
     buildCommand: "build-worker.sh"
-    startCommand: "celery --app tasks worker --loglevel info --concurrency 4"
+    startCommand: "celery --app tasks worker --loglevel info --concurrency 2"
     autoDeploy: true
     envVars:
       - key: REDIS_URL
