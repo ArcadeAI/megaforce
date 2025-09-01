@@ -129,7 +129,7 @@ services:
   - type: web
     name: megaforce-frontend
     runtime: node
-    buildCommand: cd ui && npm ci --no-audit --no-fund --include=dev && npm run build
+    buildCommand: cd ui && npm install --no-audit --no-fund --include=dev && npm run build
     startCommand: cd ui && npx vite preview --host --port $PORT | cat
     autoDeploy: true
     envVars:
