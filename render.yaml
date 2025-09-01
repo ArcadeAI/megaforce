@@ -85,17 +85,35 @@ services:
           name: megaforce-db
           property: connectionString
       - key: SECRET_KEY
-        sync: false
+        fromService:
+          name: megaforce-api
+          type: web
+          property: SECRET_KEY
       - key: OPENAI_API_KEY
-        sync: false
+        fromService:
+          name: megaforce-api
+          type: web
+          property: OPENAI_API_KEY
       - key: GOOGLE_API_KEY
-        sync: false
+        fromService:
+          name: megaforce-api
+          type: web
+          property: GOOGLE_API_KEY
       - key: ANTHROPIC_API_KEY
-        sync: false
+        fromService:
+          name: megaforce-api
+          type: web
+          property: ANTHROPIC_API_KEY
       - key: ARCADE_API_KEY
-        sync: false
+        fromService:
+          name: megaforce-api
+          type: web
+          property: ARCADE_API_KEY
       - key: USER_ID
-        sync: false
+        fromService:
+          name: megaforce-api
+          type: web
+          property: USER_ID
       - key: LLM_PROVIDER
         value: openai
       - key: LLM_MODEL
