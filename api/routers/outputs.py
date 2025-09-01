@@ -4,9 +4,10 @@ from typing import List
 import uuid
 
 from api.database import get_db
-from api.models import OutputSchema, ApprovalHistory, OutputStatus
+from api.models import OutputSchema, ApprovalHistory, OutputStatus, AppSetting
 from api.schemas import OutputSchemaResponse, OutputSchemaCreate, OutputSchemaUpdate, ApprovalRequest, ScheduleRequest, ScheduleResponse
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from api.tasks import post_output_to_x_task
 from api.auth import get_current_user
 
@@ -132,7 +133,24 @@ async def schedule_output(
         raise HTTPException(status_code=400, detail="Output must be approved before scheduling")
 
     try:
-        eta = datetime.fromisoformat(schedule.schedule_time.replace(tzinfo=None).isoformat()) if isinstance(schedule.schedule_time, datetime) else datetime.fromisoformat(str(schedule.schedule_time).replace("Z", "+00:00"))
+        # Parse provided datetime
+        if isinstance(schedule.schedule_time, datetime):
+            provided_dt = schedule.schedule_time
+        else:
+            provided_dt = datetime.fromisoformat(str(schedule.schedule_time).replace("Z", "+00:00"))
+
+        # Fetch configured timezone; default to UTC
+        settings = db.query(AppSetting).first()
+        tz_name = settings.timezone if settings and settings.timezone else "UTC"
+
+        # If no tzinfo, assume configured timezone
+        if provided_dt.tzinfo is None:
+            localized = provided_dt.replace(tzinfo=ZoneInfo(tz_name))
+        else:
+            localized = provided_dt
+
+        # Convert to naive UTC datetime for Celery ETA
+        eta = localized.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid schedule_time format; use ISO8601")
 

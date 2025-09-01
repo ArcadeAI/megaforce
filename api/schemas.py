@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from api.models import UserRole, InputSourceType, OutputStatus, OutputType
+from megaforce.common.schemas import ReferenceStyle
 
 
 # General verification schema (Arcade custom verifier)
@@ -50,11 +51,33 @@ class PasswordUpdate(BaseModel):
     new_password: str = Field(..., min_length=8, description="New password must be at least 8 characters")
 
 
+# Auth/session exposure schemas
+class WorkOSUser(BaseModel):
+    """Shape of the WorkOS user object we expose to clients (no org info)."""
+    object: str
+    id: str
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email_verified: Optional[bool] = None
+    profile_picture_url: Optional[str] = None
+    last_sign_in_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    external_id: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+
+class MeResponse(BaseModel):
+    authenticated: bool
+    user: WorkOSUser
+
+
 # Persona schemas
 class PersonaBase(BaseModel):
     name: str
     description: Optional[str] = None
-    style_preferences: Optional[Dict[str, Any]] = None
+    reference_style: ReferenceStyle | None = None
 
 
 class PersonaCreate(PersonaBase):
@@ -125,6 +148,28 @@ class RunResponse(RunBase):
         from_attributes = True
 
 
+"""
+Generation Runs
+"""
+class GenerationRunBase(BaseModel):
+    name: str
+    status: str = "created"
+
+
+class GenerationRunCreate(BaseModel):
+    name: Optional[str] = None
+
+
+class GenerationRunResponse(GenerationRunBase):
+    id: str
+    owner_id: str
+    created_at: datetime
+    sources_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
 # Document schemas (unified for source materials and style references)
 class DocumentBase(BaseModel):
     title: str
@@ -143,6 +188,7 @@ class DocumentCreate(DocumentBase):
     run_id: Optional[str] = None  # Optional for manually added style references
     owner_id: Optional[str] = None  # Will be set to current user if not provided
     persona_ids: Optional[List[str]] = []  # Array of persona IDs for style references
+    generation_run_id: Optional[str] = None
 
 
 class DocumentUpdate(BaseModel):
@@ -161,6 +207,7 @@ class DocumentResponse(DocumentBase):
     id: str
     owner_id: str
     run_id: Optional[str] = None
+    generation_run_id: Optional[str] = None
     created_at: datetime
     persona_count: Optional[int] = 0  # Number of linked personas
     persona_ids: Optional[List[str]] = []  # Array of linked persona IDs
@@ -243,27 +290,30 @@ class ScheduleResponse(BaseModel):
     scheduled_at: datetime
 
 
+# Settings schemas
+class AppSettings(BaseModel):
+    id: str
+    timezone: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UpdateAppSettings(BaseModel):
+    timezone: str
+
+
 # Twitter-specific schemas
 class TwitterSearchRequest(BaseModel):
     search_type: str = Field(..., description="keywords, user, hashtag")
     search_query: str
-    limit: int = Field(default=10, ge=1, le=100)
-    target_number: int = Field(default=5, ge=1, le=50)
-    audience_specification: str = Field(default="All audiences")
+    limit: int = Field(default=20, ge=1, le=100)
+    target_number: int = Field(default=20, ge=1, le=50)
     rank_tweets: bool
-    
-    # Optional Arcade credentials (falls back to .env if not provided)
-    arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")
-    arcade_api_key: Optional[str] = Field(None, description="Arcade API key (optional, defaults to .env)")
-    arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
-    
-    # LLM credentials (required if rank_tweets=True)
-    llm_provider: str = Field(..., description="LLM provider (e.g., 'openai', 'anthropic', 'google_genai')")
-    llm_model: str = Field(..., description="LLM model name (e.g., 'gpt-4o-2024-08-06', 'claude-3-opus-20240229')")
-    openai_api_key: Optional[str] = None
-    anthropic_api_key: Optional[str] = None
-    google_api_key: Optional[str] = None
-
+    persona_id: Optional[str] = Field(None, description="Optional persona ID to assign found tweets to")
+    generation_run_id: Optional[str] = Field(None, description="Generation run ID to group found tweets under")
 
 class TwitterSearchResponse(BaseModel):
     documents: List[DocumentResponse]
@@ -277,13 +327,7 @@ class TwitterSearchResponse(BaseModel):
 
 # Twitter posting schemas
 class TwitterPostRequest(BaseModel):
-    tweet_text: str = Field(..., description="The text content of the tweet to post", max_length=280)
-    
-    # Optional Arcade credentials (falls back to .env if not provided)
-    arcade_user_id: Optional[str] = Field(None, description="Arcade user ID (optional, defaults to .env)")
-    arcade_api_key: Optional[str] = Field(None, description="Arcade API key (optional, defaults to .env)")
-    arcade_provider: Optional[str] = Field("x", description="Arcade provider name (defaults to 'x')")
-
+    output_id: Optional[str] = Field(None, description="Output ID to post (uses its content and persona_id)")
 
 class TwitterPostResponse(BaseModel):
     success: bool
@@ -399,3 +443,14 @@ class CommentResponse(BaseModel):
     llm_provider_used: str
     processing_time: float
     message: str
+
+
+# URL schemas
+class URLRequest(BaseModel):
+    url: str
+    # TODO(Mateo): Add tone inference fields here in the future
+    persona_id: Optional[str] = Field(None, description="Persona ID to assign the document to")
+    generation_run_id: Optional[str] = Field(None, description="Generation run ID to group this source under")
+
+class URLResponse(BaseModel):
+    document: DocumentResponse

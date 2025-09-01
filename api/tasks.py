@@ -34,7 +34,7 @@ def post_output_to_x_task(output_id: str) -> dict:
             return {"success": False, "message": f"Output {output_id} not found"}
 
         # Only attempt to post approved or scheduled content
-        if str(output.status) not in {OutputStatus.APPROVED.value, "approved", "scheduled"}:
+        if output.status not in {OutputStatus.APPROVED}:
             return {"success": False, "message": f"Output {output_id} is not approved or scheduled"}
 
         # Only support tweet-like content for now
@@ -53,7 +53,6 @@ def post_output_to_x_task(output_id: str) -> dict:
         # Use persona_id as the Arcade user_id for posting (fallback to env if missing)
         persona_user_id = output.persona_id
         api_key = os.getenv("ARCADE_API_KEY")
-        provider = os.getenv("ARCADE_PROVIDER", "x")
 
         if not api_key or not persona_user_id:
             return {"success": False, "message": "Missing Arcade API key or persona_id for user_id"}
@@ -63,7 +62,7 @@ def post_output_to_x_task(output_id: str) -> dict:
         import asyncio
 
         async def _post():
-            return await post_tweet(tweet_text=text, userid=persona_user_id, key=api_key, provider=provider)
+            return await post_tweet(tweet_text=text, userid=persona_user_id)
 
         result = asyncio.run(_post())
 

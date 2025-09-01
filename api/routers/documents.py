@@ -8,7 +8,7 @@ import uuid
 from api.database import get_db
 from api.models import Document, Run, Persona
 from api.schemas import DocumentResponse, DocumentCreate, DocumentUpdate
-from api.auth import get_current_user
+from api.auth import get_current_active_user
 
 def populate_document_response(document: Document) -> dict:
     """Helper to populate document response with persona_ids"""
@@ -24,6 +24,7 @@ def populate_document_response(document: Document) -> dict:
         "reference_type": document.reference_type,
         "owner_id": document.owner_id,
         "run_id": document.run_id,
+        "generation_run_id": getattr(document, 'generation_run_id', None),
         "created_at": document.created_at,
         "persona_count": len(document.persona_ids) if document.persona_ids else 0,
         "persona_ids": document.persona_ids or []
@@ -38,11 +39,12 @@ async def list_documents(
     reference_type: str = None,  # Filter by reference type (tweet, url, document, etc.)
     persona_id: str = None,  # Filter by linked persona
     run_id: str = None,  # Filter by run ID
+    generation_run_id: str = None,  # Filter by generation run ID
     search: str = None,  # Search in title and content
     limit: int = 100,  # Limit number of results (default 100)
     offset: int = 0,  # Offset for pagination (default 0)
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_active_user)
 ):
     """List all documents for the current user with optional filtering."""
     try:
@@ -60,6 +62,8 @@ async def list_documents(
             query = query.filter(cast(Document.persona_ids, JSONB).contains([persona_id]))
         if run_id:
             query = query.filter(Document.run_id == run_id)
+        if generation_run_id:
+            query = query.filter(Document.generation_run_id == generation_run_id)
         if search:
             # Search in title and content using case-insensitive ILIKE
             search_term = f"%{search}%"
@@ -86,7 +90,7 @@ async def list_documents(
 async def get_document(
     document_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_active_user)
 ):
     """Get a specific document."""
     print(f"🔍 Backend: Getting document {document_id} for user {current_user.id}")
@@ -105,7 +109,7 @@ async def get_document(
 async def create_document(
     document: DocumentCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_active_user)
 ):
     """Create a new document manually (supports both source materials and style references)."""
     # Verify the run belongs to the current user (if run_id provided)
@@ -154,7 +158,7 @@ async def update_document(
     document_id: str,
     document_update: DocumentUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_active_user)
 ):
     """Update a document."""
     print(f"📝 Backend: Updating document {document_id} for user {current_user.id}")
@@ -195,7 +199,7 @@ async def update_document(
 async def delete_document(
     document_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_active_user)
 ):
     """Delete a document."""
     print(f"🗑️ Backend: Deleting document {document_id} for user {current_user.id}")

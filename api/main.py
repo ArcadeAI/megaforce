@@ -1,17 +1,30 @@
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Depends, Query, Cookie
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+# Auth from workOS
+from workos import WorkOSClient
+
 from api.database import get_db, engine, Base
-from api.auth import get_current_user
-# from api.models import User as UserModel
 from api.routers import auth, input_sources, runs, documents, outputs, twitter, style, personas
+from api.routers import generation_runs as generation_runs_router
+from api.routers import url as url_router
+from api.routers import settings as settings_router
+from dotenv import load_dotenv
 
 import logging
+import os
+
+
+load_dotenv()
+
+workos = WorkOSClient(
+    api_key=os.getenv("WORKOS_API_KEY"),
+    client_id=os.getenv("WORKOS_CLIENT_ID")
+)
 
 # Configure logging
 logging.basicConfig(
@@ -36,14 +49,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://localhost:3001", 
+        "http://localhost:3001",
         "http://localhost:3002",
         "http://localhost:3003",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002", 
+        "http://127.0.0.1:3002",
         "http://127.0.0.1:3003",
-        "https://megaforce-ui-30c5b788ed35.herokuapp.com"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -59,6 +71,15 @@ app.include_router(outputs.router, prefix="/api/v1/outputs", tags=["outputs"])
 app.include_router(personas.router, prefix="/api/v1/personas", tags=["personas"])
 
 app.include_router(twitter.router, prefix="/api/v1/twitter", tags=["twitter"])
+
+# URL ingestion
+app.include_router(url_router.router, prefix="/api/v1/url", tags=["url"])
+
+# Generation Runs
+app.include_router(generation_runs_router.router, prefix="/api/v1/generation-runs", tags=["generation-runs"])
+
+# Settings
+app.include_router(settings_router.router, prefix="/api/v1/settings", tags=["settings"])
 app.include_router(style.router, prefix="/api/v1/style", tags=["style-agent"])
 
 @app.get("/")

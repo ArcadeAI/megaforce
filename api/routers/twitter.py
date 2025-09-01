@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.auth import get_current_active_user
-from api.models import User, InputSource, Run, Document, InputSourceType
+from api.models import User, InputSource, Run, Document, InputSourceType, OutputStatus, GenerationRun
 from api.schemas import (
     TwitterSearchRequest, TwitterSearchResponse, DocumentResponse,
     InputSourceCreate, InputSourceResponse,
@@ -18,12 +18,20 @@ from api.schemas import (
 )
 
 # Import the existing Twitter agents (DO NOT CHANGE AGENT LOGIC)
-from megaforce.parser_agents.x.agent import get_content
-from megaforce.parser_agents.x.schemas import InputSchema, SearchType
+from megaforce.parser_agents.x.tools import search_tweets, translate_items
+# from megaforce.parser_agents.x.agent import get_content
+from megaforce.parser_agents.x.schemas import SearchType
 from megaforce.posting_agents.x.agent import post_tweet, delete_tweet
 from arcadepy import AsyncArcade
 
 router = APIRouter()
+
+
+SEARCH_TYPE_TO_INPUT_SOURCE_TYPE = {
+    SearchType.KEYWORDS: InputSourceType.TWITTER_KEYWORDS,
+    SearchType.USER: InputSourceType.TWITTER_USER,
+    SearchType.HASHTAG: InputSourceType.TWITTER_HASHTAG,
+}
 
 
 @router.post("/connect", response_model=TwitterConnectResponse)
@@ -91,7 +99,7 @@ async def connect_twitter_account(
 
 
 @router.post("/search", response_model=TwitterSearchResponse)
-async def search_twitter(
+async def search(
     request: TwitterSearchRequest,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -102,42 +110,38 @@ async def search_twitter(
         search_type_map = {
             "keywords": SearchType.KEYWORDS,
             "user": SearchType.USER,
-            "hashtag": SearchType.HASHTAG,
-            "phrases": SearchType.PHRASES
+            # TODO(Mateo): Add hashtag support
+            # "hashtag": SearchType.HASHTAG,
         }
-        
+
         if request.search_type not in search_type_map:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid search_type. Must be one of: {list(search_type_map.keys())}"
             )
-        
+
+        print(f"DEBUG: request search_type: {request.search_type}")
+        print(f"DEBUG: request search_query: {request.search_query}")
+        print(f"DEBUG: request limit: {request.limit}")
+        print(f"DEBUG: request target_number: {request.target_number}")
+        print(f"DEBUG: request rank_tweets: {request.rank_tweets}")
+
         # Create input schema for the agent
         # Force rank_tweets to default to False if not explicitly provided
         rank_tweets_value = False  # Always default to False
         if hasattr(request, 'rank_tweets') and request.rank_tweets is not None:
             rank_tweets_value = request.rank_tweets
-            
-        agent_input = InputSchema(
-            search_type=search_type_map[request.search_type],
-            search_query=request.search_query,
-            limit=request.limit,
-            target_number=request.target_number,
-            audience_specification=request.audience_specification,
-            rank_tweets=rank_tweets_value
-        )
-        
+
         # Create a temporary input source record
         input_source = InputSource(
             id=str(uuid.uuid4()),
             name=f"Twitter Search: {request.search_query}",
-            source_type=InputSourceType.TWITTER_KEYWORDS,
+            source_type=SEARCH_TYPE_TO_INPUT_SOURCE_TYPE[search_type_map[request.search_type]],
             config={
                 "search_type": request.search_type,
                 "search_query": request.search_query,
                 "limit": request.limit,
                 "target_number": request.target_number,
-                "audience_specification": request.audience_specification,
                 "rank_tweets": request.rank_tweets
             },
             owner_id=current_user.id
@@ -145,7 +149,7 @@ async def search_twitter(
         db.add(input_source)
         db.commit()
         db.refresh(input_source)
-        
+
         # Create a run record
         run = Run(
             id=str(uuid.uuid4()),
@@ -156,69 +160,18 @@ async def search_twitter(
         db.add(run)
         db.commit()
         db.refresh(run)
-        
+
         # Execute Twitter search using the real agent (NO MOCKS)
         start_time = datetime.now()
-        
+
         try:
-            # Check if we have the necessary credentials (either from request or environment)
-            import os
-            user_id = request.arcade_user_id or os.getenv('USER_ID') or os.getenv('ARCADE_USER_ID')
-            api_key = request.arcade_api_key or os.getenv('ARCADE_API_KEY')
-            provider = request.arcade_provider or 'x'
-            
-            if not api_key:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Arcade API key is required. Set ARCADE_API_KEY environment variable or provide arcade_api_key in request."
-                )
-            
-            if not user_id:
-                raise HTTPException(
-                    status_code=400,
-                    detail="User ID is required. Set USER_ID environment variable or provide arcade_user_id in request."
-                )
-            
-            print(f"DEBUG: Using user_id={user_id}, provider={provider}, api_key={'***' + api_key[-4:] if api_key else 'None'}")
-            
-            # Validate LLM credentials if ranking is enabled
-            llm_api_key = None
-            if request.rank_tweets:
-                if request.llm_provider == "openai":
-                    llm_api_key = request.openai_api_key or os.getenv('OPENAI_API_KEY')
-                    if not llm_api_key:
-                        raise HTTPException(
-                            status_code=400,
-                            detail="OpenAI API key is required when rank_tweets=True and llm_provider=openai. Provide openai_api_key in request or set OPENAI_API_KEY environment variable."
-                        )
-                elif request.llm_provider == "anthropic":
-                    llm_api_key = request.anthropic_api_key or os.getenv('ANTHROPIC_API_KEY')
-                    if not llm_api_key:
-                        raise HTTPException(
-                            status_code=400,
-                            detail="Anthropic API key is required when rank_tweets=True and llm_provider=anthropic. Provide anthropic_api_key in request or set ANTHROPIC_API_KEY environment variable."
-                        )
-                elif request.llm_provider == "google_genai":
-                    llm_api_key = request.google_api_key or os.getenv('GOOGLE_API_KEY')
-                    if not llm_api_key:
-                        raise HTTPException(
-                            status_code=400,
-                            detail="Google API key is required when rank_tweets=True and llm_provider=google_genai. Provide google_api_key in request or set GOOGLE_API_KEY environment variable."
-                        )
-                        
-                print(f"DEBUG: LLM ranking enabled with provider={request.llm_provider}, model={request.llm_model}")
-            
             # Use the existing Twitter agent with generous timeout and credentials
             documents = await asyncio.wait_for(
-                get_content(
-                    parser_agent_config=agent_input,
-                    userid=user_id,
-                    key=api_key,
-                    provider=provider,
-                    llm_provider=request.llm_provider,
-                    llm_model=request.llm_model,
-                    llm_api_key=llm_api_key
-                ), 
+                translate_items(await search_tweets(
+                    search_type=search_type_map[request.search_type],
+                    search_query=request.search_query,
+                    limit=request.limit,
+                )),
                 timeout=120.0  # 2 minutes timeout for complex searches
             )
         except asyncio.TimeoutError:
@@ -237,7 +190,7 @@ async def search_twitter(
             error_details = traceback.format_exc()
             print(f"DEBUG: Twitter search failed with error: {str(e)}")
             print(f"DEBUG: Full traceback: {error_details}")
-            
+
             run.status = "failed"
             run.completed_at = datetime.now()
             run.metadata = {"error": str(e), "traceback": error_details}
@@ -246,9 +199,9 @@ async def search_twitter(
                 status_code=500,
                 detail=f"Twitter search failed: {str(e)}"
             )
-            
+
         processing_time = (datetime.now() - start_time).total_seconds()
-        
+
         # Save documents to database
         saved_documents = []
         for doc in documents:
@@ -256,7 +209,35 @@ async def search_twitter(
             doc_url = getattr(doc, 'url', None)
             if doc_url and hasattr(doc_url, '__str__'):
                 doc_url = str(doc_url)
-            
+
+            persona_ids_value = []
+            try:
+                if getattr(request, 'persona_id', None):
+                    # Validate persona belongs to current user
+                    from api.models import Persona
+                    persona = db.query(Persona).filter(
+                        Persona.id == request.persona_id,
+                        Persona.owner_id == current_user.id
+                    ).first()
+                    if not persona:
+                        raise HTTPException(status_code=404, detail="Persona not found")
+                    persona_ids_value = [request.persona_id]
+            except Exception:
+                persona_ids_value = []
+
+            # Optionally link to a GenerationRun when provided and owned by user
+            generation_run_id = None
+            try:
+                if getattr(request, 'generation_run_id', None):
+                    gen_run = db.query(GenerationRun).filter(
+                        GenerationRun.id == request.generation_run_id,
+                        GenerationRun.owner_id == current_user.id
+                    ).first()
+                    if gen_run:
+                        generation_run_id = gen_run.id
+            except Exception:
+                generation_run_id = None
+
             db_document = Document(
                 id=str(uuid.uuid4()),
                 title=doc.title,
@@ -265,11 +246,13 @@ async def search_twitter(
                 author=getattr(doc, 'author', None),
                 reference_type="tweet",
                 run_id=run.id,
-                owner_id=current_user.id
+                owner_id=current_user.id,
+                persona_ids=persona_ids_value,
+                generation_run_id=generation_run_id,
             )
             db.add(db_document)
             saved_documents.append(db_document)
-        
+
         # Update run status
         run.status = "completed"
         run.completed_at = datetime.now()
@@ -278,9 +261,9 @@ async def search_twitter(
             "processing_time": processing_time,
             "search_params": request.dict()
         }
-        
+
         db.commit()
-        
+
         # Convert to response format
         document_responses = [
             DocumentResponse(
@@ -302,14 +285,14 @@ async def search_twitter(
             )
             for doc in saved_documents
         ]
-        
+
         return TwitterSearchResponse(
             documents=document_responses,
             run_id=run.id,
             total_found=len(saved_documents),
             processing_time=processing_time
         )
-        
+
     except Exception as e:
         # Update run status to failed
         if 'run' in locals():
@@ -317,7 +300,7 @@ async def search_twitter(
             run.completed_at = datetime.now()
             run.metadata = {"error": str(e)}
             db.commit()
-        
+
         raise HTTPException(
             status_code=500,
             detail=f"Twitter search failed: {str(e)}"
@@ -340,7 +323,7 @@ async def create_twitter_input_source(
             status_code=400,
             detail="Invalid source_type for Twitter input source"
         )
-    
+
     input_source = InputSource(
         id=str(uuid.uuid4()),
         name=request.name,
@@ -349,11 +332,11 @@ async def create_twitter_input_source(
         schedule_config=request.schedule_config,
         owner_id=current_user.id
     )
-    
+
     db.add(input_source)
     db.commit()
     db.refresh(input_source)
-    
+
     return InputSourceResponse(
         id=input_source.id,
         name=input_source.name,
@@ -381,7 +364,7 @@ async def get_twitter_input_sources(
             InputSourceType.TWITTER_HASHTAG
         ])
     ).all()
-    
+
     return [
         InputSourceResponse(
             id=source.id,
@@ -401,53 +384,86 @@ async def get_twitter_input_sources(
 @router.post("/post", response_model=TwitterPostResponse)
 async def post_twitter_tweet(
     request: TwitterPostRequest,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
-    """Post a tweet to X/Twitter using the posting agent."""
+    """Post a tweet to X/Twitter using the posting agent.
+
+    If output_id is provided, use that output's content and persona_id.
+    Otherwise fallback to tweet_text and any provided arcade_user_id.
+    """
     try:
-        # Check if we have the necessary credentials (either from request or environment)
+        # Resolve content and persona from output_id when provided
+        tweet_text: str
+        persona_user_id: str | None = None
+        if not request.output_id:
+            raise HTTPException(status_code=400, detail="output_id is required")
+
+        from api.models import OutputSchema
+        output = db.query(OutputSchema).join(OutputSchema.persona).filter(
+            OutputSchema.id == request.output_id,
+            OutputSchema.persona.has(owner_id=current_user.id)
+        ).first()
+        if not output:
+            raise HTTPException(status_code=404, detail="Output not found")
+
+        # Only allow posting approved items
+        print(f"DEBUG: Output status: {output.status}")
+        print(f"DEBUG: Output status: {output.status in {OutputStatus.APPROVED}}")
+        print(f"DEBUG: Output content: {output.generated_content}")
+        if output.status not in {OutputStatus.APPROVED.value}:
+            raise HTTPException(status_code=400, detail="Output must be approved before posting")
+
+        # Extract text (handles JSON payloads with text/content fields)
+        try:
+            content = output.generated_content
+            if isinstance(content, str) and content.startswith('{'):
+                import json
+                parsed = json.loads(content)
+                tweet_text = parsed.get('text') or parsed.get('content') or content
+            else:
+                tweet_text = content
+        except Exception:
+            tweet_text = output.generated_content
+
+        persona_user_id = output.persona_id
+
+        # Credentials: prefer persona_user_id from output when available
         import os
-        user_id = request.arcade_user_id or os.getenv('USER_ID') or os.getenv('ARCADE_USER_ID')
-        api_key = request.arcade_api_key or os.getenv('ARCADE_API_KEY')
-        provider = request.arcade_provider or 'x'
-        
+        api_key = os.getenv('ARCADE_API_KEY')
+
         if not api_key:
             raise HTTPException(
                 status_code=400,
                 detail="Arcade API key is required. Set ARCADE_API_KEY environment variable or provide arcade_api_key in request."
             )
-        
-        if not user_id:
-            raise HTTPException(
-                status_code=400,
-                detail="User ID is required. Set USER_ID environment variable or provide arcade_user_id in request."
-            )
-        
+
         # Use the posting agent with credentials
         result = await post_tweet(
-            tweet_text=request.tweet_text,
-            userid=user_id,
-            key=api_key,
-            provider=provider
+            tweet_text=tweet_text,
+            userid=persona_user_id,
         )
-        
+
         if result["success"]:
             # Extract tweet info from result
             tweet_info = result.get("output", {})
             tweet_id = None
             tweet_url = None
-            
-            # Handle different response formats
+
             if isinstance(tweet_info, dict):
                 tweet_id = tweet_info.get("id")
                 tweet_url = tweet_info.get("url")
-                
-                # If URL is not provided but ID is, construct the URL
                 if tweet_id and not tweet_url:
-                    # Extract username from the posting request if available
-                    username = request.arcade_user_id.split('@')[0] if '@' in str(request.arcade_user_id) else "user"
-                    tweet_url = f"https://x.com/{username}/status/{tweet_id}"
-            
+                    tweet_url = f"https://x.com/i/web/status/{tweet_id}"
+
+            # If we posted an existing output, mark it published and save URL
+            if request.output_id and tweet_url:
+                output.published_url = tweet_url
+                output.status = OutputStatus.PUBLISHED
+                output.published_at = datetime.now()
+                db.commit()
+                db.refresh(output)
+
             return TwitterPostResponse(
                 success=True,
                 tweet_id=tweet_id,
@@ -460,7 +476,9 @@ async def post_twitter_tweet(
                 status_code=400,
                 detail=f"Failed to post tweet: {result.get('error', 'Unknown error')}"
             )
-            
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -481,19 +499,19 @@ async def delete_twitter_tweet(
         user_id = request.arcade_user_id or os.getenv('USER_ID') or os.getenv('ARCADE_USER_ID')
         api_key = request.arcade_api_key or os.getenv('ARCADE_API_KEY')
         provider = request.arcade_provider or 'x'
-        
+
         if not api_key:
             raise HTTPException(
                 status_code=400,
                 detail="Arcade API key is required. Set ARCADE_API_KEY environment variable or provide arcade_api_key in request."
             )
-        
+
         if not user_id:
             raise HTTPException(
                 status_code=400,
                 detail="User ID is required. Set USER_ID environment variable or provide arcade_user_id in request."
             )
-        
+
         # Use the deletion agent with credentials
         result = await delete_tweet(
             tweet_id=tweet_id,
@@ -501,7 +519,7 @@ async def delete_twitter_tweet(
             key=api_key,
             provider=provider
         )
-        
+
         if result["success"]:
             return TwitterDeleteResponse(
                 success=True,
@@ -514,7 +532,7 @@ async def delete_twitter_tweet(
                 status_code=400,
                 detail=f"Failed to delete tweet: {result.get('error', 'Unknown error')}"
             )
-            
+
     except Exception as e:
         raise HTTPException(
             status_code=500,

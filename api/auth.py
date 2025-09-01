@@ -1,143 +1,114 @@
-import os
-import uuid
-from datetime import datetime, timedelta
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
-from passlib.context import CryptContext
-from jose import JWTError, jwt
-
-from api.database import get_db
+from dotenv import load_dotenv
+from fastapi import Request, Response, HTTPException, Depends
+from workos import WorkOSClient
+from api.schemas import WorkOSUser
 from api.models import User
-from api.schemas import User as UserSchema
+from api.database import get_db
+from sqlalchemy.orm import Session
+import logging
+import os
 
-# Security configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+logger = logging.getLogger(__name__)
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+load_dotenv()
 
-# HTTP Bearer token scheme
-security = HTTPBearer()
+workos = WorkOSClient(
+    api_key=os.getenv("WORKOS_API_KEY"),
+    client_id=os.getenv("WORKOS_CLIENT_ID")
+)
 
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+cookie_password = os.getenv("WORKOS_COOKIE_PASSWORD")
 
 
-def get_password_hash(password: str) -> str:
-    """Hash a password."""
-    return pwd_context.hash(password)
+
+def _structure_user(session) -> WorkOSUser:
+    raw_user = getattr(session, "user", None)
+    if raw_user is None:
+        possible_data = getattr(session, "data", None)
+        if isinstance(possible_data, dict):
+            raw_user = possible_data.get("user")
+
+    if raw_user is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Normalize to our `WorkOSUser` schema
+    # WorkOS models expose attributes directly; also support dict-like access
+    user_payload = {
+        "object": getattr(raw_user, "object", getattr(raw_user, "get", lambda k, d=None: d)("object")),
+        "id": getattr(raw_user, "id", getattr(raw_user, "get", lambda k, d=None: d)("id")),
+        "email": getattr(raw_user, "email", getattr(raw_user, "get", lambda k, d=None: d)("email")),
+        "first_name": getattr(raw_user, "first_name", getattr(raw_user, "get", lambda k, d=None: d)("first_name")),
+        "last_name": getattr(raw_user, "last_name", getattr(raw_user, "get", lambda k, d=None: d)("last_name")),
+        "email_verified": getattr(raw_user, "email_verified", getattr(raw_user, "get", lambda k, d=None: d)("email_verified")),
+        "profile_picture_url": getattr(raw_user, "profile_picture_url", getattr(raw_user, "get", lambda k, d=None: d)("profile_picture_url")),
+        "last_sign_in_at": getattr(raw_user, "last_sign_in_at", getattr(raw_user, "get", lambda k, d=None: d)("last_sign_in_at")),
+        "created_at": getattr(raw_user, "created_at", getattr(raw_user, "get", lambda k, d=None: d)("created_at")),
+        "updated_at": getattr(raw_user, "updated_at", getattr(raw_user, "get", lambda k, d=None: d)("updated_at")),
+        "external_id": getattr(raw_user, "external_id", getattr(raw_user, "get", lambda k, d=None: d)("external_id")),
+        "metadata": getattr(raw_user, "metadata", getattr(raw_user, "get", lambda k, d=None: d)("metadata")) or {},
+    }
+
+    # Let Pydantic handle validation/coercion of datetime fields
+    return WorkOSUser(**user_payload)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create a JWT access token."""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+
+async def get_current_user(request: Request, response: Response) -> WorkOSUser:
+    """Get the current user from the request."""
+    session = await get_auth(request, response)
+    return _structure_user(session)
 
 
-def verify_token(token: str) -> Optional[str]:
-    """Verify a JWT token and return the username."""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            return None
-        return username
-    except JWTError:
-        return None
-
-
-def get_user_by_username(db: Session, username: str) -> Optional[User]:
-    """Get user by username."""
-    return db.query(User).filter(User.username == username).first()
-
-
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    """Get user by email."""
-    return db.query(User).filter(User.email == email).first()
-
-
-def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
-    """Authenticate a user."""
-    user = get_user_by_username(db, username)
-    if not user:
-        return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
-
-
-def create_user(db: Session, username: str, email: str, password: str) -> User:
-    """Create a new user."""
-    # Check if user already exists
-    if get_user_by_username(db, username):
-        raise HTTPException(
-            status_code=400,
-            detail="Username already registered"
-        )
-    
-    if get_user_by_email(db, email):
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered"
-        )
-    
-    # Create new user
-    hashed_password = get_password_hash(password)
-    user = User(
-        id=str(uuid.uuid4()),
-        username=username,
-        email=email,
-        hashed_password=hashed_password
-    )
-    
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+async def get_current_active_user(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
 ) -> User:
-    """Get the current authenticated user."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    try:
-        token = credentials.credentials
-        username = verify_token(token)
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    user = get_user_by_username(db, username)
-    if user is None:
-        raise credentials_exception
-    
+    """Get the current active user from the request."""
+    user = await get_current_user(request, response)
+    user = db.query(User).filter(User.id == user.id).first()
     return user
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
-    """Get the current active user."""
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
+async def get_auth(request: Request, response: Response):
+    """Validate the WorkOS session from cookie and return an authenticated response.
+
+    On failure, raise 401 instead of redirecting so API consumers can handle auth.
+    On successful refresh, update the cookie on the provided Response.
+    """
+    try:
+        session = workos.user_management.load_sealed_session(
+            sealed_session=request.cookies.get("workos_session"),
+            cookie_password=cookie_password,
+        )
+    except Exception as e:
+        logger.error(f"Failed to load sealed session: {str(e)}")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        auth_response = session.authenticate()
+        if getattr(auth_response, "authenticated", False):
+            return auth_response
+
+        # Attempt to refresh if not authenticated
+        refreshed = session.refresh()
+        if not refreshed.authenticated:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # Update cookie with refreshed sealed session
+        sealed_session = refreshed.sealed_session
+        if sealed_session:
+            response.set_cookie(
+                key="workos_session",
+                value=sealed_session,
+                secure=True,
+                httponly=True,
+                samesite="lax",
+            )
+        return refreshed
+    except HTTPException:
+        # Bubble up explicit 401s
+        raise
+    except Exception as e:
+        logger.error(f"Failed to authenticate/refresh session: {str(e)}")
+        raise HTTPException(status_code=401, detail="Unauthorized")

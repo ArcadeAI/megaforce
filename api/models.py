@@ -1,6 +1,5 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, Boolean, ForeignKey, JSON, Enum, Float
+from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, JSON, Enum, Float
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import enum
 
@@ -41,33 +40,12 @@ class OutputType(str, enum.Enum):
     FACEBOOK_COMMENT = "facebook_comment"
     INSTAGRAM_COMMENT = "instagram_comment"
     YOUTUBE_COMMENT = "youtube_comment"
-    
-    # Legacy uppercase format (for backward compatibility with existing database records)
-    TWEET_SINGLE_UPPER = "TWEET_SINGLE"
-    TWITTER_THREAD_UPPER = "TWITTER_THREAD"
-    SOCIAL_COMMENT_UPPER = "SOCIAL_COMMENT"
-    TWITTER_REPLY_UPPER = "TWITTER_REPLY"
-    LINKEDIN_POST_UPPER = "LINKEDIN_POST"
-    LINKEDIN_COMMENT_UPPER = "LINKEDIN_COMMENT"
-    BLOG_POST_UPPER = "BLOG_POST"
-    REDDIT_COMMENT_UPPER = "REDDIT_COMMENT"
-    FACEBOOK_COMMENT_UPPER = "FACEBOOK_COMMENT"
-    INSTAGRAM_COMMENT_UPPER = "INSTAGRAM_COMMENT"
-    YOUTUBE_COMMENT_UPPER = "YOUTUBE_COMMENT"
-
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.USER)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
     # Relationships
     input_sources = relationship("InputSource", back_populates="owner")
     personas = relationship("Persona", back_populates="owner")
@@ -81,11 +59,11 @@ class Persona(Base):
     id = Column(String, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(Text)
-    style_preferences = Column(JSON)  # Tone, voice, writing style preferences
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    reference_style = Column(JSON, nullable=True, default=None)
 
     # Relationships
     owner = relationship("User", back_populates="personas")
@@ -138,17 +116,20 @@ class Document(Base):
     url = Column(String)
     author = Column(String)
     reference_type = Column(String, nullable=True)  # "tweet", "url", "document", etc.
-    owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # Direct user ownership
     persona_ids = Column(JSON, default=list)  # Array of persona IDs for style references
+    owner_id = Column(String, ForeignKey("users.id"), nullable=True)
     
     # Optional run relationship (null for manually added style references)
     run_id = Column(String, ForeignKey("runs.id"), nullable=True)
+    # Optional generation run relationship (groups mixed sources for generation)
+    generation_run_id = Column(String, ForeignKey("generation_runs.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     owner = relationship("User", back_populates="documents")
     run = relationship("Run", back_populates="documents")
     output_schemas = relationship("OutputSchema", back_populates="source_document")
+    generation_run = relationship("GenerationRun", back_populates="documents")
 
 
 class OutputSchema(Base):
@@ -196,3 +177,27 @@ class ApprovalHistory(Base):
 
     # Relationships
     output_schema = relationship("OutputSchema", back_populates="approval_history")
+
+
+class AppSetting(Base):
+    """Global application settings (single row expected)."""
+    __tablename__ = "app_settings"
+
+    id = Column(String, primary_key=True, index=True)
+    timezone = Column(String, nullable=False, default="UTC")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class GenerationRun(Base):
+    """User-initiated batch of sources to generate content from (URLs, Twitter, etc.)."""
+    __tablename__ = "generation_runs"
+
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="created")  # created, loading, ready
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    documents = relationship("Document", back_populates="generation_run", cascade="all, delete-orphan")

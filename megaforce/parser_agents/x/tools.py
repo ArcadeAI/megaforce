@@ -4,7 +4,9 @@ from typing import List
 from megaforce.common.schemas import Document, DocumentType, DocumentCategory, ContentType
 from megaforce.parser_agents.x.schemas import SearchType
 from time import sleep
+import logging
 
+logger = logging.getLogger(__name__)
 
 def _enrich_tweets(tweets: List[dict], includes: dict) -> List[dict]:
     """
@@ -25,12 +27,15 @@ def _enrich_tweets(tweets: List[dict], includes: dict) -> List[dict]:
 
 
 async def search_tweets(
-    client: AsyncArcade,
-    search_type: SearchType,
-    search_query: str,
-    audience_specification: str,
+    client: AsyncArcade | None = None,
+    search_type: SearchType = SearchType.USER,
+    search_query: str = "",
     limit: int = 100,
 ) -> List[dict]:
+    if client is None:
+        from dotenv import load_dotenv
+        load_dotenv()
+        client = AsyncArcade()
 
     async def get_tweets_by_keywords(next_token: str = None) -> dict:
         print(f"Getting tweets for {search_query} with next_token {next_token}")
@@ -77,6 +82,7 @@ async def search_tweets(
 
     # TODO(Mateo): Add handlers for other search types
     response = await get_tweets()
+    logger.info(f"Raw response: {response}")
     try:
         tweets.extend(response.output.value["data"])
         _enrich_tweets(tweets, response.output.value["includes"])

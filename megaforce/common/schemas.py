@@ -12,6 +12,7 @@ class ContentType(str, Enum):
 
     TWITTER = "Twitter"
     BLOG = "Blog"
+    URL = "URL"
     LINKEDIN = "LinkedIn"
     REDDIT = "Reddit"
     FACEBOOK = "Facebook"

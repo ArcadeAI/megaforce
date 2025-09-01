@@ -21,7 +21,6 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         client=client,
         user_id=os.getenv("USER_ID"),
         tool_names=["X.SearchRecentTweetsByKeywords", "X.SearchRecentTweetsByUsername"],
-        provider="x"
     )
 
     logger.info(f"Getting top tweets for {parser_agent_config.search_query}")
@@ -32,6 +31,8 @@ async def get_content(parser_agent_config: InputSchema) -> List[Document]:
         audience_specification=parser_agent_config.audience_specification,
         limit=parser_agent_config.limit,
     )
+
+    logger.info(f"Tweets found: {len(tweets)}")
 
     if not parser_agent_config.rank_tweets:
         return await translate_items(

@@ -15,8 +15,6 @@ load_dotenv()
 async def post_tweet(
     tweet_text: str,
     userid: str = None,
-    key: str = None,
-    provider: str = None
 ) -> dict:
     """
     Post a tweet to X (Twitter) using Arcade tools
@@ -33,7 +31,7 @@ async def post_tweet(
 
     # Initialize Arcade client
     client = AsyncArcade(
-        api_key=key or os.getenv("ARCADE_API_KEY")
+        api_key=os.getenv("ARCADE_API_KEY")
     )
 
     try:
@@ -42,8 +40,6 @@ async def post_tweet(
             client=client,
             user_id=userid,
             tool_names=["X.PostTweet"],
-            provider=provider,
-            key=key
         )
 
         print(f"📝 Posting tweet: '{tweet_text[:50]}{'...' if len(tweet_text) > 50 else ''}'")
@@ -54,7 +50,7 @@ async def post_tweet(
             input={
                 "tweet_text": tweet_text
             },
-            user_id=userid or os.getenv("ARCADE_USER_ID") or os.getenv("USER_ID")
+            user_id=userid
         )
 
         print(f"✅ Tweet posting result:")

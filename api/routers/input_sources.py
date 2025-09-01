@@ -4,9 +4,9 @@ from typing import List
 import uuid
 
 from api.database import get_db
+from api.auth import get_current_user
 from api.models import InputSource
 from api.schemas import InputSourceCreate, InputSourceResponse
-from api.auth import get_current_user
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ async def list_input_sources(
     """List all input sources for the current user."""
     try:
         print(f"DEBUG: Current user ID: {current_user.id}")
-        print(f"DEBUG: Current user: {current_user.username}")
+        print(f"DEBUG: Current user: {current_user.email}")
         
         # Check if the user has any input sources
         input_sources = db.query(InputSource).filter(InputSource.owner_id == current_user.id).all()
