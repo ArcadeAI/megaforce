@@ -143,7 +143,7 @@ services:
 
 databases:
   - name: megaforce-db
-    plan: starter
+    plan: basic-256mb
     ipAllowList: []
 
 
