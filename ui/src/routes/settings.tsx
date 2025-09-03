@@ -17,6 +17,7 @@ export const Route = createFileRoute('/settings')({
   component: Settings,
 })
 
+/*
 function PrettyJson(props: { value: unknown }) {
   return (
     <pre className="rounded-md border bg-muted/30 p-3 text-xs leading-relaxed overflow-auto">
@@ -24,6 +25,7 @@ function PrettyJson(props: { value: unknown }) {
     </pre>
   )
 }
+*/
 
 type AppSettings = {
   id: string
