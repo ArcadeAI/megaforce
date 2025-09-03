@@ -7,7 +7,7 @@ set -e
 # Build API_BASE_URL from host/port if not provided
 if [ -z "${API_BASE_URL}" ]; then
   if [ -n "${API_HOST}" ] && [ -n "${API_PORT}" ]; then
-    export API_BASE_URL="http://${API_HOST}:${API_PORT}"
+    export API_BASE_URL="https://${API_HOST}:${API_PORT}"
   fi
 fi
 
