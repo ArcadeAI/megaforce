@@ -268,11 +268,6 @@ function Settings() {
                 <Badge variant="outline">Member since: {new Date(data.user.created_at).toLocaleDateString()}</Badge>
               ) : null}
             </div>
-
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Raw user object</h3>
-              <PrettyJson value={data.user} />
-            </div>
           </CardContent>
         </Card>
 
