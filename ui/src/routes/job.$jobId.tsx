@@ -107,7 +107,7 @@ function JobDetailPage() {
 
   async function loadPersonas() {
     try {
-      const res = await apiFetch('/api/v1/personas')
+      const res = await apiFetch('/api/v1/personas/')
       if (!res.ok) return
       setPersonas(await res.json())
     } catch {}

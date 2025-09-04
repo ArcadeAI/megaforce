@@ -51,7 +51,7 @@ function RunDetailPage() {
   async function loadRun() {
     // No GET /generation-runs/{id}; fetch all and find
     try {
-      const res = await apiFetch('/api/v1/generation-runs')
+      const res = await apiFetch('/api/v1/generation-runs/')
       if (!res.ok) return
       const list = (await res.json()) as GenerationRun[]
       const found = list.find(r => r.id === runId) || null
@@ -63,7 +63,7 @@ function RunDetailPage() {
 
   async function loadPersonas() {
     try {
-      const res = await apiFetch('/api/v1/personas')
+      const res = await apiFetch('/api/v1/personas/')
       if (!res.ok) return
       const data = (await res.json()) as Persona[]
       setPersonas(data)
@@ -76,7 +76,7 @@ function RunDetailPage() {
   async function loadDocuments() {
     setLoadingDocs(true)
     try {
-      const res = await apiFetch('/api/v1/documents?limit=1000')
+      const res = await apiFetch('/api/v1/documents/?limit=1000')
       if (!res.ok) throw new Error('Failed to load documents')
       const data = (await res.json()) as DocumentRow[]
       setDocs(data)
