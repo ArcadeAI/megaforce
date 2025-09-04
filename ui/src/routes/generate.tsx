@@ -32,7 +32,7 @@ function GeneratePage() {
   const [timezone, setTimezone] = useState<string>('')
 
   async function loadRuns() {
-    const res = await apiFetch('/api/v1/generation-runs')
+    const res = await apiFetch('/api/v1/generation-runs/')
     if (!res.ok) return
     const data = (await res.json()) as GenerationRun[]
     setRuns(data)
