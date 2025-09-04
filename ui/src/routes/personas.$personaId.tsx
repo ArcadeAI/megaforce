@@ -163,7 +163,9 @@ function PersonaDetailPage() {
 
   async function fetchPersonaDocuments() {
     try {
-      const res = await apiFetch(`/api/v1/documents?persona_id=${personaId}`)
+      // Backend route is defined at '/api/v1/documents/' and FastAPI redirects to add trailing slash.
+      // Include the slash to avoid 307s that can downgrade scheme via misconfigured proxies.
+      const res = await apiFetch(`/api/v1/documents/?persona_id=${personaId}`)
       if (!res.ok) throw new Error('Failed to load documents')
       const data = (await res.json()) as PersonaDocument[]
       setPersonaDocs(data)

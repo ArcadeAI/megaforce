@@ -2,6 +2,7 @@ from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -65,6 +66,9 @@ app = FastAPI(
     description="API for managing social media content generation and approval workflows",
     version="1.0.0"
 )
+
+# Respect X-Forwarded-Proto and related headers from upstream proxies (Cloudflare/Render)
+app.add_middleware(ProxyHeadersMiddleware)
 
 # Add CORS middleware
 # Allow localhost for development and custom domains configured via env
