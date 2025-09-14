@@ -241,7 +241,7 @@ function PersonaDetailPage() {
       const createdResults = await Promise.all(
         docs.map(async (d) => {
           try {
-            const res = await apiFetch('/api/v1/url', {
+            const res = await apiFetch('/api/v1/url/', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
