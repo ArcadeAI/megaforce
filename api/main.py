@@ -57,6 +57,7 @@ try:
             _db.add_all(new_items)
             _db.commit()
 except Exception as _seed_err:
+    print(f"DEBUG: Integration seeding skipped or failed: {_seed_err}")
     logger.warning(f"Integration seeding skipped or failed: {_seed_err}")
 
 # Create FastAPI app
@@ -77,6 +78,7 @@ _default_allowed_origins = [
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3003",
+    "http://localhost:8000",
 ]
 
 # Include known production domains by default

@@ -53,11 +53,7 @@ function VerifyPage() {
           if (res.ok && data?.success) {
             try { localStorage.removeItem('arcade_persona_id') } catch {}
             try { localStorage.removeItem('arcade_integration_key') } catch {}
-            if (data?.next_uri) {
-              window.location.replace(data.next_uri)
-            } else {
-              window.location.replace('/')
-            }
+            window.location.replace(`/personas/${personaId}`)
           } else {
             setError(data?.message || 'Verification failed')
           }

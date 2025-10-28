@@ -75,7 +75,7 @@ services:
       - "3000:10000"
     environment:
       - PORT=10000
-      - API_BASE_URL=http://api:8000/
+      - API_BASE_URL=http://api:8000
     networks:
       - app-network
 

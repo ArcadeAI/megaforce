@@ -138,6 +138,8 @@ async def verify_authorization(
             except Exception:
                 # Do not fail verification if recording the connection fails
                 pass
+
+            print(f"DEBUG: Result: {result}")
             return VerifyResponse(
                 success=True,
                 auth_id=result.auth_id,

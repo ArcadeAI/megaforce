@@ -1,15 +1,15 @@
 # Build stage
-FROM node:20-slim AS build
+FROM oven/bun:1.3.1-slim AS build
 
 WORKDIR /app
 
 COPY package.json .
 # Install deps (include dev deps for building)
-RUN npm install --no-audit --no-fund
+RUN bun install
 
 COPY . .
 
-RUN npm run build
+RUN bun run build
 
 # Runtime stage: nginx serving static files and proxying /api to backend
 FROM nginx:1.27-alpine

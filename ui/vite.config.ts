@@ -24,7 +24,7 @@ export default defineConfig(async ({ mode }) => {
     ],
   server: {
     port: 3000,
-    allowedHosts: ['megaforce.tech'],
+    allowedHosts: ['megaforce.tech', 'localhost:3000'],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
