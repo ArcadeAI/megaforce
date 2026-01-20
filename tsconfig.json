@@ -1,0 +1,3 @@
+{
+  "extends": "@megaforce/config/tsconfig.base.json"
+}
