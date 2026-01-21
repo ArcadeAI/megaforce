@@ -120,21 +120,14 @@ model Persona {
 }
 
 model SocialChannel {
-  id                 String         @id @default(cuid())
-  personaId          String
-  persona            Persona        @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  platform           SocialPlatform
-  platformUserId     String
-  platformUsername   String
-  accessToken        String         @db.Text // Encrypted
-  refreshToken       String?        @db.Text // Encrypted
-  tokenExpiresAt     DateTime?
-  isActive           Boolean        @default(true)
-  lastUsedAt         DateTime?
-  rateLimitRemaining Int?
-  rateLimitResetAt   DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  personaId             String
+  persona               Persona        @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  platform              SocialPlatform
+  isConnected           Boolean        @default(false) // Whether successfully connected with Arcade at least once
+  lastConnectionCheckAt DateTime?      // Datetime to check connection status
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   // Relations
   publishedContent PublishedContent[]
