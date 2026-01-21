@@ -9,6 +9,10 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  // Megaforce relations
+  workspaces    Workspace[]
+  wsConnections WebSocketConnection[]
+
   @@unique([email])
   @@map("user")
 }

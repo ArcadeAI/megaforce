@@ -1,0 +1,347 @@
+// Megaforce Database Schema
+// Multi-user content generation platform
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum SourceType {
+  URL
+  TEXT
+  PDF
+}
+
+enum SocialPlatform {
+  TWITTER
+  LINKEDIN
+  REDDIT
+}
+
+enum OutputType {
+  TWITTER_THREAD
+  SINGLE_TWEET
+  LINKEDIN_POST
+  BLOG_POST
+  REDDIT_POST
+}
+
+enum CandidateStatus {
+  GENERATING
+  PENDING
+  APPROVED
+  SCHEDULED
+  REJECTED
+  PUBLISHED
+  FAILED
+}
+
+enum JobType {
+  SOURCE_INGESTION
+  STYLE_LEARNING
+  CONTENT_GENERATION
+  CONTENT_PUBLISHING
+  ANALYTICS_FETCH
+}
+
+enum StyleLearningStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+// ============================================================================
+// CORE ENTITIES
+// ============================================================================
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sources          Source[]
+  personas         Persona[]
+  projects         Project[]
+  candidates       ContentCandidate[]
+  publishedContent PublishedContent[]
+  jobs             JobQueue[]
+  wsConnections    WebSocketConnection[]
+
+  @@index([userId])
+  @@map("workspace")
+}
+
+model Source {
+  id          String     @id @default(cuid())
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type        SourceType
+  title       String
+  url         String?
+  fileUrl     String?
+  content     String?    @db.Text
+  metadata    Json?
+  status      String     @default("pending") // pending, parsing, parsed, failed
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  personaSources PersonaSource[]
+  projectSources ProjectSource[]
+
+  @@index([workspaceId])
+  @@index([type])
+  @@index([status])
+  @@map("source")
+}
+
+model Persona {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?  @db.Text
+  styleProfile Json     // Structured style attributes
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  personaSources   PersonaSource[]
+  socialChannels   SocialChannel[]
+  projectPersonas  ProjectPersona[]
+  candidates       ContentCandidate[]
+  publishedContent PublishedContent[]
+
+  @@index([workspaceId])
+  @@map("persona")
+}
+
+model SocialChannel {
+  id                 String         @id @default(cuid())
+  personaId          String
+  persona            Persona        @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  platform           SocialPlatform
+  platformUserId     String
+  platformUsername   String
+  accessToken        String         @db.Text // Encrypted
+  refreshToken       String?        @db.Text // Encrypted
+  tokenExpiresAt     DateTime?
+  isActive           Boolean        @default(true)
+  lastUsedAt         DateTime?
+  rateLimitRemaining Int?
+  rateLimitResetAt   DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  // Relations
+  publishedContent PublishedContent[]
+
+  @@index([personaId])
+  @@index([platform])
+  @@map("social_channel")
+}
+
+model Project {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?  @db.Text
+  instructions     String?  @db.Text
+  selectedModelId  String?  // OpenRouter model ID
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  projectSources  ProjectSource[]
+  projectPersonas ProjectPersona[]
+  outputConfigs   OutputConfig[]
+  candidates      ContentCandidate[]
+
+  @@index([workspaceId])
+  @@map("project")
+}
+
+model OutputConfig {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personaId   String
+  outputType  OutputType
+  config      Json       // Output-specific configuration
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  candidates ContentCandidate[]
+
+  @@index([projectId])
+  @@index([outputType])
+  @@map("output_config")
+}
+
+// ============================================================================
+// CONTENT WORKFLOW
+// ============================================================================
+
+model ContentCandidate {
+  id              String          @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outputConfigId  String
+  outputConfig    OutputConfig    @relation(fields: [outputConfigId], references: [id], onDelete: Cascade)
+  personaId       String
+  persona         Persona         @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  content         String          @db.Text
+  originalContent String?         @db.Text // If edited
+  editDiff        Json?           // Track changes
+  status          CandidateStatus @default(PENDING)
+  rejectionReason String?         @db.Text
+  metadata        Json?           // Generation metadata
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  publishedContent PublishedContent?
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([personaId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("content_candidate")
+}
+
+model PublishedContent {
+  id               String        @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  candidateId      String        @unique
+  candidate        ContentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  personaId        String
+  persona          Persona       @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  channelId        String
+  channel          SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  platformPostId   String?       // ID from the social platform
+  platformUrl      String?       // URL to the published content
+  scheduledFor     DateTime?
+  publishedAt      DateTime?
+  analytics        Json?         // Engagement metrics
+  lastAnalyticsSync DateTime?
+  status           String        @default("scheduled") // scheduled, publishing, published, failed
+  errorMessage     String?       @db.Text
+  retryCount       Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([workspaceId])
+  @@index([personaId])
+  @@index([channelId])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([status])
+  @@map("published_content")
+}
+
+// ============================================================================
+// LINKING TABLES (Many-to-Many)
+// ============================================================================
+
+model PersonaSource {
+  id                 String               @id @default(cuid())
+  personaId          String
+  persona            Persona              @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  sourceId           String
+  source             Source               @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  learnedStyleData   Json?                // Style data extracted from this source
+  status             StyleLearningStatus  @default(PENDING)
+  confirmedAt        DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@unique([personaId, sourceId])
+  @@index([personaId])
+  @@index([sourceId])
+  @@index([status])
+  @@map("persona_source")
+}
+
+model ProjectSource {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceId  String
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, sourceId])
+  @@index([projectId])
+  @@index([sourceId])
+  @@map("project_source")
+}
+
+model ProjectPersona {
+  id                  String   @id @default(cuid())
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personaId           String
+  persona             Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  customInstructions  String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([projectId, personaId])
+  @@index([projectId])
+  @@index([personaId])
+  @@map("project_persona")
+}
+
+// ============================================================================
+// BACKGROUND PROCESSING
+// ============================================================================
+
+model JobQueue {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  jobType     JobType
+  jobData     Json
+  status      String   @default("pending") // pending, processing, completed, failed
+  priority    Int      @default(5) // 1-10, higher = more important
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  error       String?  @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([jobType])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("job_queue")
+}
+
+model WebSocketConnection {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionId String   @unique
+  connectedAt DateTime  @default(now())
+  lastPingAt  DateTime  @default(now())
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([connectionId])
+  @@map("websocket_connection")
+}
