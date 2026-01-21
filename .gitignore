@@ -50,3 +50,6 @@ tmp
 temp
 
 .mcp.json
+
+# Claude Code local settings
+.claude/*.local.json
