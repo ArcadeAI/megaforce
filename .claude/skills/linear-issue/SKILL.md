@@ -1,3 +1,8 @@
+---
+name: linear-issue
+description: Automate the complete Linear issue workflow - fetch issue, update status to In Progress, create branch, implement, test, create PR, and move to In Review
+---
+
 # Linear Issue Workflow
 
 Automates the complete workflow for working on Linear issues: fetch issue, update status, create branch, implement, test, create PR, and mark for review.
