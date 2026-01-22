@@ -1,6 +1,10 @@
-import "dotenv/config";
 import { createEnv } from "@t3-oss/env-core";
+import dotenv from "dotenv";
 import { z } from "zod";
+
+// Load root .env first, then local .env (which takes priority)
+dotenv.config({ path: "../../.env" });
+dotenv.config({ path: ".env", override: true });
 
 export const env = createEnv({
 	server: {

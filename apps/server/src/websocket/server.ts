@@ -1,10 +1,9 @@
 /**
  * WebSocket Server
- * Main WebSocket server setup with room management
+ * Main WebSocket server setup with room management using Elysia
  */
 
-import type { Server as HTTPServer } from "node:http";
-import { WebSocket, WebSocketServer } from "ws";
+import type { ServerWebSocket } from "bun";
 import type { RoomIdentifier, WsMessage } from "./events";
 import { getRoomKey } from "./events";
 
@@ -12,25 +11,25 @@ import { getRoomKey } from "./events";
 // TYPES
 // ============================================================================
 
-export type AuthenticatedWebSocket = WebSocket & {
+export interface WsData {
+	connectionId: string;
 	userId?: string;
-	connectionId?: string;
-	rooms?: Set<string>;
-	isAlive?: boolean;
-};
+	rooms: Set<string>;
+	isAlive: boolean;
+}
+
+export type AuthenticatedWebSocket = ServerWebSocket<WsData>;
 
 // ============================================================================
 // WEBSOCKET SERVER CLASS
 // ============================================================================
 
 export class WsServer {
-	private wss: WebSocketServer;
 	private clients: Map<string, AuthenticatedWebSocket>;
 	private rooms: Map<string, Set<string>>; // roomKey -> Set of connectionIds
 	private pingInterval: Timer | null;
 
-	constructor(server: HTTPServer) {
-		this.wss = new WebSocketServer({ server, path: "/ws" });
+	constructor() {
 		this.clients = new Map();
 		this.rooms = new Map();
 		this.pingInterval = null;
@@ -39,19 +38,12 @@ export class WsServer {
 	}
 
 	/**
-	 * Get the underlying WebSocket server instance
-	 */
-	getServer(): WebSocketServer {
-		return this.wss;
-	}
-
-	/**
 	 * Register a client connection
 	 */
 	registerClient(connectionId: string, ws: AuthenticatedWebSocket): void {
-		ws.connectionId = connectionId;
-		ws.rooms = new Set();
-		ws.isAlive = true;
+		ws.data.connectionId = connectionId;
+		ws.data.rooms = new Set();
+		ws.data.isAlive = true;
 		this.clients.set(connectionId, ws);
 	}
 
@@ -60,9 +52,9 @@ export class WsServer {
 	 */
 	unregisterClient(connectionId: string): void {
 		const ws = this.clients.get(connectionId);
-		if (ws?.rooms) {
+		if (ws?.data.rooms) {
 			// Remove from all rooms
-			for (const roomKey of ws.rooms) {
+			for (const roomKey of ws.data.rooms) {
 				this.leaveRoom(connectionId, roomKey);
 			}
 		}
@@ -86,7 +78,7 @@ export class WsServer {
 		const roomKey = getRoomKey(room);
 
 		// Add to client's room set
-		ws.rooms?.add(roomKey);
+		ws.data.rooms?.add(roomKey);
 
 		// Add to room's client set
 		if (!this.rooms.has(roomKey)) {
@@ -105,7 +97,7 @@ export class WsServer {
 		if (!ws) return false;
 
 		// Remove from client's room set
-		ws.rooms?.delete(roomKey);
+		ws.data.rooms?.delete(roomKey);
 
 		// Remove from room's client set
 		const room = this.rooms.get(roomKey);
@@ -125,7 +117,7 @@ export class WsServer {
 	 */
 	sendToClient(connectionId: string, message: WsMessage): boolean {
 		const ws = this.clients.get(connectionId);
-		if (!ws || ws.readyState !== WebSocket.OPEN) {
+		if (!ws) {
 			return false;
 		}
 
@@ -186,7 +178,7 @@ export class WsServer {
 	 */
 	getClientRooms(connectionId: string): string[] {
 		const ws = this.clients.get(connectionId);
-		return ws?.rooms ? Array.from(ws.rooms) : [];
+		return ws?.data.rooms ? Array.from(ws.data.rooms) : [];
 	}
 
 	/**
@@ -211,16 +203,16 @@ export class WsServer {
 	private setupPingInterval(): void {
 		this.pingInterval = setInterval(() => {
 			for (const [connectionId, ws] of this.clients) {
-				if (ws.isAlive === false) {
+				if (ws.data.isAlive === false) {
 					// Connection is dead, terminate it
 					console.log(`Terminating dead connection: ${connectionId}`);
-					ws.terminate();
+					ws.close();
 					this.unregisterClient(connectionId);
 					continue;
 				}
 
 				// Mark as not alive and ping
-				ws.isAlive = false;
+				ws.data.isAlive = false;
 				ws.ping();
 			}
 		}, 30000); // Ping every 30 seconds
@@ -232,7 +224,7 @@ export class WsServer {
 	handlePong(connectionId: string): void {
 		const ws = this.clients.get(connectionId);
 		if (ws) {
-			ws.isAlive = true;
+			ws.data.isAlive = true;
 		}
 	}
 
@@ -250,9 +242,6 @@ export class WsServer {
 			ws.close();
 			this.unregisterClient(connectionId);
 		}
-
-		// Close the server
-		this.wss.close();
 	}
 }
 
@@ -265,11 +254,11 @@ let wsServerInstance: WsServer | null = null;
 /**
  * Initialize the WebSocket server
  */
-export function initWsServer(server: HTTPServer): WsServer {
+export function initWsServer(): WsServer {
 	if (wsServerInstance) {
 		throw new Error("WebSocket server already initialized");
 	}
-	wsServerInstance = new WsServer(server);
+	wsServerInstance = new WsServer();
 	return wsServerInstance;
 }
 

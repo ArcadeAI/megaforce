@@ -5,7 +5,6 @@
 
 import { auth } from "@megaforce/auth";
 import prisma from "@megaforce/db";
-import type { WebSocket } from "ws";
 import {
 	type AuthPayload,
 	createWsMessage,
@@ -23,14 +22,14 @@ import type { AuthenticatedWebSocket, WsServer } from "./server";
 /**
  * Generate a unique connection ID
  */
-function generateConnectionId(): string {
+export function generateConnectionId(): string {
 	return `ws_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
 /**
  * Send an error message to a client
  */
-function sendError(ws: WebSocket, message: string): void {
+function sendError(ws: AuthenticatedWebSocket, message: string): void {
 	try {
 		ws.send(
 			JSON.stringify(createWsMessage(WS_EVENTS.ERROR, { error: message })),
@@ -139,8 +138,8 @@ async function handleAuth(
 		return;
 	}
 
-	// Set user information on the WebSocket
-	ws.userId = authResult.userId;
+	// Set user information on the WebSocket data
+	ws.data.userId = authResult.userId;
 
 	// For now, we'll use the user's first workspace
 	// In a real app, you might want to let the client specify the workspace
@@ -159,8 +158,8 @@ async function handleAuth(
 	const workspaceId = userWorkspaces[0].id;
 
 	// Store connection in database
-	if (ws.connectionId) {
-		await storeConnection(ws.connectionId, authResult.userId, workspaceId);
+	if (ws.data.connectionId) {
+		await storeConnection(ws.data.connectionId, authResult.userId, workspaceId);
 	}
 
 	// Send success response
@@ -174,7 +173,7 @@ async function handleAuth(
 	);
 
 	console.log(
-		`Client ${ws.connectionId} authenticated as user ${authResult.userId}`,
+		`Client ${ws.data.connectionId} authenticated as user ${authResult.userId}`,
 	);
 }
 
@@ -186,7 +185,7 @@ function handleJoinRoom(
 	wsServer: WsServer,
 	payload: JoinRoomPayload,
 ): void {
-	if (!ws.userId) {
+	if (!ws.data.userId) {
 		sendError(ws, "Not authenticated");
 		return;
 	}
@@ -194,7 +193,7 @@ function handleJoinRoom(
 	const joinedRooms: string[] = [];
 
 	for (const room of payload.rooms) {
-		const success = wsServer.joinRoom(ws.connectionId!, room);
+		const success = wsServer.joinRoom(ws.data.connectionId!, room);
 		if (success) {
 			joinedRooms.push(`${room.type}:${room.id}`);
 		}
@@ -209,7 +208,7 @@ function handleJoinRoom(
 	);
 
 	console.log(
-		`Client ${ws.connectionId} joined rooms: ${joinedRooms.join(", ")}`,
+		`Client ${ws.data.connectionId} joined rooms: ${joinedRooms.join(", ")}`,
 	);
 }
 
@@ -221,7 +220,7 @@ function handleLeaveRoom(
 	wsServer: WsServer,
 	payload: LeaveRoomPayload,
 ): void {
-	if (!ws.userId) {
+	if (!ws.data.userId) {
 		sendError(ws, "Not authenticated");
 		return;
 	}
@@ -230,7 +229,7 @@ function handleLeaveRoom(
 
 	for (const room of payload.rooms) {
 		const roomKey = `${room.type}:${room.id}`;
-		const success = wsServer.leaveRoom(ws.connectionId!, roomKey);
+		const success = wsServer.leaveRoom(ws.data.connectionId!, roomKey);
 		if (success) {
 			leftRooms.push(roomKey);
 		}
@@ -244,7 +243,9 @@ function handleLeaveRoom(
 		),
 	);
 
-	console.log(`Client ${ws.connectionId} left rooms: ${leftRooms.join(", ")}`);
+	console.log(
+		`Client ${ws.data.connectionId} left rooms: ${leftRooms.join(", ")}`,
+	);
 }
 
 /**
@@ -255,75 +256,75 @@ async function handlePing(ws: AuthenticatedWebSocket): Promise<void> {
 	ws.send(JSON.stringify(createWsMessage(WS_EVENTS.PONG, {})));
 
 	// Update last ping time in database
-	if (ws.connectionId) {
-		await updateLastPing(ws.connectionId);
+	if (ws.data.connectionId) {
+		await updateLastPing(ws.data.connectionId);
 	}
 }
 
 // ============================================================================
-// CONNECTION HANDLER
+// MESSAGE HANDLER
 // ============================================================================
 
 /**
- * Setup WebSocket connection handlers
+ * Handle incoming WebSocket message
  */
-export function setupConnectionHandlers(wsServer: WsServer): void {
-	const wss = wsServer.getServer();
+export async function handleMessage(
+	ws: AuthenticatedWebSocket,
+	wsServer: WsServer,
+	data: string | Buffer,
+): Promise<void> {
+	try {
+		const message: WsMessage = JSON.parse(
+			typeof data === "string" ? data : data.toString(),
+		);
 
-	wss.on("connection", (ws: AuthenticatedWebSocket) => {
-		const connectionId = generateConnectionId();
-		wsServer.registerClient(connectionId, ws);
+		switch (message.event) {
+			case WS_EVENTS.AUTH:
+				await handleAuth(ws, message.payload as AuthPayload);
+				break;
 
-		console.log(`New WebSocket connection: ${connectionId}`);
+			case WS_EVENTS.JOIN_ROOM:
+				handleJoinRoom(ws, wsServer, message.payload as JoinRoomPayload);
+				break;
 
-		// Handle messages
-		ws.on("message", async (data: Buffer) => {
-			try {
-				const message: WsMessage = JSON.parse(data.toString());
+			case WS_EVENTS.LEAVE_ROOM:
+				handleLeaveRoom(ws, wsServer, message.payload as LeaveRoomPayload);
+				break;
 
-				switch (message.event) {
-					case WS_EVENTS.AUTH:
-						await handleAuth(ws, message.payload as AuthPayload);
-						break;
+			case WS_EVENTS.PING:
+				await handlePing(ws);
+				break;
 
-					case WS_EVENTS.JOIN_ROOM:
-						handleJoinRoom(ws, wsServer, message.payload as JoinRoomPayload);
-						break;
+			default:
+				sendError(ws, `Unknown event type: ${message.event}`);
+		}
+	} catch (error) {
+		console.error("Error handling message:", error);
+		sendError(ws, "Invalid message format");
+	}
+}
 
-					case WS_EVENTS.LEAVE_ROOM:
-						handleLeaveRoom(ws, wsServer, message.payload as LeaveRoomPayload);
-						break;
+/**
+ * Handle WebSocket connection open
+ */
+export function handleOpen(
+	ws: AuthenticatedWebSocket,
+	wsServer: WsServer,
+): void {
+	const connectionId = ws.data.connectionId;
+	wsServer.registerClient(connectionId, ws);
+	console.log(`New WebSocket connection: ${connectionId}`);
+}
 
-					case WS_EVENTS.PING:
-						await handlePing(ws);
-						break;
-
-					default:
-						sendError(ws, `Unknown event type: ${message.event}`);
-				}
-			} catch (error) {
-				console.error("Error handling message:", error);
-				sendError(ws, "Invalid message format");
-			}
-		});
-
-		// Handle pong responses (for server-initiated pings)
-		ws.on("pong", () => {
-			wsServer.handlePong(connectionId);
-		});
-
-		// Handle connection close
-		ws.on("close", async () => {
-			console.log(`WebSocket connection closed: ${connectionId}`);
-			wsServer.unregisterClient(connectionId);
-			await removeConnection(connectionId);
-		});
-
-		// Handle errors
-		ws.on("error", (error: Error) => {
-			console.error(`WebSocket error on ${connectionId}:`, error);
-		});
-	});
-
-	console.log("WebSocket connection handlers set up");
+/**
+ * Handle WebSocket connection close
+ */
+export async function handleClose(
+	ws: AuthenticatedWebSocket,
+	wsServer: WsServer,
+): Promise<void> {
+	const connectionId = ws.data.connectionId;
+	console.log(`WebSocket connection closed: ${connectionId}`);
+	wsServer.unregisterClient(connectionId);
+	await removeConnection(connectionId);
 }
