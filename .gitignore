@@ -55,7 +55,6 @@ temp
 .claude/*.local.json
 
 # Secret protection (auto-added by claude-session)
-.env.local
 .env.claude-session
 *.key
 *.pem
@@ -63,5 +62,3 @@ temp
 *secrets*.json
 *.p12
 *.pfx
-*credentials*.json
-*secrets*.json
