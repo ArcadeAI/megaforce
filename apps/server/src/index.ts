@@ -2,6 +2,9 @@ import { cors } from "@elysiajs/cors";
 import { auth } from "@megaforce/auth";
 import { env } from "@megaforce/env/server";
 import { Elysia } from "elysia";
+import { requireAuth } from "./middleware/auth";
+import { handleError } from "./middleware/error-handler";
+import { requireWorkspace } from "./middleware/workspace";
 import {
 	generateConnectionId,
 	handleClose,
@@ -22,6 +25,11 @@ const app = new Elysia()
 			credentials: true,
 		}),
 	)
+	// Global error handler
+	.onError((context) => {
+		return handleError(context.error as Error, context);
+	})
+	// Public routes
 	.all("/api/auth/*", async (context) => {
 		const { request, status } = context;
 		if (["POST", "GET"].includes(request.method)) {
@@ -30,6 +38,45 @@ const app = new Elysia()
 		return status(405);
 	})
 	.get("/", () => "OK")
+	// Protected routes - require authentication and workspace
+	.group(
+		"/api/protected",
+		(app) =>
+			app
+				.derive(async (context) => {
+					const user = await requireAuth(context);
+					if (user instanceof Response) {
+						return { user: null, workspace: null, error: user };
+					}
+					return { user };
+				})
+				.derive(async (context) => {
+					if (context.error) {
+						return context;
+					}
+					if (!context.user) {
+						return context;
+					}
+					const workspace = await requireWorkspace(context.user);
+					if (workspace instanceof Response) {
+						return { ...context, workspace: null, error: workspace };
+					}
+					return { ...context, workspace };
+				})
+				.onBeforeHandle((context) => {
+					if (context.error) {
+						return context.error;
+					}
+				})
+				// Example protected route
+				.get("/me", (context) => {
+					return {
+						user: context.user,
+						workspace: context.workspace,
+					};
+				}),
+		// Add more protected routes here as needed
+	)
 	.ws("/ws", {
 		open(ws) {
 			// Initialize connection data on open
