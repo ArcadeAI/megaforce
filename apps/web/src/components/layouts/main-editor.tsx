@@ -9,7 +9,7 @@ export function MainEditor({ children, className }: MainEditorProps) {
 	return (
 		<main
 			className={cn(
-				"flex h-full flex-col overflow-hidden bg-background",
+				"flex min-w-0 flex-1 flex-col overflow-hidden bg-background",
 				className,
 			)}
 			aria-label="Main content area"

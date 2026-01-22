@@ -46,7 +46,7 @@ function RootComponent() {
 			>
 				<div className="grid h-svh grid-rows-[auto_1fr]">
 					<Header />
-					<div className="flex h-full min-h-0 flex-col overflow-hidden">
+					<div className="h-full min-h-0 overflow-hidden">
 						<Outlet />
 					</div>
 				</div>

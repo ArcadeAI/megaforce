@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizeHandle } from "./resize-handle";
 
@@ -12,6 +12,8 @@ interface PropertiesPanelProps {
 	minWidth?: number;
 	maxWidth?: number;
 }
+
+const COLLAPSED_WIDTH = 40;
 
 export function PropertiesPanel({
 	children,
@@ -32,55 +34,59 @@ export function PropertiesPanel({
 	return (
 		<aside
 			className={cn(
-				"relative flex h-full border-border bg-sidebar transition-all duration-200",
-				isCollapsed ? "w-0" : "border-l",
+				"relative flex h-full flex-shrink-0 border-border border-l bg-sidebar transition-all duration-200",
 				className,
 			)}
 			style={{
-				width: isCollapsed ? 0 : width,
+				width: isCollapsed ? COLLAPSED_WIDTH : width,
 			}}
 			aria-label="Properties panel"
 		>
-			{/* Resize Handle */}
-			{!isCollapsed && (
-				<ResizeHandle
-					onResize={handleResize}
-					direction="horizontal"
-					className="absolute top-0 left-0 z-10 h-full"
-				/>
-			)}
-
-			{/* Panel Content */}
-			<div className="flex h-full w-full flex-col overflow-hidden">
-				{/* Header with collapse button */}
-				<div className="flex h-12 items-center justify-between border-border border-b px-4">
-					<span className="font-medium text-sidebar-foreground text-sm">
-						Properties
-					</span>
-					<button
-						type="button"
-						onClick={onToggleCollapse}
-						className="rounded-md p-1 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-						aria-label="Collapse properties panel"
-					>
-						<ChevronRight className="h-4 w-4" />
-					</button>
+			{isCollapsed ? (
+				// Collapsed state - thin bar with expand button at top
+				<div className="flex h-full w-full flex-col">
+					<div className="flex h-12 items-center justify-center border-border border-b">
+						<button
+							type="button"
+							onClick={onToggleCollapse}
+							className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+							aria-label="Expand properties panel"
+						>
+							<PanelRightOpen className="h-4 w-4" />
+						</button>
+					</div>
 				</div>
+			) : (
+				// Expanded state
+				<>
+					{/* Resize Handle */}
+					<ResizeHandle
+						onResize={handleResize}
+						direction="horizontal"
+						className="absolute top-0 left-0 z-10 h-full"
+					/>
 
-				{/* Content Area */}
-				<div className="flex-1 overflow-y-auto p-4">{children}</div>
-			</div>
+					{/* Panel Content */}
+					<div className="flex h-full w-full flex-col overflow-hidden">
+						{/* Header with collapse button */}
+						<div className="flex h-12 items-center justify-between border-border border-b px-4">
+							<span className="font-medium text-sidebar-foreground text-sm">
+								Properties
+							</span>
+							<button
+								type="button"
+								onClick={onToggleCollapse}
+								className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+								aria-label="Collapse properties panel"
+							>
+								<PanelRightClose className="h-4 w-4" />
+							</button>
+						</div>
 
-			{/* Expand Button (shown when collapsed) */}
-			{isCollapsed && (
-				<button
-					type="button"
-					onClick={onToggleCollapse}
-					className="absolute top-1/2 right-full z-10 -translate-y-1/2 rounded-l-md border border-border border-r-0 bg-sidebar p-1 text-sidebar-foreground/70 shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-					aria-label="Expand properties panel"
-				>
-					<ChevronLeft className="h-4 w-4" />
-				</button>
+						{/* Content Area */}
+						<div className="flex-1 overflow-y-auto p-4">{children}</div>
+					</div>
+				</>
 			)}
 		</aside>
 	);

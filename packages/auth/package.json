@@ -1,24 +1,24 @@
 {
-  "name": "@megaforce/auth",
-  "type": "module",
-  "exports": {
-    ".": {
-      "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
-    }
-  },
-  "scripts": {},
-  "dependencies": {
-    "@megaforce/db": "workspace:*",
-    "@megaforce/env": "workspace:*",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@megaforce/config": "workspace:*",
-    "typescript": "catalog:"
-  }
+	"name": "@megaforce/auth",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {},
+	"dependencies": {
+		"@megaforce/db": "workspace:*",
+		"@megaforce/env": "workspace:*",
+		"better-auth": "catalog:",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@megaforce/config": "workspace:*",
+		"typescript": "catalog:"
+	}
 }
