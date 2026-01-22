@@ -1,3 +1,5 @@
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
 	createRootRouteWithContext,
 	HeadContent,
@@ -11,7 +13,9 @@ import { Toaster } from "@/components/ui/sonner";
 
 import "../index.css";
 
-export type RouterAppContext = Record<string, never>;
+export type RouterAppContext = {
+	queryClient: QueryClient;
+};
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
 	component: RootComponent,
@@ -35,23 +39,28 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootComponent() {
+	const { queryClient } = Route.useRouteContext();
+
 	return (
 		<>
 			<HeadContent />
-			<ThemeProvider
-				attribute="class"
-				defaultTheme="dark"
-				disableTransitionOnChange
-				storageKey="vite-ui-theme"
-			>
-				<div className="grid h-svh grid-rows-[auto_1fr]">
-					<Header />
-					<div className="h-full min-h-0 overflow-hidden">
-						<Outlet />
+			<QueryClientProvider client={queryClient}>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					disableTransitionOnChange
+					storageKey="vite-ui-theme"
+				>
+					<div className="grid h-svh grid-rows-[auto_1fr]">
+						<Header />
+						<div className="h-full min-h-0 overflow-hidden">
+							<Outlet />
+						</div>
 					</div>
-				</div>
-				<Toaster richColors />
-			</ThemeProvider>
+					<Toaster richColors />
+				</ThemeProvider>
+				<ReactQueryDevtools initialIsOpen={false} />
+			</QueryClientProvider>
 			<TanStackRouterDevtools position="bottom-left" />
 		</>
 	);

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutDemoRouteImport } from './routes/layout-demo'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ApiTestRouteImport } from './routes/api-test'
 import { Route as IndexRouteImport } from './routes/index'
 
 const LoginRoute = LoginRouteImport.update({
@@ -29,6 +30,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTestRoute = ApiTestRouteImport.update({
+  id: '/api-test',
+  path: '/api-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api-test': typeof ApiTestRoute
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api-test': typeof ApiTestRoute
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api-test': typeof ApiTestRoute
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/layout-demo' | '/login'
+  fullPaths: '/' | '/api-test' | '/dashboard' | '/layout-demo' | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/layout-demo' | '/login'
-  id: '__root__' | '/' | '/dashboard' | '/layout-demo' | '/login'
+  to: '/' | '/api-test' | '/dashboard' | '/layout-demo' | '/login'
+  id: '__root__' | '/' | '/api-test' | '/dashboard' | '/layout-demo' | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiTestRoute: typeof ApiTestRoute
   DashboardRoute: typeof DashboardRoute
   LayoutDemoRoute: typeof LayoutDemoRoute
   LoginRoute: typeof LoginRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api-test': {
+      id: '/api-test'
+      path: '/api-test'
+      fullPath: '/api-test'
+      preLoaderRoute: typeof ApiTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiTestRoute: ApiTestRoute,
   DashboardRoute: DashboardRoute,
   LayoutDemoRoute: LayoutDemoRoute,
   LoginRoute: LoginRoute,
