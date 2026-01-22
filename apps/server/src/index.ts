@@ -2,8 +2,16 @@ import { cors } from "@elysiajs/cors";
 import { auth } from "@megaforce/auth";
 import { env } from "@megaforce/env/server";
 import { Elysia } from "elysia";
-import { setupConnectionHandlers } from "./websocket/handlers";
-import { initWsServer } from "./websocket/server";
+import {
+	generateConnectionId,
+	handleClose,
+	handleMessage,
+	handleOpen,
+} from "./websocket/handlers";
+import { initWsServer, type WsData } from "./websocket/server";
+
+// Initialize WebSocket server (room/client management)
+const wsServer = initWsServer();
 
 const app = new Elysia()
 	.use(
@@ -22,16 +30,27 @@ const app = new Elysia()
 		return status(405);
 	})
 	.get("/", () => "OK")
+	.ws("/ws", {
+		open(ws) {
+			// Initialize connection data on open
+			ws.data = {
+				connectionId: generateConnectionId(),
+				userId: undefined,
+				rooms: new Set<string>(),
+				isAlive: true,
+			};
+			handleOpen(ws, wsServer);
+		},
+		message(ws, message) {
+			handleMessage(ws, wsServer, message as string);
+		},
+		close(ws) {
+			handleClose(ws, wsServer);
+		},
+	})
 	.listen(3000, () => {
 		console.log("Server is running on http://localhost:3000");
+		console.log("WebSocket server initialized on ws://localhost:3000/ws");
 	});
-
-// Initialize WebSocket server
-const server = app.server;
-if (server) {
-	const wsServer = initWsServer(server as any);
-	setupConnectionHandlers(wsServer);
-	console.log("WebSocket server initialized on ws://localhost:3000/ws");
-}
 
 export type App = typeof app;

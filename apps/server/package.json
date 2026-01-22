@@ -23,13 +23,11 @@
 		"dotenv": "catalog:",
 		"elysia": "^1.4.21",
 		"ioredis": "5.9.1",
-		"ws": "^8.19.0",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@megaforce/config": "workspace:*",
 		"@types/bun": "catalog:",
-		"@types/ws": "^8.18.1",
 		"tsdown": "^0.16.5",
 		"typescript": "catalog:"
 	}

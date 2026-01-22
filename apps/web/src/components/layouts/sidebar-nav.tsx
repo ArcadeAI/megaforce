@@ -31,8 +31,8 @@ export function SidebarNav({
 	return (
 		<aside
 			className={cn(
-				"relative flex h-full border-border border-r bg-sidebar transition-all duration-200",
-				isCollapsed && "w-0 overflow-hidden",
+				"relative flex h-full border-border bg-sidebar transition-all duration-200",
+				isCollapsed ? "w-0" : "border-r",
 				className,
 			)}
 			style={{
@@ -75,7 +75,7 @@ export function SidebarNav({
 				<button
 					type="button"
 					onClick={onToggleCollapse}
-					className="absolute top-1/2 left-0 z-10 -translate-y-1/2 rounded-r-md border border-border border-l-0 bg-sidebar p-1 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+					className="absolute top-1/2 left-full z-10 -translate-y-1/2 rounded-r-md border border-border border-l-0 bg-sidebar p-1 text-sidebar-foreground/70 shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
 					aria-label="Expand sidebar"
 				>
 					<ChevronRight className="h-4 w-4" />

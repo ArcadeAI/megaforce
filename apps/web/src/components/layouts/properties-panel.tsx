@@ -32,8 +32,8 @@ export function PropertiesPanel({
 	return (
 		<aside
 			className={cn(
-				"relative flex h-full border-border border-l bg-sidebar transition-all duration-200",
-				isCollapsed && "w-0 overflow-hidden",
+				"relative flex h-full border-border bg-sidebar transition-all duration-200",
+				isCollapsed ? "w-0" : "border-l",
 				className,
 			)}
 			style={{
@@ -76,7 +76,7 @@ export function PropertiesPanel({
 				<button
 					type="button"
 					onClick={onToggleCollapse}
-					className="absolute top-1/2 right-0 z-10 -translate-y-1/2 rounded-l-md border border-border border-r-0 bg-sidebar p-1 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+					className="absolute top-1/2 right-full z-10 -translate-y-1/2 rounded-l-md border border-border border-r-0 bg-sidebar p-1 text-sidebar-foreground/70 shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
 					aria-label="Expand properties panel"
 				>
 					<ChevronLeft className="h-4 w-4" />
