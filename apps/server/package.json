@@ -29,6 +29,7 @@
 	"devDependencies": {
 		"@megaforce/config": "workspace:*",
 		"@types/bun": "catalog:",
+		"@types/ws": "^8.18.1",
 		"tsdown": "^0.16.5",
 		"typescript": "catalog:"
 	}

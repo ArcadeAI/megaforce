@@ -65,3 +65,5 @@ temp
 *.pfx
 *credentials*.json
 *secrets*.json
+*credentials*.json
+*secrets*.json
