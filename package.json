@@ -1,57 +1,58 @@
 {
-  "name": "megaforce",
-  "private": true,
-  "workspaces": {
-    "packages": [
-      "apps/*",
-      "packages/*"
-    ],
-    "catalog": {
-      "dotenv": "^17.2.2",
-      "zod": "^4.1.13",
-      "typescript": "^5",
-      "@types/bun": "^1.3.4",
-      "better-auth": "^1.4.9",
-      "@prisma/client": "^7.2.0"
-    }
-  },
-  "type": "module",
-  "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "check-types": "turbo check-types",
-    "dev:native": "turbo -F native dev",
-    "dev:web": "turbo -F web dev",
-    "dev:server": "turbo -F server dev",
-    "db:push": "turbo -F @megaforce/db db:push",
-    "db:studio": "turbo -F @megaforce/db db:studio",
-    "db:generate": "turbo -F @megaforce/db db:generate",
-    "db:migrate": "turbo -F @megaforce/db db:migrate",
-    "db:start": "turbo -F @megaforce/db db:start",
-    "db:watch": "turbo -F @megaforce/db db:watch",
-    "db:stop": "turbo -F @megaforce/db db:stop",
-    "db:down": "turbo -F @megaforce/db db:down",
-    "check": "biome check --write .",
-    "prepare": "husky"
-  },
-  "dependencies": {
-    "@megaforce/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.2.0",
-    "@megaforce/config": "workspace:*",
-    "@types/bun": "catalog:",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.2",
-    "turbo": "^2.6.3",
-    "typescript": "catalog:"
-  },
-  "lint-staged": {
-    "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
-      "biome check --write ."
-    ]
-  },
-  "packageManager": "bun@1.3.4"
+	"name": "megaforce",
+	"private": true,
+	"workspaces": {
+		"packages": [
+			"apps/*",
+			"packages/*"
+		],
+		"catalog": {
+			"dotenv": "^17.2.2",
+			"zod": "^4.1.13",
+			"typescript": "^5",
+			"@types/bun": "^1.3.4",
+			"better-auth": "^1.4.9",
+			"@prisma/client": "^7.2.0"
+		}
+	},
+	"type": "module",
+	"scripts": {
+		"dev": "turbo dev",
+		"build": "turbo build",
+		"check-types": "turbo check-types",
+		"check-eden-types": "bun run scripts/check-eden-types.ts",
+		"dev:native": "turbo -F native dev",
+		"dev:web": "turbo -F web dev",
+		"dev:server": "turbo -F server dev",
+		"db:push": "turbo -F @megaforce/db db:push",
+		"db:studio": "turbo -F @megaforce/db db:studio",
+		"db:generate": "turbo -F @megaforce/db db:generate",
+		"db:migrate": "turbo -F @megaforce/db db:migrate",
+		"db:start": "turbo -F @megaforce/db db:start",
+		"db:watch": "turbo -F @megaforce/db db:watch",
+		"db:stop": "turbo -F @megaforce/db db:stop",
+		"db:down": "turbo -F @megaforce/db db:down",
+		"check": "biome check --write .",
+		"prepare": "husky"
+	},
+	"dependencies": {
+		"@megaforce/env": "workspace:*",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.0",
+		"@megaforce/config": "workspace:*",
+		"@types/bun": "catalog:",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.1.2",
+		"turbo": "^2.6.3",
+		"typescript": "catalog:"
+	},
+	"lint-staged": {
+		"*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
+			"biome check --write ."
+		]
+	},
+	"packageManager": "bun@1.3.4"
 }

@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.0.0",
+		"@elysiajs/eden": "^1.4.6",
 		"@hookform/resolvers": "^5.1.1",
 		"@megaforce/auth": "workspace:*",
 		"@megaforce/env": "workspace:*",
