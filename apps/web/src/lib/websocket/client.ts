@@ -5,14 +5,14 @@
 
 import { env } from "@megaforce/env/web";
 import type {
-	WsMessage,
-	WsEventType,
-	RoomIdentifier,
 	AuthPayload,
 	JoinRoomPayload,
 	LeaveRoomPayload,
+	RoomIdentifier,
+	WsEventType,
+	WsMessage,
 } from "./events";
-import { WS_EVENTS, createWsMessage } from "./events";
+import { createWsMessage, WS_EVENTS } from "./events";
 
 export enum ConnectionState {
 	DISCONNECTED = "DISCONNECTED",
@@ -187,7 +187,9 @@ export class WebSocketClient {
 		// Notify event listeners
 		const listeners = this.eventListeners.get(message.event);
 		if (listeners) {
-			listeners.forEach((listener) => listener(message));
+			for (const listener of listeners) {
+				listener(message);
+			}
 		}
 	}
 
@@ -302,7 +304,7 @@ export class WebSocketClient {
 		if (!this.eventListeners.has(event)) {
 			this.eventListeners.set(event, new Set());
 		}
-		this.eventListeners.get(event)!.add(listener);
+		this.eventListeners.get(event)?.add(listener);
 
 		// Return unsubscribe function
 		return () => this.off(event, listener);
@@ -336,7 +338,9 @@ export class WebSocketClient {
 		if (this.state !== newState) {
 			console.log(`WebSocket state: ${this.state} -> ${newState}`);
 			this.state = newState;
-			this.stateListeners.forEach((listener) => listener(newState));
+			for (const listener of this.stateListeners) {
+				listener(newState);
+			}
 		}
 	}
 
@@ -353,9 +357,10 @@ export class WebSocketClient {
 		// Exponential backoff with jitter
 		const delay =
 			Math.min(
-				this.config.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1),
+				this.config.reconnectInterval * 2 ** (this.reconnectAttempts - 1),
 				30000,
-			) + Math.random() * 1000;
+			) +
+			Math.random() * 1000;
 
 		console.log(
 			`Scheduling reconnect attempt ${this.reconnectAttempts}/${this.config.maxReconnectAttempts} in ${Math.round(delay)}ms`,

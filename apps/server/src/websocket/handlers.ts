@@ -191,9 +191,11 @@ function handleJoinRoom(
 	}
 
 	const joinedRooms: string[] = [];
+	const connectionId = ws.data.connectionId;
+	if (!connectionId) return;
 
 	for (const room of payload.rooms) {
-		const success = wsServer.joinRoom(ws.data.connectionId!, room);
+		const success = wsServer.joinRoom(connectionId, room);
 		if (success) {
 			joinedRooms.push(`${room.type}:${room.id}`);
 		}
@@ -226,10 +228,12 @@ function handleLeaveRoom(
 	}
 
 	const leftRooms: string[] = [];
+	const connectionId = ws.data.connectionId;
+	if (!connectionId) return;
 
 	for (const room of payload.rooms) {
 		const roomKey = `${room.type}:${room.id}`;
-		const success = wsServer.leaveRoom(ws.data.connectionId!, roomKey);
+		const success = wsServer.leaveRoom(connectionId, roomKey);
 		if (success) {
 			leftRooms.push(roomKey);
 		}

@@ -3,10 +3,10 @@
  * Provides easy-to-use hooks for WebSocket connection and real-time updates
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { getWebSocketClient, ConnectionState } from "./client";
-import type { WsMessage, WsEventType, RoomIdentifier } from "./events";
+import { ConnectionState, getWebSocketClient } from "./client";
+import type { RoomIdentifier, WsEventType, WsMessage } from "./events";
 
 // ============================================================================
 // useWebSocket Hook
@@ -28,9 +28,9 @@ export interface UseWebSocketReturn {
  * Automatically connects on mount if user is authenticated
  * Automatically disconnects on unmount
  */
-export function useWebSocket(options: {
-	autoConnect?: boolean;
-} = {}): UseWebSocketReturn {
+export function useWebSocket(
+	options: { autoConnect?: boolean } = {},
+): UseWebSocketReturn {
 	const { autoConnect = true } = options;
 	const client = getWebSocketClient();
 	const [state, setState] = useState<ConnectionState>(client.getState());
@@ -101,7 +101,7 @@ export function useWebSocket(options: {
 	}, [client]);
 
 	const send = useCallback(
-		<T,>(message: WsMessage<T>) => {
+		<T>(message: WsMessage<T>) => {
 			client.send(message);
 		},
 		[client],
@@ -243,9 +243,7 @@ export interface UseRoomSubscriptionOptions {
  * });
  * ```
  */
-export function useRoomSubscription(
-	options: UseRoomSubscriptionOptions,
-): void {
+export function useRoomSubscription(options: UseRoomSubscriptionOptions): void {
 	const { rooms, enabled = true } = options;
 	const client = getWebSocketClient();
 	const roomsRef = useRef(rooms);
