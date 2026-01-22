@@ -1,4 +1,4 @@
-import { apiClient, type ApiResponse } from "./client";
+import { type ApiResponse, apiClient } from "./client";
 
 /**
  * Source types
@@ -88,7 +88,9 @@ export const sourcesApi = {
 	/**
 	 * Test source connection
 	 */
-	async testConnection(id: string): Promise<ApiResponse<{ connected: boolean }>> {
+	async testConnection(
+		id: string,
+	): Promise<ApiResponse<{ connected: boolean }>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,

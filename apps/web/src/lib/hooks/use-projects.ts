@@ -1,14 +1,14 @@
 import {
+	type UseMutationOptions,
+	type UseQueryOptions,
 	useMutation,
 	useQuery,
 	useQueryClient,
-	type UseMutationOptions,
-	type UseQueryOptions,
 } from "@tanstack/react-query";
 import {
-	projectsApi,
 	type CreateProjectInput,
 	type Project,
+	projectsApi,
 	type UpdateProjectInput,
 } from "../api/projects";
 
@@ -110,7 +110,13 @@ export function useUpdateProject(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ id, input }: { id: string; input: UpdateProjectInput }) => {
+		mutationFn: async ({
+			id,
+			input,
+		}: {
+			id: string;
+			input: UpdateProjectInput;
+		}) => {
 			const response = await projectsApi.update(id, input);
 			if (response.error) {
 				throw new Error(response.error.message);
@@ -136,7 +142,11 @@ export function useUpdateProject(
  * Hook to delete a project
  */
 export function useDeleteProject(
-	options?: UseMutationOptions<void, Error, { id: string; workspaceId: string }>,
+	options?: UseMutationOptions<
+		void,
+		Error,
+		{ id: string; workspaceId: string }
+	>,
 ) {
 	const queryClient = useQueryClient();
 

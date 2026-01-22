@@ -1,15 +1,15 @@
 import {
+	type UseMutationOptions,
+	type UseQueryOptions,
 	useMutation,
 	useQuery,
 	useQueryClient,
-	type UseMutationOptions,
-	type UseQueryOptions,
 } from "@tanstack/react-query";
 import {
-	workspacesApi,
 	type CreateWorkspaceInput,
 	type UpdateWorkspaceInput,
 	type Workspace,
+	workspacesApi,
 } from "../api/workspaces";
 
 /**
@@ -27,10 +27,7 @@ export const workspaceKeys = {
  * Hook to fetch all workspaces
  */
 export function useWorkspaces(
-	options?: Omit<
-		UseQueryOptions<Workspace[], Error>,
-		"queryKey" | "queryFn"
-	>,
+	options?: Omit<UseQueryOptions<Workspace[], Error>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: workspaceKeys.list(),
@@ -108,7 +105,13 @@ export function useUpdateWorkspace(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ id, input }: { id: string; input: UpdateWorkspaceInput }) => {
+		mutationFn: async ({
+			id,
+			input,
+		}: {
+			id: string;
+			input: UpdateWorkspaceInput;
+		}) => {
 			const response = await workspacesApi.update(id, input);
 			if (response.error) {
 				throw new Error(response.error.message);

@@ -1,4 +1,4 @@
-import { apiClient, type ApiResponse } from "./client";
+import { type ApiResponse, apiClient } from "./client";
 
 /**
  * Project types
@@ -22,7 +22,9 @@ export type CreateProjectInput = {
 	settings?: Record<string, unknown>;
 };
 
-export type UpdateProjectInput = Partial<Omit<CreateProjectInput, "workspaceId">>;
+export type UpdateProjectInput = Partial<
+	Omit<CreateProjectInput, "workspaceId">
+>;
 
 /**
  * Project API functions

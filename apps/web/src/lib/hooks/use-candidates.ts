@@ -1,14 +1,14 @@
 import {
+	type UseMutationOptions,
+	type UseQueryOptions,
 	useMutation,
 	useQuery,
 	useQueryClient,
-	type UseMutationOptions,
-	type UseQueryOptions,
 } from "@tanstack/react-query";
 import {
-	candidatesApi,
 	type Candidate,
 	type CreateCandidateInput,
+	candidatesApi,
 	type UpdateCandidateInput,
 } from "../api/candidates";
 
@@ -110,7 +110,13 @@ export function useUpdateCandidate(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ id, input }: { id: string; input: UpdateCandidateInput }) => {
+		mutationFn: async ({
+			id,
+			input,
+		}: {
+			id: string;
+			input: UpdateCandidateInput;
+		}) => {
 			const response = await candidatesApi.update(id, input);
 			if (response.error) {
 				throw new Error(response.error.message);
@@ -161,7 +167,11 @@ export function useDeleteCandidate(
  * Hook to approve a candidate
  */
 export function useApproveCandidate(
-	options?: UseMutationOptions<Candidate, Error, { id: string; projectId: string }>,
+	options?: UseMutationOptions<
+		Candidate,
+		Error,
+		{ id: string; projectId: string }
+	>,
 ) {
 	const queryClient = useQueryClient();
 
@@ -192,7 +202,11 @@ export function useApproveCandidate(
  * Hook to reject a candidate
  */
 export function useRejectCandidate(
-	options?: UseMutationOptions<Candidate, Error, { id: string; projectId: string }>,
+	options?: UseMutationOptions<
+		Candidate,
+		Error,
+		{ id: string; projectId: string }
+	>,
 ) {
 	const queryClient = useQueryClient();
 

@@ -1,4 +1,4 @@
-import { apiClient, type ApiResponse } from "./client";
+import { type ApiResponse, apiClient } from "./client";
 
 /**
  * Persona types
@@ -24,7 +24,9 @@ export type CreatePersonaInput = {
 	expertise?: string[];
 };
 
-export type UpdatePersonaInput = Partial<Omit<CreatePersonaInput, "workspaceId">>;
+export type UpdatePersonaInput = Partial<
+	Omit<CreatePersonaInput, "workspaceId">
+>;
 
 /**
  * Persona API functions
