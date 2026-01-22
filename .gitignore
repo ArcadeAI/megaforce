@@ -53,3 +53,13 @@ temp
 
 # Claude Code local settings
 .claude/*.local.json
+
+# Secret protection (auto-added by claude-session)
+.env.local
+.env.claude-session
+*.key
+*.pem
+*credentials*.json
+*secrets*.json
+*.p12
+*.pfx
