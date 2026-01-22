@@ -1,10 +1,11 @@
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
 	createRootRouteWithContext,
 	HeadContent,
 	Outlet,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -58,6 +59,7 @@ function RootComponent() {
 					</div>
 					<Toaster richColors />
 				</ThemeProvider>
+				<ReactQueryDevtools initialIsOpen={false} />
 			</QueryClientProvider>
 			<TanStackRouterDevtools position="bottom-left" />
 		</>
