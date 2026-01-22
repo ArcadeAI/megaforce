@@ -8,7 +8,7 @@ import {
 	handleMessage,
 	handleOpen,
 } from "./websocket/handlers";
-import { initWsServer, type WsData } from "./websocket/server";
+import { initWsServer } from "./websocket/server";
 
 // Initialize WebSocket server (room/client management)
 const wsServer = initWsServer();
