@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.972.0",
 		"@elysiajs/cors": "^1.4.1",
+		"@elysiajs/eden": "catalog:",
 		"@megaforce/auth": "workspace:*",
 		"@megaforce/db": "workspace:*",
 		"@megaforce/env": "workspace:*",

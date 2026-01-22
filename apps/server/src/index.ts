@@ -3,7 +3,7 @@ import { auth } from "@megaforce/auth";
 import { env } from "@megaforce/env/server";
 import { Elysia } from "elysia";
 
-new Elysia()
+const app = new Elysia()
 	.use(
 		cors({
 			origin: env.CORS_ORIGIN,
@@ -23,3 +23,5 @@ new Elysia()
 	.listen(3000, () => {
 		console.log("Server is running on http://localhost:3000");
 	});
+
+export type App = typeof app;
