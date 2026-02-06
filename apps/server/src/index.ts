@@ -5,6 +5,15 @@ import { Elysia } from "elysia";
 import { requireAuth } from "./middleware/auth";
 import { handleError } from "./middleware/error-handler";
 import { requireWorkspace } from "./middleware/workspace";
+import { analyticsRoutes } from "./routes/analytics";
+import { candidatesRoutes } from "./routes/candidates";
+import { personasRoutes } from "./routes/personas";
+import { projectsRoutes } from "./routes/projects";
+import { publishingRoutes } from "./routes/publishing";
+import { socialChannelsRoutes } from "./routes/social-channels";
+import { sourcesRoutes } from "./routes/sources";
+import { uploadRoutes } from "./routes/upload";
+import { workspacesRoutes } from "./routes/workspaces";
 import {
 	generateConnectionId,
 	handleClose,
@@ -77,6 +86,16 @@ const app = new Elysia()
 				}),
 		// Add more protected routes here as needed
 	)
+	// API Routes
+	.use(workspacesRoutes)
+	.use(sourcesRoutes)
+	.use(personasRoutes)
+	.use(projectsRoutes)
+	.use(candidatesRoutes)
+	.use(publishingRoutes)
+	.use(socialChannelsRoutes)
+	.use(analyticsRoutes)
+	.use(uploadRoutes)
 	.ws("/ws", {
 		open(ws) {
 			// Initialize connection data on open
