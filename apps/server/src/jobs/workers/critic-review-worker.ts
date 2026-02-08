@@ -97,7 +97,7 @@ async function reviseArtifact(
 			: JSON.stringify(currentContent, null, 2);
 
 	const systemPrompt = `You are a content revision AI. Revise the provided ${artifactType} based on critic feedback.
-${artifactType === "content" ? "Respond with the revised content as plain text." : "Respond with valid JSON matching the same structure as the input."}`;
+${artifactType === "outline" ? "Respond with valid JSON matching the same structure as the input." : "Respond with the revised content as plain text (Markdown for plans, plain text for content)."}`;
 
 	const userPrompt = `Session context:\n${sessionContext}
 
@@ -116,10 +116,14 @@ Please revise the ${artifactType} to address the objections and incorporate the 
 		{ role: "user", content: userPrompt },
 	];
 
-	if (artifactType === "content") {
-		return chatCompletion(messages, { temperature: 0.5, maxTokens: 8192 });
+	if (artifactType === "outline") {
+		return chatCompletionJSON(messages, { temperature: 0.5, maxTokens: 4096 });
 	}
-	return chatCompletionJSON(messages, { temperature: 0.5, maxTokens: 4096 });
+	// Plans (markdown) and content (plain text) both use plain completion
+	return chatCompletion(messages, {
+		temperature: 0.5,
+		maxTokens: artifactType === "content" ? 8192 : 4096,
+	});
 }
 
 async function getSessionContext(sessionId: string): Promise<string> {
@@ -327,7 +331,7 @@ async function processCriticReview(
 			await prisma.plan.update({
 				where: { id: artifactId },
 				data: {
-					content: revisedContent as object,
+					content: revisedContent as string,
 					status: "CRITIC_REVIEWING",
 					criticIterations: iteration,
 					criticFeedback: [

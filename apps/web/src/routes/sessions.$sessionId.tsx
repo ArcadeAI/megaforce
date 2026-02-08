@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { SessionEditor } from "@/components/editor/session-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -134,10 +135,70 @@ const DATA_SOURCE_MODES = [
 ] as const;
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Convert plan content to a displayable markdown string.
+ * New plans are stored as markdown strings; legacy plans are JSON objects.
+ */
+function planContentToMarkdown(content: unknown): string {
+	if (typeof content === "string") return content;
+	// Legacy JSON plan — render as readable markdown
+	const plan = content as Record<string, unknown>;
+	const lines: string[] = [];
+	if (plan.executiveSummary) {
+		lines.push("## Executive Summary", String(plan.executiveSummary), "");
+	}
+	if (plan.targetAudience) {
+		lines.push("## Target Audience", String(plan.targetAudience), "");
+	}
+	if (Array.isArray(plan.keyMessages) && plan.keyMessages.length > 0) {
+		lines.push("## Key Messages");
+		for (const msg of plan.keyMessages) lines.push(`- ${msg}`);
+		lines.push("");
+	}
+	const structure = plan.contentStructure as Record<string, unknown> | null;
+	if (structure) {
+		lines.push("## Content Structure");
+		if (structure.format) lines.push(`**Format:** ${structure.format}`);
+		if (structure.estimatedLength)
+			lines.push(`**Estimated Length:** ${structure.estimatedLength}`);
+		const sections = structure.sections as
+			| Array<{ title: string; purpose: string }>
+			| undefined;
+		if (sections?.length) {
+			lines.push("");
+			for (const s of sections) lines.push(`- **${s.title}** — ${s.purpose}`);
+		}
+		lines.push("");
+	}
+	if (Array.isArray(plan.successCriteria) && plan.successCriteria.length > 0) {
+		lines.push("## Success Criteria");
+		for (const c of plan.successCriteria) lines.push(`- ${c}`);
+		lines.push("");
+	}
+	if (plan.toneAndStyle) {
+		lines.push("## Tone & Style", String(plan.toneAndStyle), "");
+	}
+	// If we couldn't extract anything meaningful, fall back to formatted JSON
+	if (lines.length === 0) return JSON.stringify(content, null, 2);
+	return lines.join("\n");
+}
+
+// ============================================================================
 // Stage Stepper
 // ============================================================================
 
-function StageStepper({ currentStage }: { currentStage: string }) {
+function StageStepper({
+	currentStage,
+	viewingStage,
+	onStageClick,
+}: {
+	currentStage: string;
+	viewingStage: string;
+	onStageClick: (stage: string) => void;
+}) {
 	const currentIndex = STAGES.indexOf(currentStage as (typeof STAGES)[number]);
 
 	return (
@@ -145,7 +206,7 @@ function StageStepper({ currentStage }: { currentStage: string }) {
 			{STAGES.map((stage, index) => {
 				const isComplete = index < currentIndex;
 				const isCurrent = index === currentIndex;
-				const _isFuture = index > currentIndex;
+				const isViewing = stage === viewingStage;
 
 				return (
 					<div key={stage} className="flex items-center">
@@ -156,13 +217,20 @@ function StageStepper({ currentStage }: { currentStage: string }) {
 								}`}
 							/>
 						)}
-						<div
-							className={`flex items-center gap-1.5 rounded-sm px-2 py-1 text-[11px] ${
-								isCurrent
+						<button
+							type="button"
+							disabled={!isComplete && !isCurrent}
+							onClick={() => {
+								if (isComplete || isCurrent) onStageClick(stage);
+							}}
+							className={`flex items-center gap-1.5 rounded-sm px-2 py-1 text-[11px] transition-colors ${
+								isViewing
 									? "bg-primary/15 font-medium text-primary"
 									: isComplete
-										? "text-primary/70"
-										: "text-muted-foreground"
+										? "cursor-pointer text-primary/70 hover:bg-primary/10"
+										: isCurrent
+											? "text-primary"
+											: "text-muted-foreground"
 							}`}
 						>
 							<span
@@ -179,10 +247,376 @@ function StageStepper({ currentStage }: { currentStage: string }) {
 							<span className="hidden whitespace-nowrap sm:inline">
 								{STAGE_LABELS[stage]}
 							</span>
-						</div>
+						</button>
 					</div>
 				);
 			})}
+		</div>
+	);
+}
+
+// ============================================================================
+// Critic Feedback Panel
+// ============================================================================
+
+interface CriticFeedbackEntry {
+	iteration: number;
+	approved: boolean;
+	score: number;
+	objections: string[];
+	suggestions: string[];
+	summary: string;
+	timestamp: string;
+}
+
+function CriticFeedbackPanel({
+	criticFeedback,
+	criticIterations,
+}: {
+	criticFeedback: unknown[] | null;
+	criticIterations: number;
+}) {
+	const [isOpen, setIsOpen] = useState(false);
+
+	if (!criticFeedback || criticFeedback.length === 0) return null;
+
+	const entries = criticFeedback as CriticFeedbackEntry[];
+	const reversed = [...entries].reverse();
+
+	const scoreColor = (score: number) => {
+		if (score >= 8) return "bg-green-500/20 text-green-400";
+		if (score >= 5) return "bg-amber-500/20 text-amber-400";
+		return "bg-red-500/20 text-red-400";
+	};
+
+	return (
+		<div className="border border-border">
+			<button
+				type="button"
+				onClick={() => setIsOpen(!isOpen)}
+				className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-muted/50"
+			>
+				<span className="font-medium text-xs">
+					Critic Feedback ({criticIterations} iteration
+					{criticIterations !== 1 ? "s" : ""})
+				</span>
+				<span className="text-muted-foreground text-xs">
+					{isOpen ? "\u25B2" : "\u25BC"}
+				</span>
+			</button>
+
+			{isOpen && (
+				<div className="space-y-3 border-border border-t px-4 py-3">
+					{reversed.map((entry) => (
+						<div
+							key={entry.iteration}
+							className="space-y-2 border border-border p-3"
+						>
+							<div className="flex items-center gap-2">
+								<span className="text-[10px] text-muted-foreground">
+									Iteration {entry.iteration}
+								</span>
+								<span
+									className={`rounded-sm px-1.5 py-0.5 font-medium text-[10px] ${scoreColor(entry.score)}`}
+								>
+									{entry.score}/10
+								</span>
+								<span
+									className={`rounded-sm px-1.5 py-0.5 text-[10px] ${
+										entry.approved
+											? "bg-green-500/20 text-green-400"
+											: "bg-red-500/20 text-red-400"
+									}`}
+								>
+									{entry.approved ? "Approved" : "Rejected"}
+								</span>
+								{entry.timestamp && (
+									<span className="ml-auto text-[10px] text-muted-foreground">
+										{new Date(entry.timestamp).toLocaleString()}
+									</span>
+								)}
+							</div>
+
+							{entry.summary && (
+								<p className="text-xs leading-relaxed">{entry.summary}</p>
+							)}
+
+							{entry.objections.length > 0 && (
+								<div>
+									<span className="font-medium text-[10px] text-red-400">
+										Objections
+									</span>
+									<ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground text-xs">
+										{entry.objections.map((obj) => (
+											<li key={obj}>{obj}</li>
+										))}
+									</ul>
+								</div>
+							)}
+
+							{entry.suggestions.length > 0 && (
+								<div>
+									<span className="font-medium text-[10px] text-blue-400">
+										Suggestions
+									</span>
+									<ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground text-xs">
+										{entry.suggestions.map((sug) => (
+											<li key={sug}>{sug}</li>
+										))}
+									</ul>
+								</div>
+							)}
+						</div>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ============================================================================
+// Read-only Stage Views (for viewing completed stages)
+// ============================================================================
+
+function ReadOnlyOutputSelection({ session }: { session: Session }) {
+	const selected = session.outputTypes ?? [];
+	return (
+		<div className="space-y-4">
+			<h2 className="font-semibold text-lg">Output Selection</h2>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+				{OUTPUT_TYPES.filter((t) => selected.includes(t.value)).map((type) => (
+					<Card key={type.value} className="border-primary/30 bg-primary/5">
+						<CardHeader>
+							<CardTitle>{type.label}</CardTitle>
+							<CardDescription>{type.description}</CardDescription>
+						</CardHeader>
+					</Card>
+				))}
+			</div>
+		</div>
+	);
+}
+
+function ReadOnlyClarifying({ session }: { session: Session }) {
+	const answers = (session.clarifyingAnswers as Record<string, string>) ?? {};
+	return (
+		<div className="space-y-4">
+			<h2 className="font-semibold text-lg">Clarifying Details</h2>
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+				{answers.tone && (
+					<div>
+						<Label className="text-muted-foreground">Tone</Label>
+						<p className="text-xs">{answers.tone}</p>
+					</div>
+				)}
+				{answers.audience && (
+					<div>
+						<Label className="text-muted-foreground">Audience</Label>
+						<p className="text-xs">{answers.audience}</p>
+					</div>
+				)}
+				{answers.keywords && (
+					<div>
+						<Label className="text-muted-foreground">Keywords</Label>
+						<p className="text-xs">{answers.keywords}</p>
+					</div>
+				)}
+				{answers.additionalContext && (
+					<div className="lg:col-span-2">
+						<Label className="text-muted-foreground">Additional Context</Label>
+						<p className="whitespace-pre-wrap text-xs">
+							{answers.additionalContext}
+						</p>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function ReadOnlyPersona({ session }: { session: Session }) {
+	const persona = session.sessionPersonas?.[0];
+	return (
+		<div className="space-y-4">
+			<h2 className="font-semibold text-lg">Selected Persona</h2>
+			{persona ? (
+				<Card className="border-primary/30 bg-primary/5">
+					<CardHeader>
+						<CardTitle>{persona.persona?.name ?? "Persona"}</CardTitle>
+					</CardHeader>
+					{persona.persona?.description && (
+						<CardContent>
+							<p className="text-muted-foreground text-xs">
+								{persona.persona.description}
+							</p>
+						</CardContent>
+					)}
+				</Card>
+			) : (
+				<p className="text-muted-foreground text-xs">No persona selected.</p>
+			)}
+		</div>
+	);
+}
+
+function ReadOnlyPlan({ session }: { session: Session }) {
+	const { data: plan } = usePlan(session.id);
+
+	if (!plan) {
+		return (
+			<div className="space-y-4">
+				<h2 className="font-semibold text-lg">Content Plan</h2>
+				<p className="text-muted-foreground text-xs">No plan data available.</p>
+			</div>
+		);
+	}
+
+	const contentMd = planContentToMarkdown(plan.content);
+
+	return (
+		<div className="space-y-4">
+			<h2 className="font-semibold text-lg">Content Plan</h2>
+			<Card>
+				<CardHeader>
+					<CardTitle>Plan v{plan.version}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<SessionEditor content={contentMd} editable={false} markdown />
+				</CardContent>
+			</Card>
+			<CriticFeedbackPanel
+				criticFeedback={plan.criticFeedback}
+				criticIterations={plan.criticIterations}
+			/>
+		</div>
+	);
+}
+
+function ReadOnlyOutline({ session }: { session: Session }) {
+	const { data: outline } = useOutline(session.id);
+
+	if (!outline) {
+		return (
+			<div className="space-y-4">
+				<h2 className="font-semibold text-lg">Content Outline</h2>
+				<p className="text-muted-foreground text-xs">
+					No outline data available.
+				</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-4">
+			<h2 className="font-semibold text-lg">Content Outline</h2>
+			<Card>
+				<CardHeader>
+					<CardTitle>Outline v{outline.version}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<ReadOnlyOutlineContent content={outline.content} />
+				</CardContent>
+			</Card>
+			<CriticFeedbackPanel
+				criticFeedback={outline.criticFeedback}
+				criticIterations={outline.criticIterations}
+			/>
+		</div>
+	);
+}
+
+function ReadOnlyOutlineContent({ content }: { content: unknown }) {
+	if (typeof content === "string") {
+		return (
+			<div className="whitespace-pre-wrap text-xs leading-relaxed">
+				{content}
+			</div>
+		);
+	}
+
+	const structured = content as {
+		sections?: Array<{
+			title: string;
+			subsections?: Array<{ title: string; keyPoints?: string[] }>;
+			keyPoints?: string[];
+		}>;
+	};
+
+	if (structured?.sections) {
+		return (
+			<div className="space-y-4">
+				{structured.sections.map((section, i) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated sections have no stable ID
+					<div key={`ro-section-${i}`} className="space-y-2">
+						<h4 className="font-semibold text-sm">
+							{i + 1}. {section.title}
+						</h4>
+						{section.keyPoints && (
+							<ul className="ml-4 list-disc space-y-1 text-muted-foreground text-xs">
+								{section.keyPoints.map((point, j) => (
+									// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated points have no stable ID
+									<li key={`ro-point-${i}-${j}`}>{point}</li>
+								))}
+							</ul>
+						)}
+						{section.subsections?.map((sub, k) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated subsections have no stable ID
+							<div key={`ro-sub-${i}-${k}`} className="ml-4 space-y-1">
+								<h5 className="font-medium text-xs">
+									{i + 1}.{k + 1} {sub.title}
+								</h5>
+								{sub.keyPoints && (
+									<ul className="ml-4 list-disc space-y-0.5 text-muted-foreground text-xs">
+										{sub.keyPoints.map((point, l) => (
+											// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated points have no stable ID
+											<li key={`ro-subpoint-${i}-${k}-${l}`}>{point}</li>
+										))}
+									</ul>
+								)}
+							</div>
+						))}
+					</div>
+				))}
+			</div>
+		);
+	}
+
+	return (
+		<div className="whitespace-pre-wrap text-xs leading-relaxed">
+			{JSON.stringify(content, null, 2)}
+		</div>
+	);
+}
+
+function ReadOnlyGeneration({ session }: { session: Session }) {
+	const { data: content } = useContent(session.id);
+
+	if (!content) {
+		return (
+			<div className="space-y-4">
+				<h2 className="font-semibold text-lg">Generated Content</h2>
+				<p className="text-muted-foreground text-xs">
+					No content data available.
+				</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-4">
+			<h2 className="font-semibold text-lg">Generated Content</h2>
+			<Card>
+				<CardHeader>
+					<CardTitle>Content v{content.version}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<SessionEditor content={content.content} editable={false} markdown />
+				</CardContent>
+			</Card>
+			<CriticFeedbackPanel
+				criticFeedback={content.criticFeedback}
+				criticIterations={content.criticIterations}
+			/>
 		</div>
 	);
 }
@@ -632,11 +1066,7 @@ function PlanStage({ session }: { session: Session }) {
 	};
 
 	const handleStartEdit = () => {
-		const content =
-			typeof plan?.content === "string"
-				? plan.content
-				: JSON.stringify(plan?.content, null, 2);
-		setEditedContent(content);
+		setEditedContent(planContentToMarkdown(plan?.content));
 		setIsEditing(true);
 	};
 
@@ -733,13 +1163,20 @@ function PlanStage({ session }: { session: Session }) {
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="whitespace-pre-wrap text-xs leading-relaxed">
-							{typeof plan.content === "string"
-								? plan.content
-								: JSON.stringify(plan.content, null, 2)}
-						</div>
+						<SessionEditor
+							content={planContentToMarkdown(plan.content)}
+							editable={false}
+							markdown
+						/>
 					</CardContent>
 				</Card>
+			)}
+
+			{hasPlan && !isEditing && (
+				<CriticFeedbackPanel
+					criticFeedback={plan.criticFeedback}
+					criticIterations={plan.criticIterations}
+				/>
 			)}
 
 			{hasPlan && isEditing && (
@@ -748,11 +1185,11 @@ function PlanStage({ session }: { session: Session }) {
 						<CardTitle>Edit Plan</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<textarea
-							value={editedContent}
-							onChange={(e) => setEditedContent(e.target.value)}
-							rows={16}
-							className="w-full rounded-none border border-input bg-transparent p-3 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+						<SessionEditor
+							content={editedContent}
+							onChange={setEditedContent}
+							editable={true}
+							markdown
 						/>
 						<div className="mt-3 flex justify-end gap-2">
 							<Button
@@ -973,6 +1410,13 @@ function OutlineStage({ session }: { session: Session }) {
 				</Card>
 			)}
 
+			{hasOutline && (
+				<CriticFeedbackPanel
+					criticFeedback={outline.criticFeedback}
+					criticIterations={outline.criticIterations}
+				/>
+			)}
+
 			{hasOutline && !isInProgress && outline.status !== "USER_APPROVED" && (
 				<div className="flex justify-end gap-2">
 					<Button variant="outline" size="sm" onClick={handleReject}>
@@ -1101,11 +1545,20 @@ function GenerationStage({ session }: { session: Session }) {
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-xs leading-relaxed">
-							{content.content}
-						</div>
+						<SessionEditor
+							content={content.content}
+							editable={false}
+							markdown
+						/>
 					</CardContent>
 				</Card>
+			)}
+
+			{hasContent && (
+				<CriticFeedbackPanel
+					criticFeedback={content.criticFeedback}
+					criticIterations={content.criticIterations}
+				/>
 			)}
 
 			{hasContent && !isInProgress && (
@@ -1184,6 +1637,14 @@ function SessionDetailPage() {
 	const currentStageIndex = STAGES.indexOf(
 		currentStage as (typeof STAGES)[number],
 	);
+	const [viewingStage, setViewingStage] = useState(currentStage);
+
+	// Keep viewingStage in sync when currentStage changes (e.g., after advancing)
+	useEffect(() => {
+		setViewingStage(currentStage);
+	}, [currentStage]);
+
+	const isViewingPast = viewingStage !== currentStage;
 
 	const handleBack = () => {
 		goBack.mutate(sessionId);
@@ -1223,6 +1684,25 @@ function SessionDetailPage() {
 		);
 	}
 
+	const renderReadOnlyStage = () => {
+		switch (viewingStage) {
+			case "OUTPUT_SELECTION":
+				return <ReadOnlyOutputSelection session={session} />;
+			case "CLARIFYING":
+				return <ReadOnlyClarifying session={session} />;
+			case "PERSONA":
+				return <ReadOnlyPersona session={session} />;
+			case "PLAN":
+				return <ReadOnlyPlan session={session} />;
+			case "OUTLINE":
+				return <ReadOnlyOutline session={session} />;
+			case "GENERATION":
+				return <ReadOnlyGeneration session={session} />;
+			default:
+				return null;
+		}
+	};
+
 	const renderStage = () => {
 		switch (currentStage) {
 			case "OUTPUT_SELECTION":
@@ -1250,23 +1730,46 @@ function SessionDetailPage() {
 
 	return (
 		<div className="flex h-full flex-col">
-			<StageStepper currentStage={currentStage} />
+			<StageStepper
+				currentStage={currentStage}
+				viewingStage={viewingStage}
+				onStageClick={setViewingStage}
+			/>
 
 			<div className="flex-1 overflow-y-auto p-6">
-				{currentStageIndex > 0 && currentStage !== "COMPLETE" && (
-					<div className="mb-4">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleBack}
-							disabled={goBack.isPending}
+				{isViewingPast && (
+					<div className="mb-4 flex items-center gap-2 border border-border bg-muted/50 px-3 py-2 text-muted-foreground text-xs">
+						Viewing completed stage
+						<button
+							type="button"
+							onClick={() => setViewingStage(currentStage)}
+							className="font-medium text-primary hover:underline"
 						>
-							{goBack.isPending ? "Going back..." : "\u2190 Back"}
-						</Button>
+							Return to current
+						</button>
 					</div>
 				)}
 
-				{renderStage()}
+				{isViewingPast ? (
+					renderReadOnlyStage()
+				) : (
+					<>
+						{currentStageIndex > 0 && currentStage !== "COMPLETE" && (
+							<div className="mb-4">
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={handleBack}
+									disabled={goBack.isPending}
+								>
+									{goBack.isPending ? "Going back..." : "\u2190 Back"}
+								</Button>
+							</div>
+						)}
+
+						{renderStage()}
+					</>
+				)}
 			</div>
 		</div>
 	);

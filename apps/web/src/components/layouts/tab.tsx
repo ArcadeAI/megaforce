@@ -35,6 +35,12 @@ export function Tab({
 			onDragOver={onDragOver}
 			onDrop={(e) => onDrop?.(e, tab.id)}
 			onClick={() => onSelect(tab.id)}
+			onAuxClick={(e) => {
+				if (e.button === 1) {
+					e.preventDefault();
+					onClose(tab.id);
+				}
+			}}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();

@@ -1,6 +1,6 @@
 import prisma from "@megaforce/db";
 import { type Job, Worker } from "bullmq";
-import { type ChatMessage, chatCompletionJSON } from "../../lib/llm";
+import { type ChatMessage, chatCompletion } from "../../lib/llm";
 import {
 	createWsMessage,
 	type PlanGeneratedPayload,
@@ -14,22 +14,6 @@ import {
 	type PlanGenerationJobData,
 	QueueName,
 } from "../queue";
-
-interface PlanContent {
-	executiveSummary: string;
-	targetAudience: string;
-	keyMessages: string[];
-	contentStructure: {
-		format: string;
-		estimatedLength: string;
-		sections: Array<{
-			title: string;
-			purpose: string;
-		}>;
-	};
-	successCriteria: string[];
-	toneAndStyle: string;
-}
 
 async function processPlanGeneration(
 	job: Job<PlanGenerationJobData>,
@@ -65,19 +49,28 @@ async function processPlanGeneration(
 	const sources = session.sessionSources.map((ss) => ss.source);
 
 	const systemPrompt = `You are a content strategist AI. Generate a detailed content plan based on the user's requirements.
-You MUST respond with valid JSON matching this structure:
-{
-  "executiveSummary": "Brief overview of the content plan",
-  "targetAudience": "Description of the target audience",
-  "keyMessages": ["message1", "message2", ...],
-  "contentStructure": {
-    "format": "The content format",
-    "estimatedLength": "Estimated word count/length",
-    "sections": [{"title": "Section name", "purpose": "What this section achieves"}]
-  },
-  "successCriteria": ["criterion1", "criterion2", ...],
-  "toneAndStyle": "Description of the writing tone and style"
-}`;
+
+Respond in well-structured Markdown. Use the following sections with headings:
+
+## Executive Summary
+A brief overview of the content plan.
+
+## Target Audience
+Description of who this content is for.
+
+## Key Messages
+A bulleted list of the core messages to convey.
+
+## Content Structure
+The format, estimated length, and a list of planned sections with their purpose.
+
+## Success Criteria
+A bulleted list of measurable criteria for success.
+
+## Tone & Style
+Description of the writing tone and style to use.
+
+Write clearly and concisely. Do not wrap output in code fences.`;
 
 	let userPrompt = `Create a content plan for the following:
 
@@ -119,8 +112,8 @@ You MUST respond with valid JSON matching this structure:
 		{ role: "user", content: userPrompt },
 	];
 
-	// Generate the plan via LLM
-	const planContent = await chatCompletionJSON<PlanContent>(messages, {
+	// Generate the plan via LLM (markdown)
+	const planContent = await chatCompletion(messages, {
 		temperature: 0.7,
 		maxTokens: 4096,
 	});
@@ -131,7 +124,7 @@ You MUST respond with valid JSON matching this structure:
 	const plan = job.data.planId
 		? await prisma.plan.update({
 				where: { id: job.data.planId },
-				data: { content: planContent as object },
+				data: { content: planContent },
 			})
 		: await (async () => {
 				const latestPlan = await prisma.plan.findFirst({
@@ -142,7 +135,7 @@ You MUST respond with valid JSON matching this structure:
 					data: {
 						sessionId,
 						version: (latestPlan?.version ?? 0) + 1,
-						content: planContent as object,
+						content: planContent,
 						status: "DRAFT",
 						criticIterations: 0,
 					},
