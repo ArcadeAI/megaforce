@@ -3,8 +3,8 @@
  * Handle incoming connections, authentication, and messages
  */
 
-import { auth } from "@megaforce/auth";
 import prisma from "@megaforce/db";
+import { verifyWsToken } from "../routes/ws-auth";
 import {
 	type AuthPayload,
 	createWsMessage,
@@ -40,28 +40,25 @@ function sendError(ws: AuthenticatedWebSocket, message: string): void {
 }
 
 /**
- * Authenticate a WebSocket connection using a session token
+ * Authenticate a WebSocket connection using a WebSocket token
  */
 async function authenticateConnection(
 	token: string,
 ): Promise<{ userId: string; user: { id: string; email: string } } | null> {
 	try {
-		// Verify the session token using better-auth
-		const session = await auth.api.getSession({
-			headers: {
-				authorization: `Bearer ${token}`,
-			},
-		});
+		// Verify the WebSocket token
+		const userData = verifyWsToken(token);
 
-		if (!session?.user?.id) {
+		if (!userData) {
+			console.error("Invalid or expired WebSocket token");
 			return null;
 		}
 
 		return {
-			userId: session.user.id,
+			userId: userData.userId,
 			user: {
-				id: session.user.id,
-				email: session.user.email,
+				id: userData.userId,
+				email: userData.email,
 			},
 		};
 	} catch (error) {
@@ -275,12 +272,14 @@ async function handlePing(ws: AuthenticatedWebSocket): Promise<void> {
 export async function handleMessage(
 	ws: AuthenticatedWebSocket,
 	wsServer: WsServer,
-	data: string | Buffer,
+	data: string | Buffer | Record<string, unknown>,
 ): Promise<void> {
 	try {
-		const message: WsMessage = JSON.parse(
-			typeof data === "string" ? data : data.toString(),
-		);
+		// Handle case where Elysia has already parsed the JSON
+		const message: WsMessage =
+			typeof data === "object" && !Buffer.isBuffer(data)
+				? (data as WsMessage)
+				: JSON.parse(typeof data === "string" ? data : data.toString());
 
 		switch (message.event) {
 			case WS_EVENTS.AUTH:
