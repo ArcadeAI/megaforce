@@ -245,6 +245,7 @@ export function useApprovePlan(
 			return sessionsApi.approvePlan(sessionId);
 		},
 		onSuccess: (_, sessionId) => {
+			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.plan(sessionId),
 			});
@@ -345,6 +346,7 @@ export function useApproveOutline(
 			return sessionsApi.approveOutline(sessionId);
 		},
 		onSuccess: (_, sessionId) => {
+			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.outline(sessionId),
 			});
@@ -444,6 +446,7 @@ export function useApproveContent(
 			return sessionsApi.approveContent(sessionId);
 		},
 		onSuccess: (_, sessionId) => {
+			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.content(sessionId),
 			});

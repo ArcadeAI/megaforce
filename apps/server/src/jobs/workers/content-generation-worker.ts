@@ -25,14 +25,123 @@ interface OutlineSection {
 	}>;
 }
 
-interface OutlineContent {
-	sections: OutlineSection[];
-}
-
 interface GeneratedSection {
 	title: string;
 	content: string;
 	outlineSectionIndex: number;
+}
+
+/**
+ * Extract sections from outline content, handling multiple formats:
+ * 1. Structured JSON: { sections: [{ title, subsections }] }
+ * 2. Nested/wrapped JSON: { outline: { sections: [...] } } or similar
+ * 3. Array at top level: [{ title, subsections }]
+ * 4. Markdown string: parse headings into sections
+ */
+function extractOutlineSections(content: unknown): OutlineSection[] {
+	if (!content) return [];
+
+	// Handle string content (markdown from user edits)
+	if (typeof content === "string") {
+		return parseMarkdownToSections(content);
+	}
+
+	if (typeof content !== "object") return [];
+
+	// Direct { sections: [...] } format
+	const obj = content as Record<string, unknown>;
+	if (Array.isArray(obj.sections) && obj.sections.length > 0) {
+		return normalizeSections(obj.sections);
+	}
+
+	// Top-level array
+	if (Array.isArray(content) && content.length > 0) {
+		return normalizeSections(content);
+	}
+
+	// Nested wrapper: look one level deep for a sections array
+	for (const value of Object.values(obj)) {
+		if (value && typeof value === "object") {
+			if (Array.isArray(value) && value.length > 0) {
+				const normalized = normalizeSections(value);
+				if (normalized.length > 0) return normalized;
+			}
+			const nested = value as Record<string, unknown>;
+			if (Array.isArray(nested.sections) && nested.sections.length > 0) {
+				return normalizeSections(nested.sections);
+			}
+		}
+	}
+
+	return [];
+}
+
+function normalizeSections(items: unknown[]): OutlineSection[] {
+	return items
+		.filter(
+			(item): item is Record<string, unknown> =>
+				typeof item === "object" && item !== null && "title" in item,
+		)
+		.map((item) => ({
+			title: String(item.title),
+			subsections: Array.isArray(item.subsections)
+				? item.subsections.map((sub: Record<string, unknown>) => ({
+						title: String(sub.title ?? ""),
+						keyPoints: Array.isArray(sub.keyPoints)
+							? sub.keyPoints.map(String)
+							: [],
+					}))
+				: [],
+		}));
+}
+
+function parseMarkdownToSections(markdown: string): OutlineSection[] {
+	const lines = markdown.split("\n");
+	const sections: OutlineSection[] = [];
+	let currentSection: OutlineSection | null = null;
+	let currentSubsection: { title: string; keyPoints: string[] } | null = null;
+
+	for (const line of lines) {
+		const h2Match = line.match(/^##\s+(.+)/);
+		const h3Match = line.match(/^###\s+(.+)/);
+		const bulletMatch = line.match(/^\s*[-*]\s+(.+)/);
+
+		if (h2Match?.[1]) {
+			if (currentSection) sections.push(currentSection);
+			currentSection = {
+				title: h2Match[1].replace(/^\d+\.\s*/, ""),
+				subsections: [],
+			};
+			currentSubsection = null;
+		} else if (h3Match?.[1] && currentSection) {
+			currentSubsection = {
+				title: h3Match[1].replace(/^\d+\.\d+\s*/, ""),
+				keyPoints: [],
+			};
+			currentSection.subsections.push(currentSubsection);
+		} else if (bulletMatch?.[1]) {
+			if (currentSubsection) {
+				currentSubsection.keyPoints.push(bulletMatch[1]);
+			} else if (currentSection) {
+				// Bullet under a section with no subsection — add as a subsection
+				currentSection.subsections.push({
+					title: bulletMatch[1],
+					keyPoints: [],
+				});
+			}
+		}
+	}
+	if (currentSection) sections.push(currentSection);
+
+	// If no h2 headings were found, treat the whole content as one section
+	if (sections.length === 0 && markdown.trim().length > 0) {
+		sections.push({
+			title: "Content",
+			subsections: [{ title: "Main", keyPoints: [markdown.trim()] }],
+		});
+	}
+
+	return sections;
 }
 
 function broadcastSafe(
@@ -117,16 +226,15 @@ async function processContentGeneration(
 		(session.clarifyingAnswers as Record<string, string>) ?? {};
 	const persona = session.sessionPersonas[0]?.persona;
 
-	// Extract sections from outline content
-	const outlineContent = outline.content as object as OutlineContent;
-	const sections = outlineContent.sections ?? [];
-	const totalSections = sections.length;
+	// Extract sections from outline content, handling various formats
+	const sections = extractOutlineSections(outline.content);
 
-	if (totalSections === 0) {
+	if (sections.length === 0) {
 		throw new Error(
 			`Outline ${outlineId} has no sections to generate content for`,
 		);
 	}
+	const totalSections = sections.length;
 
 	// Build overall context string
 	let overallContext = `Output types: ${outputTypes.join(", ") || "General content"}`;

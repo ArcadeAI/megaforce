@@ -92,11 +92,11 @@ export const sessionWorkflowRoutes = new Elysia({
 				if (
 					!stageData?.outputTypes ||
 					!Array.isArray(stageData.outputTypes) ||
-					stageData.outputTypes.length === 0
+					stageData.outputTypes.length !== 1
 				) {
 					return new Response(
 						JSON.stringify({
-							error: "At least one output type must be selected",
+							error: "Exactly one output type must be selected",
 						}),
 						{ status: 400, headers: { "Content-Type": "application/json" } },
 					);

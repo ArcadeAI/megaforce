@@ -10,7 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +24,8 @@ import {
 	useApproveOutline,
 	useApprovePlan,
 	useContent,
+	useEditContent,
+	useEditOutline,
 	useEditPlan,
 	useGenerateContent,
 	useGenerateOutline,
@@ -184,6 +186,43 @@ function planContentToMarkdown(content: unknown): string {
 	// If we couldn't extract anything meaningful, fall back to formatted JSON
 	if (lines.length === 0) return JSON.stringify(content, null, 2);
 	return lines.join("\n");
+}
+
+/**
+ * Convert outline content to a displayable markdown string.
+ * Outlines may be stored as markdown strings or structured JSON objects.
+ */
+function outlineContentToMarkdown(content: unknown): string {
+	if (typeof content === "string") return content;
+	const structured = content as {
+		sections?: Array<{
+			title: string;
+			subsections?: Array<{ title: string; keyPoints?: string[] }>;
+			keyPoints?: string[];
+		}>;
+	};
+	if (structured?.sections) {
+		const lines: string[] = [];
+		for (let i = 0; i < structured.sections.length; i++) {
+			const section = structured.sections[i];
+			lines.push(`## ${i + 1}. ${section.title}`);
+			if (section.keyPoints) {
+				for (const point of section.keyPoints) lines.push(`- ${point}`);
+			}
+			if (section.subsections) {
+				for (let k = 0; k < section.subsections.length; k++) {
+					const sub = section.subsections[k];
+					lines.push(`### ${i + 1}.${k + 1} ${sub.title}`);
+					if (sub.keyPoints) {
+						for (const point of sub.keyPoints) lines.push(`- ${point}`);
+					}
+				}
+			}
+			lines.push("");
+		}
+		return lines.join("\n");
+	}
+	return JSON.stringify(content, null, 2);
 }
 
 // ============================================================================
@@ -626,38 +665,31 @@ function ReadOnlyGeneration({ session }: { session: Session }) {
 // ============================================================================
 
 function OutputSelectionStage({ session }: { session: Session }) {
-	const [selectedTypes, setSelectedTypes] = useState<string[]>(
-		session.outputTypes ?? [],
+	const [selectedType, setSelectedType] = useState<string | null>(
+		session.outputTypes?.[0] ?? null,
 	);
 	const advanceStage = useAdvanceStage();
 
-	const toggleType = (typeValue: string) => {
-		setSelectedTypes((prev) =>
-			prev.includes(typeValue)
-				? prev.filter((t) => t !== typeValue)
-				: [...prev, typeValue],
-		);
-	};
-
 	const handleContinue = () => {
+		if (!selectedType) return;
 		advanceStage.mutate({
 			id: session.id,
-			stageData: { outputTypes: selectedTypes },
+			stageData: { outputTypes: [selectedType] },
 		});
 	};
 
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-semibold text-lg">Select Output Types</h2>
+				<h2 className="font-semibold text-lg">Select Output Type</h2>
 				<p className="mt-1 text-muted-foreground text-sm">
-					Choose one or more content formats to generate.
+					Choose a content format to generate.
 				</p>
 			</div>
 
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				{OUTPUT_TYPES.map((type) => {
-					const isSelected = selectedTypes.includes(type.value);
+					const isSelected = selectedType === type.value;
 					return (
 						<Card
 							key={type.value}
@@ -666,14 +698,17 @@ function OutputSelectionStage({ session }: { session: Session }) {
 									? "border-primary bg-primary/5 ring-primary"
 									: "hover:bg-muted/50"
 							}`}
-							onClick={() => toggleType(type.value)}
+							onClick={() => setSelectedType(type.value)}
 						>
 							<CardHeader>
 								<div className="flex items-start justify-between">
 									<CardTitle>{type.label}</CardTitle>
-									<Checkbox
-										checked={isSelected}
-										onCheckedChange={() => toggleType(type.value)}
+									<div
+										className={`size-3 rounded-full border-2 ${
+											isSelected
+												? "border-primary bg-primary"
+												: "border-muted-foreground/40"
+										}`}
 									/>
 								</div>
 								<CardDescription>{type.description}</CardDescription>
@@ -686,7 +721,7 @@ function OutputSelectionStage({ session }: { session: Session }) {
 			<div className="flex justify-end">
 				<Button
 					onClick={handleContinue}
-					disabled={selectedTypes.length === 0 || advanceStage.isPending}
+					disabled={!selectedType || advanceStage.isPending}
 				>
 					{advanceStage.isPending ? "Saving..." : "Continue"}
 				</Button>
@@ -1263,12 +1298,19 @@ function OutlineStage({ session }: { session: Session }) {
 	});
 	const generateOutline = useGenerateOutline();
 	const approveOutline = useApproveOutline();
+	const editOutline = useEditOutline();
 	const goBack = useGoBack();
+	const [isEditing, setIsEditing] = useState(false);
+	const [editedContent, setEditedContent] = useState("");
 
 	const hasOutline = outline && !outlineError;
 	const isInProgress =
 		hasOutline &&
 		(outline.status === "DRAFT" || outline.status === "CRITIC_REVIEWING");
+	const isReady =
+		hasOutline &&
+		(outline.status === "CRITIC_APPROVED" ||
+			outline.status === "USER_APPROVED");
 
 	const handleGenerate = () => {
 		generateOutline.mutate(session.id);
@@ -1282,68 +1324,51 @@ function OutlineStage({ session }: { session: Session }) {
 		goBack.mutate(session.id);
 	};
 
-	const renderOutlineContent = (content: unknown) => {
-		if (typeof content === "string") {
-			return (
-				<div className="whitespace-pre-wrap text-xs leading-relaxed">
-					{content}
-				</div>
-			);
-		}
+	const handleStartEdit = () => {
+		setEditedContent(outlineContentToMarkdown(outline?.content));
+		setIsEditing(true);
+	};
 
-		// Handle structured outline content
-		const structured = content as {
-			sections?: Array<{
-				title: string;
-				subsections?: Array<{ title: string; keyPoints?: string[] }>;
-				keyPoints?: string[];
-			}>;
-		};
-
-		if (structured?.sections) {
-			return (
-				<div className="space-y-4">
-					{structured.sections.map((section, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated sections have no stable ID
-						<div key={`section-${i}`} className="space-y-2">
-							<h4 className="font-semibold text-sm">
-								{i + 1}. {section.title}
-							</h4>
-							{section.keyPoints && (
-								<ul className="ml-4 list-disc space-y-1 text-muted-foreground text-xs">
-									{section.keyPoints.map((point, j) => (
-										// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated points have no stable ID
-										<li key={`point-${i}-${j}`}>{point}</li>
-									))}
-								</ul>
-							)}
-							{section.subsections?.map((sub, k) => (
-								// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated subsections have no stable ID
-								<div key={`sub-${i}-${k}`} className="ml-4 space-y-1">
-									<h5 className="font-medium text-xs">
-										{i + 1}.{k + 1} {sub.title}
-									</h5>
-									{sub.keyPoints && (
-										<ul className="ml-4 list-disc space-y-0.5 text-muted-foreground text-xs">
-											{sub.keyPoints.map((point, l) => (
-												// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated points have no stable ID
-												<li key={`subpoint-${i}-${k}-${l}`}>{point}</li>
-											))}
-										</ul>
-									)}
-								</div>
-							))}
-						</div>
-					))}
-				</div>
-			);
-		}
-
-		return (
-			<div className="whitespace-pre-wrap text-xs leading-relaxed">
-				{JSON.stringify(content, null, 2)}
-			</div>
+	const handleSaveEdit = () => {
+		editOutline.mutate(
+			{ sessionId: session.id, content: editedContent },
+			{
+				onSuccess: () => setIsEditing(false),
+			},
 		);
+	};
+
+	const statusLabel = (status: string) => {
+		switch (status) {
+			case "DRAFT":
+				return "Generating...";
+			case "CRITIC_REVIEWING":
+				return "Critic reviewing...";
+			case "CRITIC_APPROVED":
+				return "Ready for review";
+			case "USER_APPROVED":
+				return "Approved";
+			case "REJECTED":
+				return "Rejected";
+			default:
+				return status;
+		}
+	};
+
+	const statusColor = (status: string) => {
+		switch (status) {
+			case "DRAFT":
+			case "CRITIC_REVIEWING":
+				return "bg-amber-500/20 text-amber-400";
+			case "CRITIC_APPROVED":
+				return "bg-blue-500/20 text-blue-400";
+			case "USER_APPROVED":
+				return "bg-green-500/20 text-green-400";
+			case "REJECTED":
+				return "bg-red-500/20 text-red-400";
+			default:
+				return "bg-muted text-muted-foreground";
+		}
 	};
 
 	return (
@@ -1355,16 +1380,17 @@ function OutlineStage({ session }: { session: Session }) {
 				</p>
 			</div>
 
-			{(isInProgress || generateOutline.isPending || outlineLoading) && (
-				<Card>
-					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-						<p className="text-muted-foreground text-sm">
-							Generating outline... This may take a moment.
-						</p>
-					</CardContent>
-				</Card>
-			)}
+			{(isInProgress || generateOutline.isPending || outlineLoading) &&
+				!isReady && (
+					<Card>
+						<CardContent className="flex flex-col items-center gap-4 py-12">
+							<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+							<p className="text-muted-foreground text-sm">
+								Generating outline... This may take a moment.
+							</p>
+						</CardContent>
+					</Card>
+				)}
 
 			{!hasOutline && !outlineLoading && !generateOutline.isPending && (
 				<Card>
@@ -1382,7 +1408,7 @@ function OutlineStage({ session }: { session: Session }) {
 				</Card>
 			)}
 
-			{hasOutline && (
+			{hasOutline && !isEditing && (
 				<Card>
 					<CardHeader>
 						<div className="flex items-center justify-between">
@@ -1392,45 +1418,92 @@ function OutlineStage({ session }: { session: Session }) {
 									<div className="size-3 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
 								)}
 								<span
-									className={`rounded-sm px-1.5 py-0.5 text-[10px] ${
-										outline.status === "CRITIC_APPROVED" ||
-										outline.status === "USER_APPROVED"
-											? "bg-green-500/20 text-green-400"
-											: isInProgress
-												? "bg-amber-500/20 text-amber-400"
-												: "bg-muted text-muted-foreground"
-									}`}
+									className={`rounded-sm px-1.5 py-0.5 text-[10px] ${statusColor(outline.status)}`}
 								>
-									{isInProgress ? "Processing..." : outline.status}
+									{statusLabel(outline.status)}
 								</span>
 							</div>
 						</div>
 					</CardHeader>
-					<CardContent>{renderOutlineContent(outline.content)}</CardContent>
+					<CardContent>
+						<SessionEditor
+							content={outlineContentToMarkdown(outline.content)}
+							editable={false}
+							markdown
+						/>
+					</CardContent>
 				</Card>
 			)}
 
-			{hasOutline && (
+			{hasOutline && !isEditing && (
 				<CriticFeedbackPanel
 					criticFeedback={outline.criticFeedback}
 					criticIterations={outline.criticIterations}
 				/>
 			)}
 
-			{hasOutline && !isInProgress && outline.status !== "USER_APPROVED" && (
+			{hasOutline && isEditing && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Edit Outline</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<SessionEditor
+							content={editedContent}
+							onChange={setEditedContent}
+							editable={true}
+							markdown
+						/>
+						<div className="mt-3 flex justify-end gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setIsEditing(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								size="sm"
+								onClick={handleSaveEdit}
+								disabled={editOutline.isPending}
+							>
+								{editOutline.isPending ? "Saving..." : "Save"}
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			)}
+
+			{hasOutline && !isEditing && !isInProgress && !isReady && (
 				<div className="flex justify-end gap-2">
 					<Button variant="outline" size="sm" onClick={handleReject}>
 						Reject
 					</Button>
-					<Button
-						size="sm"
-						onClick={handleApprove}
-						disabled={approveOutline.isPending}
-					>
-						{approveOutline.isPending ? "Approving..." : "Approve"}
+					<Button variant="outline" size="sm" onClick={handleStartEdit}>
+						Edit
 					</Button>
 				</div>
 			)}
+
+			{hasOutline &&
+				!isEditing &&
+				(isReady || outline.status === "CRITIC_APPROVED") && (
+					<div className="flex justify-end gap-2">
+						<Button variant="outline" size="sm" onClick={handleReject}>
+							Reject
+						</Button>
+						<Button variant="outline" size="sm" onClick={handleStartEdit}>
+							Edit
+						</Button>
+						<Button
+							size="sm"
+							onClick={handleApprove}
+							disabled={approveOutline.isPending}
+						>
+							{approveOutline.isPending ? "Approving..." : "Approve"}
+						</Button>
+					</div>
+				)}
 		</div>
 	);
 }
@@ -1453,11 +1526,19 @@ function GenerationStage({ session }: { session: Session }) {
 	});
 	const generateContent = useGenerateContent();
 	const approveContent = useApproveContent();
+	const editContent = useEditContent();
+	const goBack = useGoBack();
+	const [isEditing, setIsEditing] = useState(false);
+	const [editedContent, setEditedContent] = useState("");
 
 	const hasContent = content && !contentError;
 	const isInProgress =
 		hasContent &&
 		(content.status === "DRAFT" || content.status === "CRITIC_REVIEWING");
+	const isReady =
+		hasContent &&
+		(content.status === "CRITIC_APPROVED" ||
+			content.status === "USER_APPROVED");
 
 	const handleGenerate = () => {
 		generateContent.mutate(session.id);
@@ -1465,6 +1546,24 @@ function GenerationStage({ session }: { session: Session }) {
 
 	const handleApprove = () => {
 		approveContent.mutate(session.id);
+	};
+
+	const handleReject = () => {
+		goBack.mutate(session.id);
+	};
+
+	const handleStartEdit = () => {
+		setEditedContent(content?.content ?? "");
+		setIsEditing(true);
+	};
+
+	const handleSaveEdit = () => {
+		editContent.mutate(
+			{ sessionId: session.id, content: editedContent },
+			{
+				onSuccess: () => setIsEditing(false),
+			},
+		);
 	};
 
 	const handleExport = async () => {
@@ -1484,6 +1583,39 @@ function GenerationStage({ session }: { session: Session }) {
 		}
 	};
 
+	const statusLabel = (status: string) => {
+		switch (status) {
+			case "DRAFT":
+				return "Generating...";
+			case "CRITIC_REVIEWING":
+				return "Critic reviewing...";
+			case "CRITIC_APPROVED":
+				return "Ready for review";
+			case "USER_APPROVED":
+				return "Approved";
+			case "REJECTED":
+				return "Rejected";
+			default:
+				return status;
+		}
+	};
+
+	const statusColor = (status: string) => {
+		switch (status) {
+			case "DRAFT":
+			case "CRITIC_REVIEWING":
+				return "bg-amber-500/20 text-amber-400";
+			case "CRITIC_APPROVED":
+				return "bg-blue-500/20 text-blue-400";
+			case "USER_APPROVED":
+				return "bg-green-500/20 text-green-400";
+			case "REJECTED":
+				return "bg-red-500/20 text-red-400";
+			default:
+				return "bg-muted text-muted-foreground";
+		}
+	};
+
 	return (
 		<div className="space-y-6">
 			<div>
@@ -1493,16 +1625,17 @@ function GenerationStage({ session }: { session: Session }) {
 				</p>
 			</div>
 
-			{(isInProgress || generateContent.isPending || contentLoading) && (
-				<Card>
-					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-						<p className="text-muted-foreground text-sm">
-							Generating content... This may take a moment.
-						</p>
-					</CardContent>
-				</Card>
-			)}
+			{(isInProgress || generateContent.isPending || contentLoading) &&
+				!isReady && (
+					<Card>
+						<CardContent className="flex flex-col items-center gap-4 py-12">
+							<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+							<p className="text-muted-foreground text-sm">
+								Generating content... This may take a moment.
+							</p>
+						</CardContent>
+					</Card>
+				)}
 
 			{!hasContent && !contentLoading && !generateContent.isPending && (
 				<Card>
@@ -1520,7 +1653,7 @@ function GenerationStage({ session }: { session: Session }) {
 				</Card>
 			)}
 
-			{hasContent && (
+			{hasContent && !isEditing && (
 				<Card>
 					<CardHeader>
 						<div className="flex items-center justify-between">
@@ -1530,16 +1663,9 @@ function GenerationStage({ session }: { session: Session }) {
 									<div className="size-3 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
 								)}
 								<span
-									className={`rounded-sm px-1.5 py-0.5 text-[10px] ${
-										content.status === "CRITIC_APPROVED" ||
-										content.status === "USER_APPROVED"
-											? "bg-green-500/20 text-green-400"
-											: isInProgress
-												? "bg-amber-500/20 text-amber-400"
-												: "bg-muted text-muted-foreground"
-									}`}
+									className={`rounded-sm px-1.5 py-0.5 text-[10px] ${statusColor(content.status)}`}
 								>
-									{isInProgress ? "Processing..." : content.status}
+									{statusLabel(content.status)}
 								</span>
 							</div>
 						</div>
@@ -1554,19 +1680,69 @@ function GenerationStage({ session }: { session: Session }) {
 				</Card>
 			)}
 
-			{hasContent && (
+			{hasContent && !isEditing && (
 				<CriticFeedbackPanel
 					criticFeedback={content.criticFeedback}
 					criticIterations={content.criticIterations}
 				/>
 			)}
 
-			{hasContent && !isInProgress && (
+			{hasContent && isEditing && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Edit Content</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<SessionEditor
+							content={editedContent}
+							onChange={setEditedContent}
+							editable={true}
+							markdown
+						/>
+						<div className="mt-3 flex justify-end gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setIsEditing(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								size="sm"
+								onClick={handleSaveEdit}
+								disabled={editContent.isPending}
+							>
+								{editContent.isPending ? "Saving..." : "Save"}
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			)}
+
+			{hasContent && !isEditing && !isInProgress && !isReady && (
 				<div className="flex justify-end gap-2">
-					<Button variant="outline" size="sm" onClick={handleExport}>
-						Export Markdown
+					<Button variant="outline" size="sm" onClick={handleReject}>
+						Reject
 					</Button>
-					{content.status !== "USER_APPROVED" && (
+					<Button variant="outline" size="sm" onClick={handleStartEdit}>
+						Edit
+					</Button>
+				</div>
+			)}
+
+			{hasContent &&
+				!isEditing &&
+				(isReady || content.status === "CRITIC_APPROVED") && (
+					<div className="flex justify-end gap-2">
+						<Button variant="outline" size="sm" onClick={handleExport}>
+							Export Markdown
+						</Button>
+						<Button variant="outline" size="sm" onClick={handleReject}>
+							Reject
+						</Button>
+						<Button variant="outline" size="sm" onClick={handleStartEdit}>
+							Edit
+						</Button>
 						<Button
 							size="sm"
 							onClick={handleApprove}
@@ -1574,9 +1750,8 @@ function GenerationStage({ session }: { session: Session }) {
 						>
 							{approveContent.isPending ? "Approving..." : "Approve"}
 						</Button>
-					)}
-				</div>
-			)}
+					</div>
+				)}
 		</div>
 	);
 }
