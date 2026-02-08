@@ -3,3 +3,5 @@ export { MainEditor } from "./main-editor";
 export { PropertiesPanel } from "./properties-panel";
 export { ResizeHandle } from "./resize-handle";
 export { SidebarNav } from "./sidebar-nav";
+export { Tab } from "./tab";
+export { TabBar } from "./tab-bar";

@@ -1,4 +1,6 @@
+import { useTabs } from "@/contexts/tab-context";
 import { cn } from "@/lib/utils";
+import { TabBar } from "./tab-bar";
 
 interface MainEditorProps {
 	children?: React.ReactNode;
@@ -6,6 +8,9 @@ interface MainEditorProps {
 }
 
 export function MainEditor({ children, className }: MainEditorProps) {
+	const { tabs, activeTabId } = useTabs();
+	const activeTab = tabs.find((tab) => tab.id === activeTabId);
+
 	return (
 		<main
 			className={cn(
@@ -14,13 +19,13 @@ export function MainEditor({ children, className }: MainEditorProps) {
 			)}
 			aria-label="Main content area"
 		>
-			{/* Tab Bar / Header Area */}
-			<div className="flex h-12 items-center border-border border-b px-4">
-				<span className="font-medium text-foreground text-sm">Editor</span>
-			</div>
+			{/* Tab Bar */}
+			<TabBar />
 
 			{/* Content Area */}
-			<div className="flex-1 overflow-y-auto p-4">{children}</div>
+			<div className="flex-1 overflow-y-auto p-4">
+				{activeTab?.content || children}
+			</div>
 		</main>
 	);
 }

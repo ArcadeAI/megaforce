@@ -14,6 +14,7 @@ import { socialChannelsRoutes } from "./routes/social-channels";
 import { sourcesRoutes } from "./routes/sources";
 import { uploadRoutes } from "./routes/upload";
 import { workspacesRoutes } from "./routes/workspaces";
+import { wsAuthRoutes } from "./routes/ws-auth";
 import {
 	generateConnectionId,
 	handleClose,
@@ -38,13 +39,12 @@ const app = new Elysia()
 	.onError((context) => {
 		return handleError(context.error as Error, context);
 	})
-	// Public routes
-	.all("/api/auth/*", async (context) => {
-		const { request, status } = context;
-		if (["POST", "GET"].includes(request.method)) {
-			return auth.handler(request);
+	// Public routes - Better Auth handler
+	.onRequest((context) => {
+		const url = new URL(context.request.url);
+		if (url.pathname.startsWith("/api/auth")) {
+			return auth.handler(context.request);
 		}
-		return status(405);
 	})
 	.get("/", () => "OK")
 	// Protected routes - require authentication and workspace
@@ -87,6 +87,7 @@ const app = new Elysia()
 		// Add more protected routes here as needed
 	)
 	// API Routes
+	.use(wsAuthRoutes)
 	.use(workspacesRoutes)
 	.use(sourcesRoutes)
 	.use(personasRoutes)
@@ -108,7 +109,7 @@ const app = new Elysia()
 			handleOpen(ws, wsServer);
 		},
 		message(ws, message) {
-			handleMessage(ws, wsServer, message as string);
+			handleMessage(ws, wsServer, message);
 		},
 		close(ws) {
 			handleClose(ws, wsServer);

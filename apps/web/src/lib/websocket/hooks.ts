@@ -54,20 +54,34 @@ export function useWebSocket(
 			!hasConnected.current &&
 			state === ConnectionState.DISCONNECTED
 		) {
-			// Get session token from better-auth
-			// The session token is typically stored in cookies by better-auth
-			// We'll use the session.token if available, or extract from cookies
-			const token = (session.session as { token?: string }).token;
+			// Fetch WebSocket token from API
+			const connectWithToken = async () => {
+				try {
+					const response = await fetch(
+						`${import.meta.env.VITE_SERVER_URL}/api/ws-token`,
+						{
+							credentials: "include", // Include cookies for auth
+						},
+					);
 
-			if (token) {
-				console.log("Auto-connecting WebSocket with session token");
-				client.connect(token);
-				hasConnected.current = true;
-			} else {
-				console.warn(
-					"Session available but no token found for WebSocket connection",
-				);
-			}
+					if (!response.ok) {
+						console.error("Failed to fetch WebSocket token:", response.status);
+						return;
+					}
+
+					const data = await response.json();
+
+					if (data.token) {
+						console.log("Auto-connecting WebSocket with fetched token");
+						client.connect(data.token);
+						hasConnected.current = true;
+					}
+				} catch (error) {
+					console.error("Error fetching WebSocket token:", error);
+				}
+			};
+
+			connectWithToken();
 		}
 	}, [autoConnect, session, state, client]);
 
@@ -83,17 +97,30 @@ export function useWebSocket(
 		};
 	}, [client]);
 
-	const connect = useCallback(() => {
-		const token = session?.session
-			? (session.session as { token?: string }).token
-			: null;
-		if (token) {
-			client.connect(token);
-			hasConnected.current = true;
-		} else {
-			console.error("Cannot connect: no session token available");
+	const connect = useCallback(async () => {
+		try {
+			const response = await fetch(
+				`${import.meta.env.VITE_SERVER_URL}/api/ws-token`,
+				{
+					credentials: "include",
+				},
+			);
+
+			if (!response.ok) {
+				console.error("Cannot connect: failed to fetch WebSocket token");
+				return;
+			}
+
+			const data = await response.json();
+
+			if (data.token) {
+				client.connect(data.token);
+				hasConnected.current = true;
+			}
+		} catch (error) {
+			console.error("Cannot connect: error fetching WebSocket token", error);
 		}
-	}, [client, session]);
+	}, [client]);
 
 	const disconnect = useCallback(() => {
 		client.disconnect();

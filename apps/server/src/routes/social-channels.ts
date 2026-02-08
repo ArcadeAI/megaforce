@@ -45,13 +45,10 @@ export const socialChannelsRoutes = new Elysia({
 			message: "Disconnect social channel endpoint - not implemented",
 		};
 	})
-	.post(
-		"/:id/test",
-		({ params }) => {
-			return {
-				success: true,
-				data: { id: params.id, connected: true },
-				message: "Test social channel endpoint - not implemented",
-			};
-		},
-	);
+	.post("/:id/test", ({ params }) => {
+		return {
+			success: true,
+			data: { id: params.id, connected: true },
+			message: "Test social channel endpoint - not implemented",
+		};
+	});
