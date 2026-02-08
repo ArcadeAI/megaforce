@@ -93,16 +93,7 @@ function saveActiveTabToStorage(tabId: string | null): void {
 
 export function TabProvider({ children }: { children: ReactNode }) {
 	const [tabs, setTabs] = useState<Tab[]>(() => {
-		const stored = loadTabsFromStorage();
-		if (stored.length > 0) return stored;
-		// Create a default welcome tab
-		return [
-			{
-				id: generateTabId(),
-				title: "Welcome",
-				isDirty: false,
-			},
-		];
+		return loadTabsFromStorage();
 	});
 
 	const [activeTabId, setActiveTabId] = useState<string | null>(() => {

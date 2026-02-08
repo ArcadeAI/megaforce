@@ -11,6 +11,7 @@ import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TabProvider } from "@/contexts/tab-context";
+import { useWebSocket } from "@/lib/websocket";
 
 import "../index.css";
 
@@ -39,6 +40,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 	}),
 });
 
+function WebSocketInit() {
+	useWebSocket();
+	return null;
+}
+
 function RootComponent() {
 	const { queryClient } = Route.useRouteContext();
 
@@ -53,6 +59,7 @@ function RootComponent() {
 					storageKey="vite-ui-theme"
 				>
 					<TabProvider>
+						<WebSocketInit />
 						<div className="grid h-svh grid-rows-[auto_1fr]">
 							<Header />
 							<div className="h-full min-h-0 overflow-hidden">

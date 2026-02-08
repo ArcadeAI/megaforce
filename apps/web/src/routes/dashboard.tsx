@@ -26,7 +26,7 @@ export const Route = createFileRoute("/dashboard")({
 
 function RouteComponent() {
 	const { session } = Route.useRouteContext();
-	const { state, isAuthenticated, connect, disconnect } = useWebSocket();
+	const { state, isAuthenticated } = useWebSocket({ autoConnect: false });
 
 	// Subscribe to job progress events
 	useRealtimeUpdates<JobProgressPayload>({
@@ -65,22 +65,6 @@ function RouteComponent() {
 						{state}
 					</span>
 				</p>
-				<div className="flex gap-2">
-					<button
-						type="button"
-						onClick={connect}
-						className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
-					>
-						Connect
-					</button>
-					<button
-						type="button"
-						onClick={disconnect}
-						className="rounded bg-gray-500 px-3 py-1 text-white hover:bg-gray-600"
-					>
-						Disconnect
-					</button>
-				</div>
 			</div>
 		</div>
 	);

@@ -71,7 +71,9 @@ export class WebSocketClient {
 	public connect(token: string): void {
 		if (
 			this.state === ConnectionState.CONNECTED ||
-			this.state === ConnectionState.CONNECTING
+			this.state === ConnectionState.CONNECTING ||
+			this.state === ConnectionState.AUTHENTICATING ||
+			this.state === ConnectionState.AUTHENTICATED
 		) {
 			console.warn("WebSocket is already connected or connecting");
 			return;
@@ -155,8 +157,11 @@ export class WebSocketClient {
 			console.log("WebSocket closed:", event.code, event.reason);
 			this.clearHeartbeat();
 
+			// Don't reconnect on intentional closes (policy violation / auth failure)
+			const noRetryCodes = [1008, 1000];
 			if (
 				this.config.autoReconnect &&
+				!noRetryCodes.includes(event.code) &&
 				this.reconnectAttempts < this.config.maxReconnectAttempts
 			) {
 				this.scheduleReconnect();

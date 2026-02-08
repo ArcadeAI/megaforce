@@ -13,10 +13,10 @@ import {
 	WS_EVENTS,
 	type WsMessage,
 } from "./events";
-import type { AuthenticatedWebSocket, WsServer } from "./server";
+import type { WsHandle, WsServer } from "./server";
 
 // ============================================================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================================================
 
 /**
@@ -27,15 +27,14 @@ export function generateConnectionId(): string {
 }
 
 /**
- * Send an error message to a client
+ * Send a message to a WebSocket
  */
-function sendError(ws: AuthenticatedWebSocket, message: string): void {
+// biome-ignore lint/suspicious/noExplicitAny: WsMessage generic needs to accept any payload
+function wsSend(ws: WsHandle, message: WsMessage<any>): void {
 	try {
-		ws.send(
-			JSON.stringify(createWsMessage(WS_EVENTS.ERROR, { error: message })),
-		);
+		ws.send(JSON.stringify(message));
 	} catch (error) {
-		console.error("Error sending error message:", error);
+		console.error("Error sending message:", error);
 	}
 }
 
@@ -44,23 +43,14 @@ function sendError(ws: AuthenticatedWebSocket, message: string): void {
  */
 async function authenticateConnection(
 	token: string,
-): Promise<{ userId: string; user: { id: string; email: string } } | null> {
+): Promise<{ userId: string; email: string } | null> {
 	try {
-		// Verify the WebSocket token
 		const userData = verifyWsToken(token);
-
 		if (!userData) {
 			console.error("Invalid or expired WebSocket token");
 			return null;
 		}
-
-		return {
-			userId: userData.userId,
-			user: {
-				id: userData.userId,
-				email: userData.email,
-			},
-		};
+		return userData;
 	} catch (error) {
 		console.error("Authentication error:", error);
 		return null;
@@ -77,15 +67,10 @@ async function storeConnection(
 ): Promise<void> {
 	try {
 		await prisma.webSocketConnection.create({
-			data: {
-				connectionId,
-				userId,
-				workspaceId,
-			},
+			data: { connectionId, userId, workspaceId },
 		});
 	} catch (error) {
 		console.error("Error storing connection:", error);
-		throw error;
 	}
 }
 
@@ -120,201 +105,127 @@ async function updateLastPing(connectionId: string): Promise<void> {
 // MESSAGE HANDLERS
 // ============================================================================
 
-/**
- * Handle authentication message
- */
 async function handleAuth(
-	ws: AuthenticatedWebSocket,
+	ws: WsHandle,
+	wsServer: WsServer,
+	connectionId: string,
 	payload: AuthPayload,
 ): Promise<void> {
 	const authResult = await authenticateConnection(payload.token);
 
 	if (!authResult) {
-		sendError(ws, "Authentication failed");
+		wsSend(
+			ws,
+			createWsMessage(WS_EVENTS.ERROR, { error: "Authentication failed" }),
+		);
 		ws.close(1008, "Authentication failed");
 		return;
 	}
 
-	// Set user information on the WebSocket data
-	ws.data.userId = authResult.userId;
+	// Update metadata with user information
+	const meta = wsServer.getMeta(connectionId);
+	if (meta) {
+		meta.userId = authResult.userId;
+	}
 
-	// For now, we'll use the user's first workspace
-	// In a real app, you might want to let the client specify the workspace
+	// Find user's workspace (optional - user may not have one yet)
 	const userWorkspaces = await prisma.workspace.findMany({
 		where: { userId: authResult.userId },
 		select: { id: true },
 		take: 1,
 	});
 
-	if (userWorkspaces.length === 0) {
-		sendError(ws, "No workspace found for user");
-		ws.close(1008, "No workspace found");
-		return;
-	}
+	const workspaceId = userWorkspaces[0]?.id ?? null;
 
-	const workspaceId = userWorkspaces[0].id;
-
-	// Store connection in database
-	if (ws.data.connectionId) {
-		await storeConnection(ws.data.connectionId, authResult.userId, workspaceId);
+	// Store connection in database if workspace exists (non-fatal if it fails)
+	if (workspaceId) {
+		await storeConnection(connectionId, authResult.userId, workspaceId);
 	}
 
 	// Send success response
-	ws.send(
-		JSON.stringify(
-			createWsMessage(WS_EVENTS.AUTHENTICATED, {
-				userId: authResult.userId,
-				workspaceId,
-			}),
-		),
+	wsSend(
+		ws,
+		createWsMessage(WS_EVENTS.AUTHENTICATED, {
+			userId: authResult.userId,
+			workspaceId,
+		}),
 	);
 
 	console.log(
-		`Client ${ws.data.connectionId} authenticated as user ${authResult.userId}`,
+		`Client ${connectionId} authenticated as user ${authResult.userId}`,
 	);
 }
 
-/**
- * Handle join room message
- */
 function handleJoinRoom(
-	ws: AuthenticatedWebSocket,
+	ws: WsHandle,
 	wsServer: WsServer,
+	connectionId: string,
 	payload: JoinRoomPayload,
 ): void {
-	if (!ws.data.userId) {
-		sendError(ws, "Not authenticated");
+	const meta = wsServer.getMeta(connectionId);
+	if (!meta?.userId) {
+		wsSend(
+			ws,
+			createWsMessage(WS_EVENTS.ERROR, { error: "Not authenticated" }),
+		);
 		return;
 	}
 
 	const joinedRooms: string[] = [];
-	const connectionId = ws.data.connectionId;
-	if (!connectionId) return;
-
 	for (const room of payload.rooms) {
-		const success = wsServer.joinRoom(connectionId, room);
-		if (success) {
+		if (wsServer.joinRoom(connectionId, room)) {
 			joinedRooms.push(`${room.type}:${room.id}`);
 		}
 	}
 
-	ws.send(
-		JSON.stringify(
-			createWsMessage(WS_EVENTS.ROOMS_JOINED, {
-				rooms: joinedRooms,
-			}),
-		),
-	);
-
-	console.log(
-		`Client ${ws.data.connectionId} joined rooms: ${joinedRooms.join(", ")}`,
-	);
+	wsSend(ws, createWsMessage(WS_EVENTS.ROOMS_JOINED, { rooms: joinedRooms }));
+	console.log(`Client ${connectionId} joined rooms: ${joinedRooms.join(", ")}`);
 }
 
-/**
- * Handle leave room message
- */
 function handleLeaveRoom(
-	ws: AuthenticatedWebSocket,
+	ws: WsHandle,
 	wsServer: WsServer,
+	connectionId: string,
 	payload: LeaveRoomPayload,
 ): void {
-	if (!ws.data.userId) {
-		sendError(ws, "Not authenticated");
+	const meta = wsServer.getMeta(connectionId);
+	if (!meta?.userId) {
+		wsSend(
+			ws,
+			createWsMessage(WS_EVENTS.ERROR, { error: "Not authenticated" }),
+		);
 		return;
 	}
 
 	const leftRooms: string[] = [];
-	const connectionId = ws.data.connectionId;
-	if (!connectionId) return;
-
 	for (const room of payload.rooms) {
 		const roomKey = `${room.type}:${room.id}`;
-		const success = wsServer.leaveRoom(connectionId, roomKey);
-		if (success) {
+		if (wsServer.leaveRoom(connectionId, roomKey)) {
 			leftRooms.push(roomKey);
 		}
 	}
 
-	ws.send(
-		JSON.stringify(
-			createWsMessage(WS_EVENTS.ROOMS_LEFT, {
-				rooms: leftRooms,
-			}),
-		),
-	);
-
-	console.log(
-		`Client ${ws.data.connectionId} left rooms: ${leftRooms.join(", ")}`,
-	);
+	wsSend(ws, createWsMessage(WS_EVENTS.ROOMS_LEFT, { rooms: leftRooms }));
+	console.log(`Client ${connectionId} left rooms: ${leftRooms.join(", ")}`);
 }
 
-/**
- * Handle ping message
- */
-async function handlePing(ws: AuthenticatedWebSocket): Promise<void> {
-	// Send pong response
-	ws.send(JSON.stringify(createWsMessage(WS_EVENTS.PONG, {})));
-
-	// Update last ping time in database
-	if (ws.data.connectionId) {
-		await updateLastPing(ws.data.connectionId);
-	}
+async function handlePing(ws: WsHandle, connectionId: string): Promise<void> {
+	wsSend(ws, createWsMessage(WS_EVENTS.PONG, {}));
+	await updateLastPing(connectionId);
 }
 
 // ============================================================================
-// MESSAGE HANDLER
+// LIFECYCLE HANDLERS
 // ============================================================================
-
-/**
- * Handle incoming WebSocket message
- */
-export async function handleMessage(
-	ws: AuthenticatedWebSocket,
-	wsServer: WsServer,
-	data: string | Buffer | Record<string, unknown>,
-): Promise<void> {
-	try {
-		// Handle case where Elysia has already parsed the JSON
-		const message: WsMessage =
-			typeof data === "object" && !Buffer.isBuffer(data)
-				? (data as WsMessage)
-				: JSON.parse(typeof data === "string" ? data : data.toString());
-
-		switch (message.event) {
-			case WS_EVENTS.AUTH:
-				await handleAuth(ws, message.payload as AuthPayload);
-				break;
-
-			case WS_EVENTS.JOIN_ROOM:
-				handleJoinRoom(ws, wsServer, message.payload as JoinRoomPayload);
-				break;
-
-			case WS_EVENTS.LEAVE_ROOM:
-				handleLeaveRoom(ws, wsServer, message.payload as LeaveRoomPayload);
-				break;
-
-			case WS_EVENTS.PING:
-				await handlePing(ws);
-				break;
-
-			default:
-				sendError(ws, `Unknown event type: ${message.event}`);
-		}
-	} catch (error) {
-		console.error("Error handling message:", error);
-		sendError(ws, "Invalid message format");
-	}
-}
 
 /**
  * Handle WebSocket connection open
  */
 export function handleOpen(
-	ws: AuthenticatedWebSocket,
+	ws: WsHandle,
 	wsServer: WsServer,
+	connectionId: string,
 ): void {
-	const connectionId = ws.data.connectionId;
 	wsServer.registerClient(connectionId, ws);
 	console.log(`New WebSocket connection: ${connectionId}`);
 }
@@ -323,11 +234,81 @@ export function handleOpen(
  * Handle WebSocket connection close
  */
 export async function handleClose(
-	ws: AuthenticatedWebSocket,
+	_ws: WsHandle,
 	wsServer: WsServer,
+	connectionId: string,
 ): Promise<void> {
-	const connectionId = ws.data.connectionId;
 	console.log(`WebSocket connection closed: ${connectionId}`);
 	wsServer.unregisterClient(connectionId);
 	await removeConnection(connectionId);
+}
+
+/**
+ * Handle incoming WebSocket message
+ * connectionId is resolved by the caller (from ws.data) since Elysia creates
+ * different wrapper objects for each callback.
+ */
+export async function handleMessage(
+	ws: WsHandle,
+	wsServer: WsServer,
+	data: unknown,
+	connectionId: string,
+): Promise<void> {
+	try {
+		let message: WsMessage;
+		if (typeof data === "string") {
+			message = JSON.parse(data);
+		} else if (typeof data === "object" && data !== null && "event" in data) {
+			message = data as WsMessage;
+		} else {
+			message = JSON.parse(String(data));
+		}
+
+		switch (message.event) {
+			case WS_EVENTS.AUTH:
+				await handleAuth(
+					ws,
+					wsServer,
+					connectionId,
+					message.payload as AuthPayload,
+				);
+				break;
+
+			case WS_EVENTS.JOIN_ROOM:
+				handleJoinRoom(
+					ws,
+					wsServer,
+					connectionId,
+					message.payload as JoinRoomPayload,
+				);
+				break;
+
+			case WS_EVENTS.LEAVE_ROOM:
+				handleLeaveRoom(
+					ws,
+					wsServer,
+					connectionId,
+					message.payload as LeaveRoomPayload,
+				);
+				break;
+
+			case WS_EVENTS.PING:
+				await handlePing(ws, connectionId);
+				break;
+
+			default:
+				wsSend(
+					ws,
+					createWsMessage(WS_EVENTS.ERROR, {
+						error: `Unknown event type: ${message.event}`,
+					}),
+				);
+		}
+	} catch (error) {
+		console.error("Error handling message:", error);
+		wsSend(
+			ws,
+			createWsMessage(WS_EVENTS.ERROR, { error: "Invalid message format" }),
+		);
+	}
 }

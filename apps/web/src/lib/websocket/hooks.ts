@@ -26,7 +26,7 @@ export interface UseWebSocketReturn {
 /**
  * Hook for managing WebSocket connection
  * Automatically connects on mount if user is authenticated
- * Automatically disconnects on unmount
+ * Uses a ref counter so the singleton client stays alive across component mounts
  */
 export function useWebSocket(
 	options: { autoConnect?: boolean } = {},
@@ -35,13 +35,15 @@ export function useWebSocket(
 	const client = getWebSocketClient();
 	const [state, setState] = useState<ConnectionState>(client.getState());
 	const { data: session } = authClient.useSession();
-	const hasConnected = useRef(false);
 
 	// Subscribe to state changes
 	useEffect(() => {
 		const unsubscribe = client.onStateChange((newState) => {
 			setState(newState);
 		});
+
+		// Sync state on mount in case it changed while unmounted
+		setState(client.getState());
 
 		return unsubscribe;
 	}, [client]);
@@ -51,8 +53,7 @@ export function useWebSocket(
 		if (
 			autoConnect &&
 			session?.session &&
-			!hasConnected.current &&
-			state === ConnectionState.DISCONNECTED
+			client.getState() === ConnectionState.DISCONNECTED
 		) {
 			// Fetch WebSocket token from API
 			const connectWithToken = async () => {
@@ -74,7 +75,6 @@ export function useWebSocket(
 					if (data.token) {
 						console.log("Auto-connecting WebSocket with fetched token");
 						client.connect(data.token);
-						hasConnected.current = true;
 					}
 				} catch (error) {
 					console.error("Error fetching WebSocket token:", error);
@@ -83,19 +83,7 @@ export function useWebSocket(
 
 			connectWithToken();
 		}
-	}, [autoConnect, session, state, client]);
-
-	// Disconnect on unmount
-	useEffect(() => {
-		return () => {
-			// Only disconnect if this is the last component using the WebSocket
-			// In a real app, you might want to use a ref counter
-			if (hasConnected.current) {
-				client.disconnect();
-				hasConnected.current = false;
-			}
-		};
-	}, [client]);
+	}, [autoConnect, session, client]);
 
 	const connect = useCallback(async () => {
 		try {
@@ -115,7 +103,6 @@ export function useWebSocket(
 
 			if (data.token) {
 				client.connect(data.token);
-				hasConnected.current = true;
 			}
 		} catch (error) {
 			console.error("Cannot connect: error fetching WebSocket token", error);
@@ -124,7 +111,6 @@ export function useWebSocket(
 
 	const disconnect = useCallback(() => {
 		client.disconnect();
-		hasConnected.current = false;
 	}, [client]);
 
 	const send = useCallback(

@@ -3,7 +3,6 @@
  * Main WebSocket server setup with room management using Elysia
  */
 
-import type { ServerWebSocket } from "bun";
 import type { RoomIdentifier, WsMessage } from "./events";
 import { getRoomKey } from "./events";
 
@@ -11,26 +10,33 @@ import { getRoomKey } from "./events";
 // TYPES
 // ============================================================================
 
-export interface WsData {
+export interface WsConnectionMeta {
 	connectionId: string;
 	userId?: string;
 	rooms: Set<string>;
 	isAlive: boolean;
 }
 
-export type AuthenticatedWebSocket = ServerWebSocket<WsData>;
+/** The WebSocket object from Elysia/Bun handlers */
+export interface WsHandle {
+	send(data: string | ArrayBuffer | Uint8Array): void;
+	close(code?: number, reason?: string): void;
+	ping?(data?: string | ArrayBuffer | Uint8Array): void;
+}
 
 // ============================================================================
 // WEBSOCKET SERVER CLASS
 // ============================================================================
 
 export class WsServer {
-	private clients: Map<string, AuthenticatedWebSocket>;
+	private clients: Map<string, WsHandle>;
+	private metadata: Map<string, WsConnectionMeta>;
 	private rooms: Map<string, Set<string>>; // roomKey -> Set of connectionIds
 	private pingInterval: Timer | null;
 
 	constructor() {
 		this.clients = new Map();
+		this.metadata = new Map();
 		this.rooms = new Map();
 		this.pingInterval = null;
 
@@ -40,31 +46,42 @@ export class WsServer {
 	/**
 	 * Register a client connection
 	 */
-	registerClient(connectionId: string, ws: AuthenticatedWebSocket): void {
-		ws.data.connectionId = connectionId;
-		ws.data.rooms = new Set();
-		ws.data.isAlive = true;
+	registerClient(connectionId: string, ws: WsHandle): void {
 		this.clients.set(connectionId, ws);
+		this.metadata.set(connectionId, {
+			connectionId,
+			userId: undefined,
+			rooms: new Set(),
+			isAlive: true,
+		});
+	}
+
+	/**
+	 * Get connection metadata
+	 */
+	getMeta(connectionId: string): WsConnectionMeta | undefined {
+		return this.metadata.get(connectionId);
 	}
 
 	/**
 	 * Unregister a client connection
 	 */
 	unregisterClient(connectionId: string): void {
-		const ws = this.clients.get(connectionId);
-		if (ws?.data.rooms) {
+		const meta = this.metadata.get(connectionId);
+		if (meta?.rooms) {
 			// Remove from all rooms
-			for (const roomKey of ws.data.rooms) {
+			for (const roomKey of meta.rooms) {
 				this.leaveRoom(connectionId, roomKey);
 			}
 		}
 		this.clients.delete(connectionId);
+		this.metadata.delete(connectionId);
 	}
 
 	/**
 	 * Get a client by connection ID
 	 */
-	getClient(connectionId: string): AuthenticatedWebSocket | undefined {
+	getClient(connectionId: string): WsHandle | undefined {
 		return this.clients.get(connectionId);
 	}
 
@@ -72,13 +89,13 @@ export class WsServer {
 	 * Join a room
 	 */
 	joinRoom(connectionId: string, room: RoomIdentifier): boolean {
-		const ws = this.clients.get(connectionId);
-		if (!ws) return false;
+		const meta = this.metadata.get(connectionId);
+		if (!meta) return false;
 
 		const roomKey = getRoomKey(room);
 
 		// Add to client's room set
-		ws.data.rooms?.add(roomKey);
+		meta.rooms.add(roomKey);
 
 		// Add to room's client set
 		if (!this.rooms.has(roomKey)) {
@@ -93,11 +110,11 @@ export class WsServer {
 	 * Leave a room
 	 */
 	leaveRoom(connectionId: string, roomKey: string): boolean {
-		const ws = this.clients.get(connectionId);
-		if (!ws) return false;
+		const meta = this.metadata.get(connectionId);
+		if (!meta) return false;
 
 		// Remove from client's room set
-		ws.data.rooms?.delete(roomKey);
+		meta.rooms.delete(roomKey);
 
 		// Remove from room's client set
 		const room = this.rooms.get(roomKey);
@@ -177,8 +194,8 @@ export class WsServer {
 	 * Get all rooms a client is in
 	 */
 	getClientRooms(connectionId: string): string[] {
-		const ws = this.clients.get(connectionId);
-		return ws?.data.rooms ? Array.from(ws.data.rooms) : [];
+		const meta = this.metadata.get(connectionId);
+		return meta?.rooms ? Array.from(meta.rooms) : [];
 	}
 
 	/**
@@ -198,12 +215,25 @@ export class WsServer {
 	}
 
 	/**
+	 * Mark a connection as alive (called on pong)
+	 */
+	handlePong(connectionId: string): void {
+		const meta = this.metadata.get(connectionId);
+		if (meta) {
+			meta.isAlive = true;
+		}
+	}
+
+	/**
 	 * Setup ping/pong interval to detect dead connections
 	 */
 	private setupPingInterval(): void {
 		this.pingInterval = setInterval(() => {
 			for (const [connectionId, ws] of this.clients) {
-				if (ws.data.isAlive === false) {
+				const meta = this.metadata.get(connectionId);
+				if (!meta) continue;
+
+				if (meta.isAlive === false) {
 					// Connection is dead, terminate it
 					console.log(`Terminating dead connection: ${connectionId}`);
 					ws.close();
@@ -212,20 +242,12 @@ export class WsServer {
 				}
 
 				// Mark as not alive and ping
-				ws.data.isAlive = false;
-				ws.ping();
+				meta.isAlive = false;
+				if (typeof ws.ping === "function") {
+					ws.ping();
+				}
 			}
 		}, 30000); // Ping every 30 seconds
-	}
-
-	/**
-	 * Handle pong response
-	 */
-	handlePong(connectionId: string): void {
-		const ws = this.clients.get(connectionId);
-		if (ws) {
-			ws.data.isAlive = true;
-		}
 	}
 
 	/**

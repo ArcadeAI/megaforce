@@ -99,20 +99,34 @@ const app = new Elysia()
 	.use(uploadRoutes)
 	.ws("/ws", {
 		open(ws) {
-			// Initialize connection data on open
-			ws.data = {
-				connectionId: generateConnectionId(),
-				userId: undefined,
-				rooms: new Set<string>(),
-				isAlive: true,
-			};
-			handleOpen(ws, wsServer);
+			const connectionId = generateConnectionId();
+			// Store connectionId in Elysia's shared WS context so it persists
+			// across open/message/close callbacks (which use different wrapper objects)
+			// biome-ignore lint/suspicious/noExplicitAny: Elysia WS data typing
+			(ws.data as any).__connectionId = connectionId;
+			handleOpen(ws, wsServer, connectionId);
 		},
-		message(ws, message) {
-			handleMessage(ws, wsServer, message);
+		message(ws, message: unknown) {
+			// biome-ignore lint/suspicious/noExplicitAny: Elysia WS data typing
+			const connectionId = (ws.data as any)?.__connectionId as
+				| string
+				| undefined;
+			if (!connectionId) {
+				console.warn("No connectionId on ws.data in message handler");
+				return;
+			}
+			handleMessage(ws, wsServer, message, connectionId);
 		},
 		close(ws) {
-			handleClose(ws, wsServer);
+			// biome-ignore lint/suspicious/noExplicitAny: Elysia WS data typing
+			const connectionId = (ws.data as any)?.__connectionId as
+				| string
+				| undefined;
+			if (!connectionId) {
+				console.warn("No connectionId on ws.data in close handler");
+				return;
+			}
+			handleClose(ws, wsServer, connectionId);
 		},
 	})
 	.listen(3000, () => {
