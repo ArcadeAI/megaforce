@@ -1,4 +1,4 @@
-import { type ApiResponse, apiClient } from "./client";
+import type { ApiResponse } from "./client";
 
 /**
  * Source types
@@ -31,7 +31,7 @@ export const sourcesApi = {
 	/**
 	 * Get all sources for a workspace
 	 */
-	async getByWorkspace(workspaceId: string): Promise<ApiResponse<Source[]>> {
+	async getByWorkspace(_workspaceId: string): Promise<ApiResponse<Source[]>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: [],
@@ -41,7 +41,7 @@ export const sourcesApi = {
 	/**
 	 * Get source by ID
 	 */
-	async getById(id: string): Promise<ApiResponse<Source>> {
+	async getById(_id: string): Promise<ApiResponse<Source>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -52,7 +52,7 @@ export const sourcesApi = {
 	/**
 	 * Create a new source
 	 */
-	async create(input: CreateSourceInput): Promise<ApiResponse<Source>> {
+	async create(_input: CreateSourceInput): Promise<ApiResponse<Source>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -64,8 +64,8 @@ export const sourcesApi = {
 	 * Update a source
 	 */
 	async update(
-		id: string,
-		input: UpdateSourceInput,
+		_id: string,
+		_input: UpdateSourceInput,
 	): Promise<ApiResponse<Source>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -77,7 +77,7 @@ export const sourcesApi = {
 	/**
 	 * Delete a source
 	 */
-	async delete(id: string): Promise<ApiResponse<void>> {
+	async delete(_id: string): Promise<ApiResponse<void>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -89,7 +89,7 @@ export const sourcesApi = {
 	 * Test source connection
 	 */
 	async testConnection(
-		id: string,
+		_id: string,
 	): Promise<ApiResponse<{ connected: boolean }>> {
 		// TODO: Implement when backend endpoint is ready
 		return {

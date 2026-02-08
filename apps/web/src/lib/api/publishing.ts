@@ -1,4 +1,4 @@
-import { type ApiResponse, apiClient } from "./client";
+import type { ApiResponse } from "./client";
 
 /**
  * Publishing types
@@ -48,7 +48,7 @@ export const publishingApi = {
 	 * Get all publish targets for a project
 	 */
 	async getTargetsByProject(
-		projectId: string,
+		_projectId: string,
 	): Promise<ApiResponse<PublishTarget[]>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -60,7 +60,7 @@ export const publishingApi = {
 	 * Create a new publish target
 	 */
 	async createTarget(
-		input: CreatePublishTargetInput,
+		_input: CreatePublishTargetInput,
 	): Promise<ApiResponse<PublishTarget>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -73,8 +73,8 @@ export const publishingApi = {
 	 * Update a publish target
 	 */
 	async updateTarget(
-		id: string,
-		input: UpdatePublishTargetInput,
+		_id: string,
+		_input: UpdatePublishTargetInput,
 	): Promise<ApiResponse<PublishTarget>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -86,7 +86,7 @@ export const publishingApi = {
 	/**
 	 * Delete a publish target
 	 */
-	async deleteTarget(id: string): Promise<ApiResponse<void>> {
+	async deleteTarget(_id: string): Promise<ApiResponse<void>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -98,7 +98,7 @@ export const publishingApi = {
 	 * Create a new publish job
 	 */
 	async createJob(
-		input: CreatePublishJobInput,
+		_input: CreatePublishJobInput,
 	): Promise<ApiResponse<PublishJob>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -110,7 +110,7 @@ export const publishingApi = {
 	/**
 	 * Get publish jobs for a target
 	 */
-	async getJobsByTarget(targetId: string): Promise<ApiResponse<PublishJob[]>> {
+	async getJobsByTarget(_targetId: string): Promise<ApiResponse<PublishJob[]>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: [],
@@ -120,7 +120,7 @@ export const publishingApi = {
 	/**
 	 * Get publish job by ID
 	 */
-	async getJobById(id: string): Promise<ApiResponse<PublishJob>> {
+	async getJobById(_id: string): Promise<ApiResponse<PublishJob>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -131,7 +131,7 @@ export const publishingApi = {
 	/**
 	 * Retry a failed publish job
 	 */
-	async retryJob(id: string): Promise<ApiResponse<PublishJob>> {
+	async retryJob(_id: string): Promise<ApiResponse<PublishJob>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,

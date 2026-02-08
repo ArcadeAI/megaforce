@@ -1,91 +1,118 @@
-import { type ApiResponse, apiClient } from "./client";
+import { env } from "@megaforce/env/web";
+import { authClient } from "../auth-client";
 
 /**
- * Persona types
+ * Persona types (matches server Prisma model)
  */
 export type Persona = {
 	id: string;
 	workspaceId: string;
 	name: string;
-	role: string;
-	description?: string;
-	traits: string[];
-	expertise: string[];
-	createdAt: Date;
-	updatedAt: Date;
+	description: string | null;
+	styleProfile: Record<string, unknown>;
+	vocabularyLevel: string | null;
+	perspective: string | null;
+	sentenceStyle: string | null;
+	sampleOutput: string | null;
+	isDefault: boolean;
+	createdAt: string;
+	updatedAt: string;
 };
 
-export type CreatePersonaInput = {
-	workspaceId: string;
-	name: string;
-	role: string;
-	description?: string;
-	traits?: string[];
-	expertise?: string[];
-};
-
-export type UpdatePersonaInput = Partial<
-	Omit<CreatePersonaInput, "workspaceId">
->;
+// Server wraps responses in { success, data }
+type ApiResponse<T> = { success: boolean; data: T };
 
 /**
- * Persona API functions
+ * Fetch helper with auth and JSON parsing
+ */
+async function fetchApi<T>(
+	path: string,
+	options: RequestInit = {},
+): Promise<T> {
+	const session = await authClient.getSession();
+	const headers: Record<string, string> = {
+		"Content-Type": "application/json",
+		...((options.headers as Record<string, string>) ?? {}),
+	};
+
+	if (session?.data?.session?.token) {
+		headers.Authorization = `Bearer ${session.data.session.token}`;
+	}
+
+	const response = await fetch(`${env.VITE_SERVER_URL}${path}`, {
+		...options,
+		headers,
+		credentials: "include",
+	});
+
+	if (!response.ok) {
+		const errorBody = await response.json().catch(() => ({}));
+		const message =
+			(errorBody as Record<string, string>).message ??
+			(errorBody as Record<string, string>).error ??
+			`Request failed with status ${response.status}`;
+		throw new Error(message);
+	}
+
+	if (response.status === 204) {
+		return undefined as T;
+	}
+
+	return response.json() as Promise<T>;
+}
+
+/**
+ * Personas API functions
  */
 export const personasApi = {
-	/**
-	 * Get all personas for a workspace
-	 */
-	async getByWorkspace(workspaceId: string): Promise<ApiResponse<Persona[]>> {
-		// TODO: Implement when backend endpoint is ready
-		return {
-			data: [],
-		};
+	async getAll(): Promise<Persona[]> {
+		const res = await fetchApi<ApiResponse<Persona[]>>("/api/personas");
+		return res.data;
 	},
 
-	/**
-	 * Get persona by ID
-	 */
-	async getById(id: string): Promise<ApiResponse<Persona>> {
-		// TODO: Implement when backend endpoint is ready
-		return {
-			data: undefined,
-			error: { message: "Not implemented" },
-		};
+	async getById(id: string): Promise<Persona> {
+		const res = await fetchApi<ApiResponse<Persona>>(`/api/personas/${id}`);
+		return res.data;
 	},
 
-	/**
-	 * Create a new persona
-	 */
-	async create(input: CreatePersonaInput): Promise<ApiResponse<Persona>> {
-		// TODO: Implement when backend endpoint is ready
-		return {
-			data: undefined,
-			error: { message: "Not implemented" },
-		};
+	async create(
+		input: Omit<
+			Persona,
+			"id" | "workspaceId" | "createdAt" | "updatedAt" | "isDefault"
+		>,
+	): Promise<Persona> {
+		const res = await fetchApi<ApiResponse<Persona>>("/api/personas", {
+			method: "POST",
+			body: JSON.stringify(input),
+		});
+		return res.data;
 	},
 
-	/**
-	 * Update a persona
-	 */
 	async update(
 		id: string,
-		input: UpdatePersonaInput,
-	): Promise<ApiResponse<Persona>> {
-		// TODO: Implement when backend endpoint is ready
-		return {
-			data: undefined,
-			error: { message: "Not implemented" },
-		};
+		input: Partial<
+			Pick<
+				Persona,
+				| "name"
+				| "description"
+				| "styleProfile"
+				| "vocabularyLevel"
+				| "perspective"
+				| "sentenceStyle"
+				| "sampleOutput"
+			>
+		>,
+	): Promise<Persona> {
+		const res = await fetchApi<ApiResponse<Persona>>(`/api/personas/${id}`, {
+			method: "PATCH",
+			body: JSON.stringify(input),
+		});
+		return res.data;
 	},
 
-	/**
-	 * Delete a persona
-	 */
-	async delete(id: string): Promise<ApiResponse<void>> {
-		// TODO: Implement when backend endpoint is ready
-		return {
-			data: undefined,
-			error: { message: "Not implemented" },
-		};
+	async delete(id: string): Promise<void> {
+		return fetchApi<void>(`/api/personas/${id}`, {
+			method: "DELETE",
+		});
 	},
 };

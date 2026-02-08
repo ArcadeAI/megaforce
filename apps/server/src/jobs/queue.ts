@@ -12,7 +12,6 @@ export const connection = new Redis(env.REDIS_URL, {
 	},
 });
 
-// Handle Redis connection errors
 connection.on("error", (error: Error) => {
 	console.error("Redis connection error:", error);
 });
@@ -24,10 +23,10 @@ connection.on("connect", () => {
 // Queue names
 export enum QueueName {
 	SOURCE_INGESTION = "source-ingestion",
-	STYLE_LEARNING = "style-learning",
+	PLAN_GENERATION = "plan-generation",
+	CRITIC_REVIEW = "critic-review",
+	OUTLINE_GENERATION = "outline-generation",
 	CONTENT_GENERATION = "content-generation",
-	PUBLISHING = "publishing",
-	ANALYTICS = "analytics",
 }
 
 // Queue priority levels
@@ -41,30 +40,30 @@ export enum QueuePriority {
 // Type-safe job data definitions
 export interface SourceIngestionJobData {
 	sourceId: string;
-	url: string;
+	sessionId?: string;
 }
 
-export interface StyleLearningJobData {
-	userId: string;
-	sourceIds: string[];
+export interface PlanGenerationJobData {
+	sessionId: string;
+	planId?: string;
+}
+
+export interface CriticReviewJobData {
+	sessionId: string;
+	artifactType: "plan" | "outline" | "content";
+	artifactId: string;
+}
+
+export interface OutlineGenerationJobData {
+	sessionId: string;
+	planId: string;
+	outlineId?: string;
 }
 
 export interface ContentGenerationJobData {
-	userId: string;
-	topic: string;
-	styleProfile: string;
-}
-
-export interface PublishingJobData {
-	contentId: string;
-	platforms: string[];
-	scheduledTime?: Date;
-}
-
-export interface AnalyticsJobData {
-	contentId: string;
-	platform: string;
-	metricsType: string;
+	sessionId: string;
+	outlineId: string;
+	contentId?: string;
 }
 
 // Queue configuration factory
@@ -95,9 +94,19 @@ export const sourceIngestionQueue = new Queue<SourceIngestionJobData>(
 	createQueueConfig(QueuePriority.NORMAL),
 );
 
-export const styleLearningQueue = new Queue<StyleLearningJobData>(
-	QueueName.STYLE_LEARNING,
-	createQueueConfig(QueuePriority.NORMAL),
+export const planGenerationQueue = new Queue<PlanGenerationJobData>(
+	QueueName.PLAN_GENERATION,
+	createQueueConfig(QueuePriority.HIGH),
+);
+
+export const criticReviewQueue = new Queue<CriticReviewJobData>(
+	QueueName.CRITIC_REVIEW,
+	createQueueConfig(QueuePriority.HIGH),
+);
+
+export const outlineGenerationQueue = new Queue<OutlineGenerationJobData>(
+	QueueName.OUTLINE_GENERATION,
+	createQueueConfig(QueuePriority.HIGH),
 );
 
 export const contentGenerationQueue = new Queue<ContentGenerationJobData>(
@@ -105,23 +114,13 @@ export const contentGenerationQueue = new Queue<ContentGenerationJobData>(
 	createQueueConfig(QueuePriority.HIGH),
 );
 
-export const publishingQueue = new Queue<PublishingJobData>(
-	QueueName.PUBLISHING,
-	createQueueConfig(QueuePriority.CRITICAL),
-);
-
-export const analyticsQueue = new Queue<AnalyticsJobData>(
-	QueueName.ANALYTICS,
-	createQueueConfig(QueuePriority.LOW),
-);
-
 // Export all queues as a map for easy access
 export const queues = {
 	[QueueName.SOURCE_INGESTION]: sourceIngestionQueue,
-	[QueueName.STYLE_LEARNING]: styleLearningQueue,
+	[QueueName.PLAN_GENERATION]: planGenerationQueue,
+	[QueueName.CRITIC_REVIEW]: criticReviewQueue,
+	[QueueName.OUTLINE_GENERATION]: outlineGenerationQueue,
 	[QueueName.CONTENT_GENERATION]: contentGenerationQueue,
-	[QueueName.PUBLISHING]: publishingQueue,
-	[QueueName.ANALYTICS]: analyticsQueue,
 } as const;
 
 // Graceful shutdown handler

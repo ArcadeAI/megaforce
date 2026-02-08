@@ -1,4 +1,4 @@
-import { type ApiResponse, apiClient } from "./client";
+import type { ApiResponse } from "./client";
 
 /**
  * Workspace types
@@ -37,7 +37,7 @@ export const workspacesApi = {
 	/**
 	 * Get workspace by ID
 	 */
-	async getById(id: string): Promise<ApiResponse<Workspace>> {
+	async getById(_id: string): Promise<ApiResponse<Workspace>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -48,7 +48,7 @@ export const workspacesApi = {
 	/**
 	 * Create a new workspace
 	 */
-	async create(input: CreateWorkspaceInput): Promise<ApiResponse<Workspace>> {
+	async create(_input: CreateWorkspaceInput): Promise<ApiResponse<Workspace>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -60,8 +60,8 @@ export const workspacesApi = {
 	 * Update a workspace
 	 */
 	async update(
-		id: string,
-		input: UpdateWorkspaceInput,
+		_id: string,
+		_input: UpdateWorkspaceInput,
 	): Promise<ApiResponse<Workspace>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -73,7 +73,7 @@ export const workspacesApi = {
 	/**
 	 * Delete a workspace
 	 */
-	async delete(id: string): Promise<ApiResponse<void>> {
+	async delete(_id: string): Promise<ApiResponse<void>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,

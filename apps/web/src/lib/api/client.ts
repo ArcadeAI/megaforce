@@ -10,7 +10,7 @@ export const apiClient = treaty<App>(env.VITE_SERVER_URL, {
 	fetch: {
 		credentials: "include",
 	},
-	onRequest: async (path, options) => {
+	onRequest: async (_path, options) => {
 		// Get the current session from better-auth
 		const session = await authClient.getSession();
 

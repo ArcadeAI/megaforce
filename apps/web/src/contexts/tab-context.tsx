@@ -233,7 +233,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
 			// Ctrl/Cmd + Shift + 1-9: Switch to tab by index
 			if (modifier && e.shiftKey) {
-				const num = Number.parseInt(e.key);
+				const num = Number.parseInt(e.key, 10);
 				if (num >= 1 && num <= 9) {
 					e.preventDefault();
 					const tabIndex = num - 1;

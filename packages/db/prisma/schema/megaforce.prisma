@@ -1,5 +1,5 @@
 // Megaforce Database Schema
-// Multi-user content generation platform
+// AI content generation platform — session-workflow model
 
 // ============================================================================
 // ENUMS
@@ -11,42 +11,52 @@ enum SourceType {
   PDF
 }
 
-enum SocialPlatform {
-  TWITTER
-  LINKEDIN
-  REDDIT
-}
-
 enum OutputType {
-  TWITTER_THREAD
-  SINGLE_TWEET
-  LINKEDIN_POST
   BLOG_POST
-  REDDIT_POST
+  ARTICLE
+  SOCIAL_MEDIA
+  TECHNICAL_DOCS
+  MARKETING_COPY
+  CUSTOM
 }
 
-enum CandidateStatus {
-  GENERATING
-  PENDING
-  APPROVED
-  SCHEDULED
+enum SessionStage {
+  OUTPUT_SELECTION
+  CLARIFYING
+  PERSONA
+  PLAN
+  OUTLINE
+  GENERATION
+  COMPLETE
+}
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ReviewStatus {
+  DRAFT
+  CRITIC_REVIEWING
+  CRITIC_APPROVED
+  USER_APPROVED
   REJECTED
-  PUBLISHED
-  FAILED
+}
+
+enum DataSourceMode {
+  CORPUS_ONLY
+  DEEP_RESEARCH
+  BOTH
 }
 
 enum JobType {
   SOURCE_INGESTION
-  STYLE_LEARNING
+  PLAN_GENERATION
+  CRITIC_REVIEW
+  OUTLINE_GENERATION
   CONTENT_GENERATION
-  CONTENT_PUBLISHING
-  ANALYTICS_FETCH
-}
-
-enum StyleLearningStatus {
-  PENDING
-  CONFIRMED
-  REJECTED
 }
 
 // ============================================================================
@@ -61,34 +71,40 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  sources          Source[]
-  personas         Persona[]
+  sources       Source[]
+  personas      Persona[]
+  sessions      ContentSession[]
+  jobs          JobQueue[]
+  wsConnections WebSocketConnection[]
+
+  // Publishing relations (Phase 11)
   projects         Project[]
   candidates       ContentCandidate[]
   publishedContent PublishedContent[]
-  jobs             JobQueue[]
-  wsConnections    WebSocketConnection[]
 
   @@index([userId])
   @@map("workspace")
 }
 
 model Source {
-  id          String     @id @default(cuid())
-  workspaceId String
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  type        SourceType
-  title       String
-  url         String?
-  fileUrl     String?
-  content     String?    @db.Text
-  metadata    Json?
-  status      String     @default("pending") // pending, parsing, parsed, failed
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type          SourceType
+  title         String
+  url           String?
+  fileUrl       String?
+  content       String?    @db.Text
+  parsedContent String?    @db.Text
+  wordCount     Int?
+  metadata      Json?
+  status        String     @default("pending") // pending, parsing, parsed, failed
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  // Relations
+  sessionSources SessionSource[]
+
+  // Publishing relations (Phase 11)
   personaSources PersonaSource[]
   projectSources ProjectSource[]
 
@@ -99,16 +115,23 @@ model Source {
 }
 
 model Persona {
-  id           String   @id @default(cuid())
-  workspaceId  String
-  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?  @db.Text
-  styleProfile Json     // Structured style attributes
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?  @db.Text
+  styleProfile    Json     // Structured style attributes
+  vocabularyLevel String?
+  perspective     String?
+  sentenceStyle   String?
+  sampleOutput    String?  @db.Text
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  // Relations
+  sessionPersonas SessionPersona[]
+
+  // Publishing relations (Phase 11)
   personaSources   PersonaSource[]
   socialChannels   SocialChannel[]
   projectPersonas  ProjectPersona[]
@@ -119,180 +142,168 @@ model Persona {
   @@map("persona")
 }
 
-model SocialChannel {
-  id                    String         @id @default(cuid())
-  personaId             String
-  persona               Persona        @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  platform              SocialPlatform
-  isConnected           Boolean        @default(false) // Whether successfully connected with Arcade at least once
-  lastConnectionCheckAt DateTime?      // Datetime to check connection status
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+// ============================================================================
+// SESSION WORKFLOW
+// ============================================================================
 
-  // Relations
-  publishedContent PublishedContent[]
+model ContentSession {
+  id                String         @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title             String
+  currentStage      SessionStage   @default(OUTPUT_SELECTION)
+  status            SessionStatus  @default(ACTIVE)
+  outputTypes       Json?          // Array of OutputType values
+  clarifyingAnswers Json?          // { tone, audience, keywords, context, etc. }
+  dataSourceMode    DataSourceMode @default(CORPUS_ONLY)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  @@index([personaId])
-  @@index([platform])
-  @@map("social_channel")
-}
-
-model Project {
-  id               String   @id @default(cuid())
-  workspaceId      String
-  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name             String
-  description      String?  @db.Text
-  instructions     String?  @db.Text
-  selectedModelId  String?  // OpenRouter model ID
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Relations
-  projectSources  ProjectSource[]
-  projectPersonas ProjectPersona[]
-  outputConfigs   OutputConfig[]
-  candidates      ContentCandidate[]
+  sessionPersonas  SessionPersona[]
+  sessionSources   SessionSource[]
+  plans            Plan[]
+  outlines         Outline[]
+  knowledgeBases   KnowledgeBase[]
+  generatedContent GeneratedContent[]
 
   @@index([workspaceId])
-  @@map("project")
-}
-
-model OutputConfig {
-  id          String     @id @default(cuid())
-  projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  personaId   String
-  outputType  OutputType
-  config      Json       // Output-specific configuration
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  // Relations
-  candidates ContentCandidate[]
-
-  @@index([projectId])
-  @@index([outputType])
-  @@map("output_config")
-}
-
-// ============================================================================
-// CONTENT WORKFLOW
-// ============================================================================
-
-model ContentCandidate {
-  id              String          @id @default(cuid())
-  workspaceId     String
-  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  projectId       String
-  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  outputConfigId  String
-  outputConfig    OutputConfig    @relation(fields: [outputConfigId], references: [id], onDelete: Cascade)
-  personaId       String
-  persona         Persona         @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  content         String          @db.Text
-  originalContent String?         @db.Text // If edited
-  editDiff        Json?           // Track changes
-  status          CandidateStatus @default(PENDING)
-  rejectionReason String?         @db.Text
-  metadata        Json?           // Generation metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  // Relations
-  publishedContent PublishedContent?
-
-  @@index([workspaceId])
-  @@index([projectId])
-  @@index([personaId])
   @@index([status])
-  @@index([createdAt])
-  @@map("content_candidate")
+  @@index([currentStage])
+  @@map("content_session")
 }
 
-model PublishedContent {
-  id               String        @id @default(cuid())
-  workspaceId      String
-  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  candidateId      String        @unique
-  candidate        ContentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  personaId        String
-  persona          Persona       @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  channelId        String
-  channel          SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  platformPostId   String?       // ID from the social platform
-  platformUrl      String?       // URL to the published content
-  scheduledFor     DateTime?
-  publishedAt      DateTime?
-  analytics        Json?         // Engagement metrics
-  lastAnalyticsSync DateTime?
-  status           String        @default("scheduled") // scheduled, publishing, published, failed
-  errorMessage     String?       @db.Text
-  retryCount       Int           @default(0)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+model SessionPersona {
+  id            String         @id @default(cuid())
+  sessionId     String
+  session       ContentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  personaId     String
+  persona       Persona        @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  role          String         @default("PRIMARY") // PRIMARY, SECONDARY
+  blendStrategy Json?
+  createdAt     DateTime       @default(now())
 
-  @@index([workspaceId])
+  @@unique([sessionId, personaId])
+  @@index([sessionId])
   @@index([personaId])
-  @@index([channelId])
-  @@index([scheduledFor])
-  @@index([publishedAt])
-  @@index([status])
-  @@map("published_content")
+  @@map("session_persona")
 }
 
-// ============================================================================
-// LINKING TABLES (Many-to-Many)
-// ============================================================================
-
-model PersonaSource {
-  id                 String               @id @default(cuid())
-  personaId          String
-  persona            Persona              @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  sourceId           String
-  source             Source               @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  learnedStyleData   Json?                // Style data extracted from this source
-  status             StyleLearningStatus  @default(PENDING)
-  confirmedAt        DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-
-  @@unique([personaId, sourceId])
-  @@index([personaId])
-  @@index([sourceId])
-  @@index([status])
-  @@map("persona_source")
-}
-
-model ProjectSource {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+model SessionSource {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   ContentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   sourceId  String
-  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  source    Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
 
-  @@unique([projectId, sourceId])
-  @@index([projectId])
+  @@unique([sessionId, sourceId])
+  @@index([sessionId])
   @@index([sourceId])
-  @@map("project_source")
+  @@map("session_source")
 }
 
-model ProjectPersona {
-  id                  String   @id @default(cuid())
-  projectId           String
-  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  personaId           String
-  persona             Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  customInstructions  String?  @db.Text
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+// ============================================================================
+// PLAN
+// ============================================================================
 
-  @@unique([projectId, personaId])
-  @@index([projectId])
-  @@index([personaId])
-  @@map("project_persona")
+model Plan {
+  id               String         @id @default(cuid())
+  sessionId        String
+  session          ContentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  version          Int            @default(1)
+  content          Json           // { executiveSummary, audience, messages, structure, criteria }
+  status           ReviewStatus   @default(DRAFT)
+  criticFeedback   Json?          // Array of { iteration, approved, objections, suggestions }
+  criticIterations Int            @default(0)
+  createdAt        DateTime       @default(now())
+
+  outlines Outline[]
+
+  @@index([sessionId])
+  @@index([status])
+  @@map("plan")
+}
+
+// ============================================================================
+// OUTLINE
+// ============================================================================
+
+model Outline {
+  id               String         @id @default(cuid())
+  sessionId        String
+  session          ContentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  version          Int            @default(1)
+  content          Json           // { sections: [{ title, subsections, keyPoints, sourceRefs }] }
+  status           ReviewStatus   @default(DRAFT)
+  criticFeedback   Json?
+  criticIterations Int            @default(0)
+  createdAt        DateTime       @default(now())
+
+  generatedContent GeneratedContent[]
+
+  @@index([sessionId])
+  @@index([planId])
+  @@index([status])
+  @@map("outline")
+}
+
+// ============================================================================
+// KNOWLEDGE BASE
+// ============================================================================
+
+model KnowledgeBase {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   ContentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  entries KnowledgeEntry[]
+
+  @@index([sessionId])
+  @@map("knowledge_base")
+}
+
+model KnowledgeEntry {
+  id              String        @id @default(cuid())
+  knowledgeBaseId String
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  fact            String        @db.Text
+  sourceRef       String?
+  confidence      Float         @default(1.0)
+  relevanceScore  Float         @default(1.0)
+  relatedEntryIds Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([knowledgeBaseId])
+  @@map("knowledge_entry")
+}
+
+// ============================================================================
+// GENERATED CONTENT
+// ============================================================================
+
+model GeneratedContent {
+  id               String         @id @default(cuid())
+  sessionId        String
+  session          ContentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  outlineId        String
+  outline          Outline        @relation(fields: [outlineId], references: [id], onDelete: Cascade)
+  version          Int            @default(1)
+  content          String         @db.Text
+  sections         Json?          // Array of { title, content, outlineSectionIndex }
+  status           ReviewStatus   @default(DRAFT)
+  criticFeedback   Json?
+  criticIterations Int            @default(0)
+  metrics          Json?          // { wordCount, readingTime, criticIterations }
+  createdAt        DateTime       @default(now())
+
+  @@index([sessionId])
+  @@index([outlineId])
+  @@index([status])
+  @@map("generated_content")
 }
 
 // ============================================================================
@@ -306,7 +317,7 @@ model JobQueue {
   jobType     JobType
   jobData     Json
   status      String   @default("pending") // pending, processing, completed, failed
-  priority    Int      @default(5) // 1-10, higher = more important
+  priority    Int      @default(5)
   attempts    Int      @default(0)
   maxAttempts Int      @default(3)
   error       String?  @db.Text
@@ -324,14 +335,14 @@ model JobQueue {
 }
 
 model WebSocketConnection {
-  id          String    @id @default(cuid())
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  connectionId String   @unique
-  connectedAt DateTime  @default(now())
-  lastPingAt  DateTime  @default(now())
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionId String    @unique
+  connectedAt  DateTime  @default(now())
+  lastPingAt   DateTime  @default(now())
 
   @@index([workspaceId])
   @@index([userId])

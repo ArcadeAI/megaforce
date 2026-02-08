@@ -25,7 +25,7 @@ export async function getUserWorkspace(
 	userId: string,
 ): Promise<WorkspaceContext | null> {
 	try {
-		const workspace = await prisma.workspace.findFirst({
+		let workspace = await prisma.workspace.findFirst({
 			where: { userId },
 			select: {
 				id: true,
@@ -35,6 +35,22 @@ export async function getUserWorkspace(
 				updatedAt: true,
 			},
 		});
+
+		if (!workspace) {
+			workspace = await prisma.workspace.create({
+				data: {
+					name: "My Workspace",
+					userId,
+				},
+				select: {
+					id: true,
+					name: true,
+					userId: true,
+					createdAt: true,
+					updatedAt: true,
+				},
+			});
+		}
 
 		return workspace;
 	} catch (error) {

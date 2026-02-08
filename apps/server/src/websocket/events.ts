@@ -3,23 +3,12 @@
  * Type-safe event definitions for real-time updates
  */
 
-// Re-export types from Prisma client enums
-// Using string union types instead of importing from @megaforce/db to avoid import issues
-export type CandidateStatus =
-	| "GENERATING"
-	| "PENDING"
-	| "APPROVED"
-	| "SCHEDULED"
-	| "REJECTED"
-	| "PUBLISHED"
-	| "FAILED";
-
 export type JobType =
 	| "SOURCE_INGESTION"
-	| "STYLE_LEARNING"
-	| "CONTENT_GENERATION"
-	| "CONTENT_PUBLISHING"
-	| "ANALYTICS_FETCH";
+	| "PLAN_GENERATION"
+	| "CRITIC_REVIEW"
+	| "OUTLINE_GENERATION"
+	| "CONTENT_GENERATION";
 
 // ============================================================================
 // EVENT TYPE CONSTANTS
@@ -41,10 +30,24 @@ export const WS_EVENTS = {
 	ROOMS_JOINED: "rooms_joined",
 	ROOMS_LEFT: "rooms_left",
 
-	// Content events
-	CONTENT_CANDIDATE_CREATED: "content_candidate:created",
-	CONTENT_CANDIDATE_UPDATED: "content_candidate:updated",
-	CONTENT_CANDIDATE_STATUS_CHANGED: "content_candidate:status_changed",
+	// Session events
+	SESSION_STAGE_CHANGED: "session:stage_changed",
+
+	// Plan events
+	PLAN_GENERATED: "plan:generated",
+	PLAN_CRITIC_STARTED: "plan:critic_started",
+	PLAN_CRITIC_COMPLETE: "plan:critic_complete",
+
+	// Outline events
+	OUTLINE_GENERATED: "outline:generated",
+	OUTLINE_CRITIC_STARTED: "outline:critic_started",
+	OUTLINE_CRITIC_COMPLETE: "outline:critic_complete",
+
+	// Content generation events
+	CONTENT_GENERATION_PROGRESS: "content:generation_progress",
+	CONTENT_GENERATION_COMPLETE: "content:generation_complete",
+	CONTENT_CRITIC_STARTED: "content:critic_started",
+	CONTENT_CRITIC_COMPLETE: "content:critic_complete",
 
 	// Job events
 	JOB_CREATED: "job:created",
@@ -57,9 +60,6 @@ export const WS_EVENTS = {
 	SOURCE_CREATED: "source:created",
 	SOURCE_UPDATED: "source:updated",
 	SOURCE_PARSED: "source:parsed",
-
-	// Project events
-	PROJECT_UPDATED: "project:updated",
 
 	// Workspace events
 	WORKSPACE_UPDATED: "workspace:updated",
@@ -74,7 +74,7 @@ export type WsEventType = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];
 export enum RoomType {
 	USER = "user",
 	WORKSPACE = "workspace",
-	PROJECT = "project",
+	SESSION = "session",
 }
 
 export interface RoomIdentifier {
@@ -99,35 +99,91 @@ export interface LeaveRoomPayload {
 	rooms: RoomIdentifier[];
 }
 
-// Content candidate events
-export interface ContentCandidateCreatedPayload {
-	candidateId: string;
+// Session events
+export interface SessionStageChangedPayload {
+	sessionId: string;
 	workspaceId: string;
-	projectId: string;
-	personaId: string;
-	outputConfigId: string;
-	status: CandidateStatus;
-	content: string;
+	previousStage: string;
+	currentStage: string;
+	updatedAt: string;
+}
+
+// Plan events
+export interface PlanGeneratedPayload {
+	sessionId: string;
+	planId: string;
+	version: number;
+	status: string;
 	createdAt: string;
 }
 
-export interface ContentCandidateUpdatedPayload {
-	candidateId: string;
-	workspaceId: string;
-	projectId: string;
-	content: string;
-	editDiff?: Record<string, unknown>;
-	updatedAt: string;
+export interface PlanCriticStartedPayload {
+	sessionId: string;
+	planId: string;
+	iteration: number;
 }
 
-export interface ContentCandidateStatusChangedPayload {
-	candidateId: string;
-	workspaceId: string;
-	projectId: string;
-	oldStatus: CandidateStatus;
-	newStatus: CandidateStatus;
-	rejectionReason?: string;
-	updatedAt: string;
+export interface PlanCriticCompletePayload {
+	sessionId: string;
+	planId: string;
+	approved: boolean;
+	iteration: number;
+	status: string;
+}
+
+// Outline events
+export interface OutlineGeneratedPayload {
+	sessionId: string;
+	outlineId: string;
+	version: number;
+	status: string;
+	createdAt: string;
+}
+
+export interface OutlineCriticStartedPayload {
+	sessionId: string;
+	outlineId: string;
+	iteration: number;
+}
+
+export interface OutlineCriticCompletePayload {
+	sessionId: string;
+	outlineId: string;
+	approved: boolean;
+	iteration: number;
+	status: string;
+}
+
+// Content generation events
+export interface ContentGenerationProgressPayload {
+	sessionId: string;
+	contentId: string;
+	sectionIndex: number;
+	totalSections: number;
+	sectionTitle: string;
+	progress: number; // 0-100
+}
+
+export interface ContentGenerationCompletePayload {
+	sessionId: string;
+	contentId: string;
+	version: number;
+	status: string;
+	createdAt: string;
+}
+
+export interface ContentCriticStartedPayload {
+	sessionId: string;
+	contentId: string;
+	iteration: number;
+}
+
+export interface ContentCriticCompletePayload {
+	sessionId: string;
+	contentId: string;
+	approved: boolean;
+	iteration: number;
+	status: string;
 }
 
 // Job events
@@ -195,15 +251,6 @@ export interface SourceParsedPayload {
 	parsedAt: string;
 }
 
-// Project events
-export interface ProjectUpdatedPayload {
-	projectId: string;
-	workspaceId: string;
-	name?: string;
-	description?: string;
-	updatedAt: string;
-}
-
 // Workspace events
 export interface WorkspaceUpdatedPayload {
 	workspaceId: string;
@@ -219,9 +266,17 @@ export type EventPayload =
 	| AuthPayload
 	| JoinRoomPayload
 	| LeaveRoomPayload
-	| ContentCandidateCreatedPayload
-	| ContentCandidateUpdatedPayload
-	| ContentCandidateStatusChangedPayload
+	| SessionStageChangedPayload
+	| PlanGeneratedPayload
+	| PlanCriticStartedPayload
+	| PlanCriticCompletePayload
+	| OutlineGeneratedPayload
+	| OutlineCriticStartedPayload
+	| OutlineCriticCompletePayload
+	| ContentGenerationProgressPayload
+	| ContentGenerationCompletePayload
+	| ContentCriticStartedPayload
+	| ContentCriticCompletePayload
 	| JobCreatedPayload
 	| JobStartedPayload
 	| JobProgressPayload
@@ -230,7 +285,6 @@ export type EventPayload =
 	| SourceCreatedPayload
 	| SourceUpdatedPayload
 	| SourceParsedPayload
-	| ProjectUpdatedPayload
 	| WorkspaceUpdatedPayload;
 
 export interface WsMessage<T = EventPayload> {
@@ -243,9 +297,6 @@ export interface WsMessage<T = EventPayload> {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-/**
- * Create a WebSocket message
- */
 export function createWsMessage<T = EventPayload>(
 	event: WsEventType,
 	payload: T,
@@ -257,16 +308,10 @@ export function createWsMessage<T = EventPayload>(
 	};
 }
 
-/**
- * Create a room identifier string for internal use
- */
 export function getRoomKey(room: RoomIdentifier): string {
 	return `${room.type}:${room.id}`;
 }
 
-/**
- * Parse a room identifier string back to RoomIdentifier
- */
 export function parseRoomKey(roomKey: string): RoomIdentifier | null {
 	const [type, id] = roomKey.split(":");
 	if (!type || !id || !Object.values(RoomType).includes(type as RoomType)) {

@@ -9,12 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutDemoRouteImport } from './routes/layout-demo'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ApiTestRouteImport } from './routes/api-test'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
 
+const SessionsRoute = SessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -40,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsSessionIdRoute = SessionsSessionIdRouteImport.update({
+  id: '/$sessionId',
+  path: '/$sessionId',
+  getParentRoute: () => SessionsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +59,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
+  '/sessions': typeof SessionsRouteWithChildren
+  '/sessions/$sessionId': typeof SessionsSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +68,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
+  '/sessions': typeof SessionsRouteWithChildren
+  '/sessions/$sessionId': typeof SessionsSessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +78,37 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
+  '/sessions': typeof SessionsRouteWithChildren
+  '/sessions/$sessionId': typeof SessionsSessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api-test' | '/dashboard' | '/layout-demo' | '/login'
+  fullPaths:
+    | '/'
+    | '/api-test'
+    | '/dashboard'
+    | '/layout-demo'
+    | '/login'
+    | '/sessions'
+    | '/sessions/$sessionId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api-test' | '/dashboard' | '/layout-demo' | '/login'
-  id: '__root__' | '/' | '/api-test' | '/dashboard' | '/layout-demo' | '/login'
+  to:
+    | '/'
+    | '/api-test'
+    | '/dashboard'
+    | '/layout-demo'
+    | '/login'
+    | '/sessions'
+    | '/sessions/$sessionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/api-test'
+    | '/dashboard'
+    | '/layout-demo'
+    | '/login'
+    | '/sessions'
+    | '/sessions/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,10 +117,18 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LayoutDemoRoute: typeof LayoutDemoRoute
   LoginRoute: typeof LoginRoute
+  SessionsRoute: typeof SessionsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sessions': {
+      id: '/sessions'
+      path: '/sessions'
+      fullPath: '/sessions'
+      preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -116,8 +164,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions/$sessionId': {
+      id: '/sessions/$sessionId'
+      path: '/$sessionId'
+      fullPath: '/sessions/$sessionId'
+      preLoaderRoute: typeof SessionsSessionIdRouteImport
+      parentRoute: typeof SessionsRoute
+    }
   }
 }
+
+interface SessionsRouteChildren {
+  SessionsSessionIdRoute: typeof SessionsSessionIdRoute
+}
+
+const SessionsRouteChildren: SessionsRouteChildren = {
+  SessionsSessionIdRoute: SessionsSessionIdRoute,
+}
+
+const SessionsRouteWithChildren = SessionsRoute._addFileChildren(
+  SessionsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -125,6 +192,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LayoutDemoRoute: LayoutDemoRoute,
   LoginRoute: LoginRoute,
+  SessionsRoute: SessionsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

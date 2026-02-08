@@ -1,0 +1,189 @@
+// Publishing & Social Media Models
+// Extracted from megaforce.prisma for Phase 11 (CMS + social media integrations)
+// These models are kept for future reference but not actively used in the current workflow.
+
+enum SocialPlatform {
+  TWITTER
+  LINKEDIN
+  REDDIT
+}
+
+enum CandidateStatus {
+  GENERATING
+  PENDING
+  APPROVED
+  SCHEDULED
+  REJECTED
+  PUBLISHED
+  FAILED
+}
+
+enum StyleLearningStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model SocialChannel {
+  id                    String         @id @default(cuid())
+  personaId             String
+  persona               Persona        @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  platform              SocialPlatform
+  isConnected           Boolean        @default(false)
+  lastConnectionCheckAt DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  publishedContent PublishedContent[]
+
+  @@index([personaId])
+  @@index([platform])
+  @@map("social_channel")
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?  @db.Text
+  instructions    String?  @db.Text
+  selectedModelId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  projectSources  ProjectSource[]
+  projectPersonas ProjectPersona[]
+  outputConfigs   OutputConfig[]
+  candidates      ContentCandidate[]
+
+  @@index([workspaceId])
+  @@map("project")
+}
+
+model OutputConfig {
+  id         String     @id @default(cuid())
+  projectId  String
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personaId  String
+  outputType OutputType
+  config     Json
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  candidates ContentCandidate[]
+
+  @@index([projectId])
+  @@index([outputType])
+  @@map("output_config")
+}
+
+model ContentCandidate {
+  id              String          @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outputConfigId  String
+  outputConfig    OutputConfig    @relation(fields: [outputConfigId], references: [id], onDelete: Cascade)
+  personaId       String
+  persona         Persona         @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  content         String          @db.Text
+  originalContent String?         @db.Text
+  editDiff        Json?
+  status          CandidateStatus @default(PENDING)
+  rejectionReason String?         @db.Text
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  publishedContent PublishedContent?
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([personaId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("content_candidate")
+}
+
+model PublishedContent {
+  id                String           @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  candidateId       String           @unique
+  candidate         ContentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  personaId         String
+  persona           Persona          @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  channelId         String
+  channel           SocialChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  platformPostId    String?
+  platformUrl       String?
+  scheduledFor      DateTime?
+  publishedAt       DateTime?
+  analytics         Json?
+  lastAnalyticsSync DateTime?
+  status            String           @default("scheduled")
+  errorMessage      String?          @db.Text
+  retryCount        Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([workspaceId])
+  @@index([personaId])
+  @@index([channelId])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([status])
+  @@map("published_content")
+}
+
+model PersonaSource {
+  id               String              @id @default(cuid())
+  personaId        String
+  persona          Persona             @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  sourceId         String
+  source           Source              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  learnedStyleData Json?
+  status           StyleLearningStatus @default(PENDING)
+  confirmedAt      DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([personaId, sourceId])
+  @@index([personaId])
+  @@index([sourceId])
+  @@index([status])
+  @@map("persona_source")
+}
+
+model ProjectSource {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceId  String
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, sourceId])
+  @@index([projectId])
+  @@index([sourceId])
+  @@map("project_source")
+}
+
+model ProjectPersona {
+  id                 String   @id @default(cuid())
+  projectId          String
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personaId          String
+  persona            Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  customInstructions String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([projectId, personaId])
+  @@index([projectId])
+  @@index([personaId])
+  @@map("project_persona")
+}

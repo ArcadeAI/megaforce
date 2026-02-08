@@ -121,7 +121,7 @@ export function useUpdateWorkspace(
 			}
 			return response.data;
 		},
-		onSuccess: (data, variables) => {
+		onSuccess: (_data, variables) => {
 			queryClient.invalidateQueries({ queryKey: workspaceKeys.lists() });
 			queryClient.invalidateQueries({
 				queryKey: workspaceKeys.detail(variables.id),

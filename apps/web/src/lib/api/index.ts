@@ -8,5 +8,6 @@ export * from "./client";
 export * from "./personas";
 export * from "./projects";
 export * from "./publishing";
+export * from "./sessions";
 export * from "./sources";
 export * from "./workspaces";

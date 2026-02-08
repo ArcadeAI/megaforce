@@ -3,31 +3,56 @@
  * Handles workspace management operations
  */
 
+import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+import { requireAuth } from "../middleware/auth";
 
 export const workspacesRoutes = new Elysia({ prefix: "/api/workspaces" })
-	.get("/", () => {
-		return {
-			success: true,
-			data: [],
-			message: "Workspace list endpoint - not implemented",
-		};
+	.derive(async (context) => {
+		const user = await requireAuth(context);
+		if (user instanceof Response) return { user: null };
+		return { user };
 	})
-	.get("/:id", ({ params }) => {
-		return {
-			success: true,
-			data: { id: params.id },
-			message: "Workspace detail endpoint - not implemented",
-		};
+	.onBeforeHandle((context) => {
+		if (!context.user) {
+			return new Response(JSON.stringify({ error: "Unauthorized" }), {
+				status: 401,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
 	})
+	// List user's workspaces
+	.get("/", async (context) => {
+		const workspaces = await prisma.workspace.findMany({
+			where: { userId: context.user!.id },
+			orderBy: { createdAt: "desc" },
+		});
+		return { success: true, data: workspaces };
+	})
+	// Get workspace by ID
+	.get("/:id", async (context) => {
+		const workspace = await prisma.workspace.findFirst({
+			where: { id: context.params.id, userId: context.user!.id },
+		});
+		if (!workspace) {
+			return new Response(JSON.stringify({ error: "Workspace not found" }), {
+				status: 404,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
+		return { success: true, data: workspace };
+	})
+	// Create workspace
 	.post(
 		"/",
-		({ body }) => {
-			return {
-				success: true,
-				data: body,
-				message: "Create workspace endpoint - not implemented",
-			};
+		async (context) => {
+			const workspace = await prisma.workspace.create({
+				data: {
+					name: context.body.name,
+					userId: context.user!.id,
+				},
+			});
+			return { success: true, data: workspace };
 		},
 		{
 			body: t.Object({
@@ -35,14 +60,24 @@ export const workspacesRoutes = new Elysia({ prefix: "/api/workspaces" })
 			}),
 		},
 	)
+	// Update workspace
 	.patch(
 		"/:id",
-		({ params }) => {
-			return {
-				success: true,
-				data: { id: params.id },
-				message: "Update workspace endpoint - not implemented",
-			};
+		async (context) => {
+			const existing = await prisma.workspace.findFirst({
+				where: { id: context.params.id, userId: context.user!.id },
+			});
+			if (!existing) {
+				return new Response(JSON.stringify({ error: "Workspace not found" }), {
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				});
+			}
+			const workspace = await prisma.workspace.update({
+				where: { id: context.params.id },
+				data: { name: context.body.name },
+			});
+			return { success: true, data: workspace };
 		},
 		{
 			body: t.Object({

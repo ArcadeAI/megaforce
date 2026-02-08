@@ -1,4 +1,4 @@
-import { type ApiResponse, apiClient } from "./client";
+import type { ApiResponse } from "./client";
 
 /**
  * Candidate types
@@ -34,7 +34,7 @@ export const candidatesApi = {
 	/**
 	 * Get all candidates for a project
 	 */
-	async getByProject(projectId: string): Promise<ApiResponse<Candidate[]>> {
+	async getByProject(_projectId: string): Promise<ApiResponse<Candidate[]>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: [],
@@ -44,7 +44,7 @@ export const candidatesApi = {
 	/**
 	 * Get candidate by ID
 	 */
-	async getById(id: string): Promise<ApiResponse<Candidate>> {
+	async getById(_id: string): Promise<ApiResponse<Candidate>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -55,7 +55,7 @@ export const candidatesApi = {
 	/**
 	 * Create a new candidate
 	 */
-	async create(input: CreateCandidateInput): Promise<ApiResponse<Candidate>> {
+	async create(_input: CreateCandidateInput): Promise<ApiResponse<Candidate>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -67,8 +67,8 @@ export const candidatesApi = {
 	 * Update a candidate
 	 */
 	async update(
-		id: string,
-		input: UpdateCandidateInput,
+		_id: string,
+		_input: UpdateCandidateInput,
 	): Promise<ApiResponse<Candidate>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -80,7 +80,7 @@ export const candidatesApi = {
 	/**
 	 * Delete a candidate
 	 */
-	async delete(id: string): Promise<ApiResponse<void>> {
+	async delete(_id: string): Promise<ApiResponse<void>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -91,7 +91,7 @@ export const candidatesApi = {
 	/**
 	 * Approve a candidate
 	 */
-	async approve(id: string): Promise<ApiResponse<Candidate>> {
+	async approve(_id: string): Promise<ApiResponse<Candidate>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,
@@ -102,7 +102,7 @@ export const candidatesApi = {
 	/**
 	 * Reject a candidate
 	 */
-	async reject(id: string): Promise<ApiResponse<Candidate>> {
+	async reject(_id: string): Promise<ApiResponse<Candidate>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
 			data: undefined,

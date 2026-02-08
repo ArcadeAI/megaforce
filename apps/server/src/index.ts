@@ -5,14 +5,13 @@ import { Elysia } from "elysia";
 import { requireAuth } from "./middleware/auth";
 import { handleError } from "./middleware/error-handler";
 import { requireWorkspace } from "./middleware/workspace";
-import { analyticsRoutes } from "./routes/analytics";
-import { candidatesRoutes } from "./routes/candidates";
+import { generationRoutes } from "./routes/generation";
+import { outlinesRoutes } from "./routes/outlines";
 import { personasRoutes } from "./routes/personas";
-import { projectsRoutes } from "./routes/projects";
-import { publishingRoutes } from "./routes/publishing";
-import { socialChannelsRoutes } from "./routes/social-channels";
+import { plansRoutes } from "./routes/plans";
+import { sessionWorkflowRoutes } from "./routes/session-workflow";
+import { sessionsRoutes } from "./routes/sessions";
 import { sourcesRoutes } from "./routes/sources";
-import { uploadRoutes } from "./routes/upload";
 import { workspacesRoutes } from "./routes/workspaces";
 import { wsAuthRoutes } from "./routes/ws-auth";
 import {
@@ -23,6 +22,13 @@ import {
 } from "./websocket/handlers";
 import { initWsServer } from "./websocket/server";
 
+// Import workers to start processing jobs
+import "./jobs/workers/content-generation-worker";
+import "./jobs/workers/critic-review-worker";
+import "./jobs/workers/outline-generation-worker";
+import "./jobs/workers/plan-generation-worker";
+import "./jobs/workers/source-ingestion-worker";
+
 // Initialize WebSocket server (room/client management)
 const wsServer = initWsServer();
 
@@ -30,7 +36,7 @@ const app = new Elysia()
 	.use(
 		cors({
 			origin: env.CORS_ORIGIN,
-			methods: ["GET", "POST", "OPTIONS"],
+			methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
 			allowedHeaders: ["Content-Type", "Authorization"],
 			credentials: true,
 		}),
@@ -91,12 +97,11 @@ const app = new Elysia()
 	.use(workspacesRoutes)
 	.use(sourcesRoutes)
 	.use(personasRoutes)
-	.use(projectsRoutes)
-	.use(candidatesRoutes)
-	.use(publishingRoutes)
-	.use(socialChannelsRoutes)
-	.use(analyticsRoutes)
-	.use(uploadRoutes)
+	.use(sessionsRoutes)
+	.use(sessionWorkflowRoutes)
+	.use(plansRoutes)
+	.use(outlinesRoutes)
+	.use(generationRoutes)
 	.ws("/ws", {
 		open(ws) {
 			const connectionId = generateConnectionId();

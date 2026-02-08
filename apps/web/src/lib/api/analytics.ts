@@ -1,4 +1,4 @@
-import { type ApiResponse, apiClient } from "./client";
+import type { ApiResponse } from "./client";
 
 /**
  * Analytics types
@@ -57,8 +57,8 @@ export const analyticsApi = {
 	 * Get project analytics
 	 */
 	async getProjectAnalytics(
-		projectId: string,
-		timeRange: AnalyticsTimeRange = "30d",
+		_projectId: string,
+		_timeRange: AnalyticsTimeRange = "30d",
 	): Promise<ApiResponse<ProjectAnalytics>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -71,8 +71,8 @@ export const analyticsApi = {
 	 * Get workspace analytics
 	 */
 	async getWorkspaceAnalytics(
-		workspaceId: string,
-		timeRange: AnalyticsTimeRange = "30d",
+		_workspaceId: string,
+		_timeRange: AnalyticsTimeRange = "30d",
 	): Promise<ApiResponse<WorkspaceAnalytics>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
@@ -85,8 +85,8 @@ export const analyticsApi = {
 	 * Export analytics data as CSV
 	 */
 	async exportAnalytics(
-		projectId: string,
-		timeRange: AnalyticsTimeRange = "30d",
+		_projectId: string,
+		_timeRange: AnalyticsTimeRange = "30d",
 	): Promise<ApiResponse<Blob>> {
 		// TODO: Implement when backend endpoint is ready
 		return {
