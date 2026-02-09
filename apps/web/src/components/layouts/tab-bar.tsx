@@ -1,12 +1,15 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useTabs } from "@/contexts/tab-context";
+import { useScopedTabs, useTabs } from "@/contexts/tab-context";
 import { Tab } from "./tab";
 
-export function TabBar() {
-	const { tabs, activeTabId, closeTab, switchTab, openTab, reorderTabs } =
-		useTabs();
+export function TabBar({ scope }: { scope?: string }) {
+	const globalTabs = useTabs();
+	const scopedTabs = useScopedTabs(scope ?? "");
+	const { tabs, activeTabId, closeTab, switchTab, openTab, reorderTabs } = scope
+		? scopedTabs
+		: globalTabs;
 	const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
 
 	const handleDragStart = (

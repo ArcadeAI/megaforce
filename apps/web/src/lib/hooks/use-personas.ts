@@ -1,5 +1,16 @@
-import { type UseQueryOptions, useQuery } from "@tanstack/react-query";
-import { type Persona, personasApi } from "../api/personas";
+import {
+	type UseMutationOptions,
+	type UseQueryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import {
+	type CreatePersonaInput,
+	type Persona,
+	personasApi,
+	type UpdatePersonaInput,
+} from "../api/personas";
 
 /**
  * Query keys for personas
@@ -13,17 +24,89 @@ export const personaKeys = {
 };
 
 /**
- * Hook to fetch personas for the current workspace
- * (workspace is auto-detected from auth on the server)
+ * Hook to fetch all personas for the current workspace
  */
 export function usePersonas(
-	workspaceId?: string,
 	options?: Omit<UseQueryOptions<Persona[], Error>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: personaKeys.list(),
 		queryFn: () => personasApi.getAll(),
-		enabled: !!workspaceId,
+		...options,
+	});
+}
+
+/**
+ * Hook to fetch a single persona by ID
+ */
+export function usePersona(
+	id: string,
+	options?: Omit<UseQueryOptions<Persona, Error>, "queryKey" | "queryFn">,
+) {
+	return useQuery({
+		queryKey: personaKeys.detail(id),
+		queryFn: () => personasApi.getById(id),
+		enabled: !!id,
+		...options,
+	});
+}
+
+/**
+ * Hook to create a new persona
+ */
+export function useCreatePersona(
+	options?: UseMutationOptions<Persona, Error, CreatePersonaInput>,
+) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (input: CreatePersonaInput) => personasApi.create(input),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: personaKeys.lists() });
+		},
+		...options,
+	});
+}
+
+/**
+ * Hook to update a persona
+ */
+export function useUpdatePersona(
+	options?: UseMutationOptions<
+		Persona,
+		Error,
+		{ id: string; input: UpdatePersonaInput }
+	>,
+) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ id, input }: { id: string; input: UpdatePersonaInput }) =>
+			personasApi.update(id, input),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: personaKeys.lists() });
+			queryClient.invalidateQueries({
+				queryKey: personaKeys.detail(variables.id),
+			});
+		},
+		...options,
+	});
+}
+
+/**
+ * Hook to delete a persona
+ */
+export function useDeletePersona(
+	options?: UseMutationOptions<void, Error, string>,
+) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (id: string) => personasApi.delete(id),
+		onSuccess: (_, id) => {
+			queryClient.invalidateQueries({ queryKey: personaKeys.lists() });
+			queryClient.removeQueries({ queryKey: personaKeys.detail(id) });
+		},
 		...options,
 	});
 }

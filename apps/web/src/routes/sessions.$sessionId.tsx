@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { SessionEditor } from "@/components/editor/session-editor";
+import { PersonaForm } from "@/components/persona-form";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -10,6 +11,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -957,10 +965,9 @@ function PersonaStage({ session }: { session: Session }) {
 	const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
 		session.sessionPersonas?.[0]?.personaId ?? null,
 	);
-	const { data: personas, isLoading: personasLoading } = usePersonas(
-		session.workspaceId,
-	);
+	const { data: personas, isLoading: personasLoading } = usePersonas();
 	const advanceStage = useAdvanceStage();
+	const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 	const handleContinue = () => {
 		if (!selectedPersonaId) return;
@@ -972,12 +979,21 @@ function PersonaStage({ session }: { session: Session }) {
 
 	return (
 		<div className="space-y-6">
-			<div>
-				<h2 className="font-semibold text-lg">Select a Persona</h2>
-				<p className="mt-1 text-muted-foreground text-sm">
-					Choose a writing persona to define the voice and style of your
-					content.
-				</p>
+			<div className="flex items-start justify-between">
+				<div>
+					<h2 className="font-semibold text-lg">Select a Persona</h2>
+					<p className="mt-1 text-muted-foreground text-sm">
+						Choose a writing persona to define the voice and style of your
+						content.
+					</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setShowCreateDialog(true)}
+				>
+					+ Create New
+				</Button>
 			</div>
 
 			{personasLoading && (
@@ -993,9 +1009,16 @@ function PersonaStage({ session }: { session: Session }) {
 				<Card>
 					<CardContent className="py-8 text-center">
 						<p className="text-muted-foreground text-sm">
-							No personas available. Create a persona in your workspace settings
-							first.
+							No personas available yet.
 						</p>
+						<Button
+							variant="outline"
+							size="sm"
+							className="mt-3"
+							onClick={() => setShowCreateDialog(true)}
+						>
+							Create Your First Persona
+						</Button>
 					</CardContent>
 				</Card>
 			)}
@@ -1054,6 +1077,24 @@ function PersonaStage({ session }: { session: Session }) {
 					{advanceStage.isPending ? "Saving..." : "Continue"}
 				</Button>
 			</div>
+
+			<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+				<DialogContent className="sm:max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Create New Persona</DialogTitle>
+						<DialogDescription>
+							Quickly create a persona to use in this session.
+						</DialogDescription>
+					</DialogHeader>
+					<PersonaForm
+						compact
+						onSuccess={(created) => {
+							setShowCreateDialog(false);
+							setSelectedPersonaId(created.id);
+						}}
+					/>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

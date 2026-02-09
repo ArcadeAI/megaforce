@@ -4,9 +4,10 @@ import { TabBar } from "./tab-bar";
 interface MainEditorProps {
 	children?: React.ReactNode;
 	className?: string;
+	scope?: string;
 }
 
-export function MainEditor({ children, className }: MainEditorProps) {
+export function MainEditor({ children, className, scope }: MainEditorProps) {
 	return (
 		<main
 			className={cn(
@@ -16,7 +17,7 @@ export function MainEditor({ children, className }: MainEditorProps) {
 			aria-label="Main content area"
 		>
 			{/* Tab Bar */}
-			<TabBar />
+			<TabBar scope={scope} />
 
 			{/* Content Area - driven by routing via Outlet */}
 			<div className="flex-1 overflow-y-auto p-4">{children}</div>

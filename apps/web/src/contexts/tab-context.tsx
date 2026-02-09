@@ -4,6 +4,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 
@@ -290,4 +291,20 @@ export function useTabs(): TabContextValue {
 		throw new Error("useTabs must be used within a TabProvider");
 	}
 	return context;
+}
+
+export function useScopedTabs(prefix: string): TabContextValue {
+	const ctx = useTabs();
+	const tabs = useMemo(
+		() => ctx.tabs.filter((t) => t.id.startsWith(prefix)),
+		[ctx.tabs, prefix],
+	);
+	const activeTabId = ctx.activeTabId?.startsWith(prefix)
+		? ctx.activeTabId
+		: null;
+
+	return useMemo(
+		() => ({ ...ctx, tabs, activeTabId }),
+		[ctx, tabs, activeTabId],
+	);
 }

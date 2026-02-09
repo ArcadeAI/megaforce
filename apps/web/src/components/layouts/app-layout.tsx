@@ -9,6 +9,7 @@ interface AppLayoutProps {
 	mainContent?: React.ReactNode;
 	propertiesContent?: React.ReactNode;
 	className?: string;
+	scope?: string;
 }
 
 const STORAGE_KEYS = {
@@ -28,6 +29,7 @@ export function AppLayout({
 	mainContent,
 	propertiesContent,
 	className,
+	scope,
 }: AppLayoutProps) {
 	// Sidebar state
 	const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -97,7 +99,7 @@ export function AppLayout({
 			</SidebarNav>
 
 			{/* Main Content Area */}
-			<MainEditor>{mainContent}</MainEditor>
+			<MainEditor scope={scope}>{mainContent}</MainEditor>
 
 			{/* Right Properties Panel */}
 			<PropertiesPanel

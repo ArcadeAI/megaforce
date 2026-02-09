@@ -61,6 +61,24 @@ async function fetchApi<T>(
 	return response.json() as Promise<T>;
 }
 
+export type CreatePersonaInput = Omit<
+	Persona,
+	"id" | "workspaceId" | "createdAt" | "updatedAt" | "isDefault"
+>;
+
+export type UpdatePersonaInput = Partial<
+	Pick<
+		Persona,
+		| "name"
+		| "description"
+		| "styleProfile"
+		| "vocabularyLevel"
+		| "perspective"
+		| "sentenceStyle"
+		| "sampleOutput"
+	>
+>;
+
 /**
  * Personas API functions
  */
@@ -75,12 +93,7 @@ export const personasApi = {
 		return res.data;
 	},
 
-	async create(
-		input: Omit<
-			Persona,
-			"id" | "workspaceId" | "createdAt" | "updatedAt" | "isDefault"
-		>,
-	): Promise<Persona> {
+	async create(input: CreatePersonaInput): Promise<Persona> {
 		const res = await fetchApi<ApiResponse<Persona>>("/api/personas", {
 			method: "POST",
 			body: JSON.stringify(input),
@@ -88,21 +101,7 @@ export const personasApi = {
 		return res.data;
 	},
 
-	async update(
-		id: string,
-		input: Partial<
-			Pick<
-				Persona,
-				| "name"
-				| "description"
-				| "styleProfile"
-				| "vocabularyLevel"
-				| "perspective"
-				| "sentenceStyle"
-				| "sampleOutput"
-			>
-		>,
-	): Promise<Persona> {
+	async update(id: string, input: UpdatePersonaInput): Promise<Persona> {
 		const res = await fetchApi<ApiResponse<Persona>>(`/api/personas/${id}`, {
 			method: "PATCH",
 			body: JSON.stringify(input),

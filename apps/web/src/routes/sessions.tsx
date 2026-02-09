@@ -11,7 +11,7 @@ import { AppLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTabs } from "@/contexts/tab-context";
+import { useScopedTabs } from "@/contexts/tab-context";
 import type { Session } from "@/lib/api/sessions";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -94,7 +94,7 @@ function SessionSidebar() {
 	const duplicateSession = useDuplicateSession();
 	const archiveSession = useArchiveSession();
 	const unarchiveSession = useUnarchiveSession();
-	const { openTab, activeTabId } = useTabs();
+	const { openTab, activeTabId } = useScopedTabs("session-");
 	const navigate = useNavigate();
 	const [newTitle, setNewTitle] = useState("");
 	const [isCreating, setIsCreating] = useState(false);
@@ -328,7 +328,7 @@ function SessionSidebar() {
 }
 
 function SessionProperties() {
-	const { activeTabId, tabs } = useTabs();
+	const { activeTabId, tabs } = useScopedTabs("session-");
 	const activeTab = tabs.find((t) => t.id === activeTabId);
 	const sessionId = activeTab?.metadata?.sessionId as string | undefined;
 
@@ -443,7 +443,7 @@ function MainContent() {
 }
 
 function SessionsPage() {
-	const { activeTabId, tabs } = useTabs();
+	const { activeTabId, tabs } = useScopedTabs("session-");
 	const navigate = useNavigate();
 
 	// Sync tab state → URL. Always navigate based on what the active tab says.
@@ -469,6 +469,7 @@ function SessionsPage() {
 
 	return (
 		<AppLayout
+			scope="session-"
 			sidebarContent={<SessionSidebar />}
 			mainContent={<MainContent />}
 			propertiesContent={<SessionProperties />}

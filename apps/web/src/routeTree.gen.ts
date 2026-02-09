@@ -10,16 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SessionsRouteImport } from './routes/sessions'
+import { Route as PersonasRouteImport } from './routes/personas'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutDemoRouteImport } from './routes/layout-demo'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ApiTestRouteImport } from './routes/api-test'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
+import { Route as PersonasPersonaIdRouteImport } from './routes/personas.$personaId'
 
 const SessionsRoute = SessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersonasRoute = PersonasRouteImport.update({
+  id: '/personas',
+  path: '/personas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +59,11 @@ const SessionsSessionIdRoute = SessionsSessionIdRouteImport.update({
   path: '/$sessionId',
   getParentRoute: () => SessionsRoute,
 } as any)
+const PersonasPersonaIdRoute = PersonasPersonaIdRouteImport.update({
+  id: '/$personaId',
+  path: '/$personaId',
+  getParentRoute: () => PersonasRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
+  '/personas': typeof PersonasRouteWithChildren
   '/sessions': typeof SessionsRouteWithChildren
+  '/personas/$personaId': typeof PersonasPersonaIdRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
 }
 export interface FileRoutesByTo {
@@ -68,7 +82,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
+  '/personas': typeof PersonasRouteWithChildren
   '/sessions': typeof SessionsRouteWithChildren
+  '/personas/$personaId': typeof PersonasPersonaIdRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
 }
 export interface FileRoutesById {
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/layout-demo': typeof LayoutDemoRoute
   '/login': typeof LoginRoute
+  '/personas': typeof PersonasRouteWithChildren
   '/sessions': typeof SessionsRouteWithChildren
+  '/personas/$personaId': typeof PersonasPersonaIdRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
 }
 export interface FileRouteTypes {
@@ -89,7 +107,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/layout-demo'
     | '/login'
+    | '/personas'
     | '/sessions'
+    | '/personas/$personaId'
     | '/sessions/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -98,7 +118,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/layout-demo'
     | '/login'
+    | '/personas'
     | '/sessions'
+    | '/personas/$personaId'
     | '/sessions/$sessionId'
   id:
     | '__root__'
@@ -107,7 +129,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/layout-demo'
     | '/login'
+    | '/personas'
     | '/sessions'
+    | '/personas/$personaId'
     | '/sessions/$sessionId'
   fileRoutesById: FileRoutesById
 }
@@ -117,6 +141,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LayoutDemoRoute: typeof LayoutDemoRoute
   LoginRoute: typeof LoginRoute
+  PersonasRoute: typeof PersonasRouteWithChildren
   SessionsRoute: typeof SessionsRouteWithChildren
 }
 
@@ -127,6 +152,13 @@ declare module '@tanstack/react-router' {
       path: '/sessions'
       fullPath: '/sessions'
       preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/personas': {
+      id: '/personas'
+      path: '/personas'
+      fullPath: '/personas'
+      preLoaderRoute: typeof PersonasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -171,8 +203,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionsSessionIdRouteImport
       parentRoute: typeof SessionsRoute
     }
+    '/personas/$personaId': {
+      id: '/personas/$personaId'
+      path: '/$personaId'
+      fullPath: '/personas/$personaId'
+      preLoaderRoute: typeof PersonasPersonaIdRouteImport
+      parentRoute: typeof PersonasRoute
+    }
   }
 }
+
+interface PersonasRouteChildren {
+  PersonasPersonaIdRoute: typeof PersonasPersonaIdRoute
+}
+
+const PersonasRouteChildren: PersonasRouteChildren = {
+  PersonasPersonaIdRoute: PersonasPersonaIdRoute,
+}
+
+const PersonasRouteWithChildren = PersonasRoute._addFileChildren(
+  PersonasRouteChildren,
+)
 
 interface SessionsRouteChildren {
   SessionsSessionIdRoute: typeof SessionsSessionIdRoute
@@ -192,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LayoutDemoRoute: LayoutDemoRoute,
   LoginRoute: LoginRoute,
+  PersonasRoute: PersonasRouteWithChildren,
   SessionsRoute: SessionsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
