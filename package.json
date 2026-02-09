@@ -34,7 +34,10 @@
 		"db:stop": "turbo -F @megaforce/db db:stop",
 		"db:down": "turbo -F @megaforce/db db:down",
 		"check": "biome check --write .",
-		"prepare": "husky"
+		"prepare": "husky",
+		"lint": "eslint .",
+		"knip": "knip",
+		"lint:sh": "shellcheck **/*.sh"
 	},
 	"dependencies": {
 		"@megaforce/env": "workspace:*",
@@ -45,8 +48,12 @@
 		"@biomejs/biome": "^2.2.0",
 		"@megaforce/config": "workspace:*",
 		"@types/bun": "catalog:",
+		"dependency-cruiser": "^17.3.8",
+		"eslint": "^10.0.0",
 		"husky": "^9.1.7",
+		"knip": "^5.83.1",
 		"lint-staged": "^16.1.2",
+		"safeword": "^0.15.14",
 		"turbo": "^2.6.3",
 		"typescript": "catalog:"
 	},

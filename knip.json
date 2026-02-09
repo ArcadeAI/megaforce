@@ -1,0 +1,9 @@
+{
+	"ignore": [".safeword/**", ".safeword-project/**", ".turbo/**"],
+	"ignoreDependencies": [
+		"safeword",
+		"dependency-cruiser",
+		"husky",
+		"lint-staged"
+	]
+}
