@@ -1,9 +1,10 @@
 import { X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import type { Tab as TabType } from "@/contexts/tab-context";
 import { cn } from "@/lib/utils";
 
-interface TabProps {
+interface TabProperties {
 	tab: TabType;
 	isActive: boolean;
 	onClose: (tabId: string) => void;
@@ -21,11 +22,11 @@ export function Tab({
 	onDragStart,
 	onDragOver,
 	onDrop,
-}: TabProps) {
+}: TabProperties) {
 	return (
 		<div
 			className={cn(
-				"group relative flex h-9 min-w-[120px] max-w-[200px] cursor-pointer items-center gap-2 border-border border-r px-3 transition-colors",
+				"group border-border relative flex h-9 max-w-[200px] min-w-[120px] cursor-pointer items-center gap-2 border-r px-3 transition-colors",
 				isActive
 					? "bg-background text-foreground"
 					: "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -34,7 +35,9 @@ export function Tab({
 			onDragStart={(e) => onDragStart?.(e, tab.id)}
 			onDragOver={onDragOver}
 			onDrop={(e) => onDrop?.(e, tab.id)}
-			onClick={() => onSelect(tab.id)}
+			onClick={() => {
+				onSelect(tab.id);
+			}}
 			onAuxClick={(e) => {
 				if (e.button === 1) {
 					e.preventDefault();
@@ -63,7 +66,7 @@ export function Tab({
 				variant="ghost"
 				size="icon-xs"
 				className={cn(
-					"opacity-0 transition-opacity hover:bg-muted-foreground/20 group-hover:opacity-100",
+					"hover:bg-muted-foreground/20 opacity-0 transition-opacity group-hover:opacity-100",
 					isActive && "opacity-100",
 				)}
 				onClick={(e) => {
@@ -77,7 +80,7 @@ export function Tab({
 
 			{/* Active indicator */}
 			{isActive && (
-				<div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
+				<div className="bg-primary absolute inset-x-0 bottom-0 h-0.5" />
 			)}
 		</div>
 	);

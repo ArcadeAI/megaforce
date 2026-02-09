@@ -1,4 +1,5 @@
 import { env } from "@megaforce/env/web";
+
 import { authClient } from "../auth-client";
 
 /**
@@ -32,7 +33,7 @@ async function fetchApi<T>(
 	const session = await authClient.getSession();
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
-		...((options.headers as Record<string, string>) ?? {}),
+		...(options.headers as Record<string, string>),
 	};
 
 	if (session?.data?.session?.token) {

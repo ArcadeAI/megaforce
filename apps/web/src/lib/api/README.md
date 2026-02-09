@@ -5,6 +5,7 @@ This directory contains the API client infrastructure and data fetching utilitie
 ## Overview
 
 The API layer is built with:
+
 - **TanStack Query v5** - Data fetching, caching, and state management
 - **Elysia Eden Treaty** - Type-safe API client with end-to-end TypeScript support
 - **Better Auth** - Authentication and session management
@@ -14,6 +15,7 @@ The API layer is built with:
 ### Base Client (`client.ts`)
 
 The base client wraps the Eden Treaty client with:
+
 - Automatic auth header injection from Better Auth sessions
 - Credential handling for cross-origin requests
 - Error handling utilities
@@ -73,14 +75,14 @@ import { useCreateWorkspace, useUpdateWorkspace } from "@/lib/hooks";
 
 // Create workspace with auto-invalidation
 const createWorkspace = useCreateWorkspace({
-  onSuccess: () => {
-    toast.success("Workspace created!");
-  },
+	onSuccess: () => {
+		toast.success("Workspace created!");
+	},
 });
 
 await createWorkspace.mutateAsync({
-  name: "My Workspace",
-  slug: "my-workspace",
+	name: "My Workspace",
+	slug: "my-workspace",
 });
 ```
 
@@ -92,16 +94,13 @@ Each resource uses a hierarchical query key structure:
 
 ```typescript
 // Workspaces
-["workspaces", "list"] // All workspaces
-["workspaces", "detail", id] // Single workspace
-
-// Projects
-["projects", "list", { workspaceId }] // Projects for workspace
-["projects", "detail", id] // Single project
-
-// Candidates
-["candidates", "list", { projectId }] // Candidates for project
-["candidates", "detail", id] // Single candidate
+["workspaces", "list"][("workspaces", "detail", id)][ // All workspaces // Single workspace
+	// Projects
+	("projects", "list", { workspaceId })
+][("projects", "detail", id)][ // Projects for workspace // Single project
+	// Candidates
+	("candidates", "list", { projectId })
+][("candidates", "detail", id)]; // Candidates for project // Single candidate
 ```
 
 ### Automatic Invalidation
@@ -109,16 +108,19 @@ Each resource uses a hierarchical query key structure:
 Mutations automatically invalidate related queries:
 
 **Create Operations:**
+
 - Invalidate list queries for the parent resource
 - Example: Creating a project invalidates `["projects", "list", { workspaceId }]`
 
 **Update Operations:**
+
 - Invalidate both list and detail queries
 - Example: Updating a project invalidates:
   - `["projects", "list", { workspaceId }]`
   - `["projects", "detail", id]`
 
 **Delete Operations:**
+
 - Invalidate list queries
 - Remove detail queries from cache
 - Example: Deleting a project:
@@ -139,12 +141,12 @@ queryClient.invalidateQueries({ queryKey: ["workspaces"] });
 
 // Invalidate specific workspace
 queryClient.invalidateQueries({
-  queryKey: ["workspaces", "detail", workspaceId]
+	queryKey: ["workspaces", "detail", workspaceId],
 });
 
 // Remove from cache without refetching
 queryClient.removeQueries({
-  queryKey: ["workspaces", "detail", workspaceId]
+	queryKey: ["workspaces", "detail", workspaceId],
 });
 ```
 
@@ -154,17 +156,17 @@ QueryClient is configured in `main.tsx` with:
 
 ```typescript
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,        // 5 minutes
-      gcTime: 1000 * 60 * 10,          // 10 minutes (cache lifetime)
-      retry: 1,                         // Retry failed requests once
-      refetchOnWindowFocus: false,     // Don't refetch on window focus
-    },
-    mutations: {
-      retry: 1,                         // Retry failed mutations once
-    },
-  },
+	defaultOptions: {
+		queries: {
+			staleTime: 1000 * 60 * 5, // 5 minutes
+			gcTime: 1000 * 60 * 10, // 10 minutes (cache lifetime)
+			retry: 1, // Retry failed requests once
+			refetchOnWindowFocus: false, // Don't refetch on window focus
+		},
+		mutations: {
+			retry: 1, // Retry failed mutations once
+		},
+	},
 });
 ```
 
@@ -178,18 +180,18 @@ const queryClient = new QueryClient({
 ```typescript
 // Real-time data - shorter stale time
 const { data } = useAnalytics(projectId, {
-  staleTime: 1000 * 30, // 30 seconds
+	staleTime: 1000 * 30, // 30 seconds
 });
 
 // Static data - longer stale time
 const { data } = useWorkspaces({
-  staleTime: 1000 * 60 * 30, // 30 minutes
+	staleTime: 1000 * 60 * 30, // 30 minutes
 });
 
 // Disable caching for sensitive data
 const { data } = useSession({
-  staleTime: 0,
-  gcTime: 0,
+	staleTime: 0,
+	gcTime: 0,
 });
 ```
 
@@ -209,9 +211,9 @@ For mutations:
 
 ```typescript
 const createWorkspace = useCreateWorkspace({
-  onError: (error) => {
-    toast.error(error.message);
-  },
+	onError: (error) => {
+		toast.error(error.message);
+	},
 });
 ```
 

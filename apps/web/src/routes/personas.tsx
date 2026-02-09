@@ -34,8 +34,8 @@ export const Route = createFileRoute("/personas")({
 	},
 });
 
-function formatDate(dateStr: string): string {
-	const date = new Date(dateStr);
+function formatDate(dateString: string): string {
+	const date = new Date(dateString);
 	return date.toLocaleDateString("en-US", {
 		month: "short",
 		day: "numeric",
@@ -43,19 +43,27 @@ function formatDate(dateStr: string): string {
 	});
 }
 
-function formatRelativeTime(dateStr: string): string {
-	const date = new Date(dateStr);
+function formatRelativeTime(dateString: string): string {
+	const date = new Date(dateString);
 	const now = new Date();
 	const diffMs = now.getTime() - date.getTime();
-	const diffMins = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMs / 3600000);
-	const diffDays = Math.floor(diffMs / 86400000);
+	const diffMins = Math.floor(diffMs / 60_000);
+	const diffHours = Math.floor(diffMs / 3_600_000);
+	const diffDays = Math.floor(diffMs / 86_400_000);
 
-	if (diffMins < 1) return "just now";
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
-	return formatDate(dateStr);
+	if (diffMins < 1) {
+		return "just now";
+	}
+	if (diffMins < 60) {
+		return `${diffMins}m ago`;
+	}
+	if (diffHours < 24) {
+		return `${diffHours}h ago`;
+	}
+	if (diffDays < 7) {
+		return `${diffDays}d ago`;
+	}
+	return formatDate(dateString);
 }
 
 function PersonaSidebar() {
@@ -75,10 +83,16 @@ function PersonaSidebar() {
 	} | null>(null);
 
 	useEffect(() => {
-		if (!contextMenu) return;
-		const dismiss = () => setContextMenu(null);
+		if (!contextMenu) {
+			return;
+		}
+		const dismiss = () => {
+			setContextMenu(null);
+		};
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") dismiss();
+			if (e.key === "Escape") {
+				dismiss();
+			}
 		};
 		document.addEventListener("click", dismiss);
 		document.addEventListener("keydown", onKeyDown);
@@ -88,11 +102,10 @@ function PersonaSidebar() {
 		};
 	}, [contextMenu]);
 
-	const filteredPersonas = personas?.filter((p) => {
-		const matchesSearch =
-			!searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
-		return matchesSearch;
-	});
+	const filteredPersonas = personas?.filter(
+		(p) =>
+			!searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+	);
 
 	const handleCreatePersona = async () => {
 		const name = newName.trim() || "Untitled Persona";
@@ -146,11 +159,13 @@ function PersonaSidebar() {
 	return (
 		<div className="flex h-full flex-col gap-3">
 			<div className="flex items-center justify-between">
-				<h3 className="font-medium text-sm">Personas</h3>
+				<h3 className="text-sm font-medium">Personas</h3>
 				<Button
 					size="xs"
 					variant="outline"
-					onClick={() => setIsCreating(true)}
+					onClick={() => {
+						setIsCreating(true);
+					}}
 					disabled={createPersona.isPending}
 				>
 					+ New
@@ -160,7 +175,9 @@ function PersonaSidebar() {
 			<Input
 				placeholder="Search personas..."
 				value={searchQuery}
-				onChange={(e) => setSearchQuery(e.target.value)}
+				onChange={(e) => {
+					setSearchQuery(e.target.value);
+				}}
 				className="h-7 text-xs"
 			/>
 
@@ -169,9 +186,13 @@ function PersonaSidebar() {
 					<Input
 						placeholder="Persona name..."
 						value={newName}
-						onChange={(e) => setNewName(e.target.value)}
+						onChange={(e) => {
+							setNewName(e.target.value);
+						}}
 						onKeyDown={(e) => {
-							if (e.key === "Enter") handleCreatePersona();
+							if (e.key === "Enter") {
+								handleCreatePersona();
+							}
 							if (e.key === "Escape") {
 								setIsCreating(false);
 								setNewName("");
@@ -197,7 +218,7 @@ function PersonaSidebar() {
 				)}
 
 				{filteredPersonas?.length === 0 && !isLoading && (
-					<p className="py-4 text-center text-muted-foreground text-xs">
+					<p className="text-muted-foreground py-4 text-center text-xs">
 						{searchQuery
 							? "No personas match your search."
 							: "No personas yet. Create one to get started."}
@@ -217,30 +238,32 @@ function PersonaSidebar() {
 							className={`w-full cursor-pointer rounded-none border p-2.5 text-left transition-colors ${
 								isActive
 									? "border-primary/50 bg-primary/10"
-									: "border-transparent hover:bg-muted"
+									: "hover:bg-muted border-transparent"
 							}`}
-							onClick={() => handleOpenPersona(persona)}
-							onContextMenu={(e) =>
-								handleContextMenu(e, persona.id, persona.isDefault)
-							}
+							onClick={() => {
+								handleOpenPersona(persona);
+							}}
+							onContextMenu={(e) => {
+								handleContextMenu(e, persona.id, persona.isDefault);
+							}}
 						>
 							<div className="flex items-start justify-between gap-1">
-								<span className="truncate font-medium text-xs">
+								<span className="truncate text-xs font-medium">
 									{persona.name}
 								</span>
 								{persona.isDefault && (
-									<span className="shrink-0 rounded-sm bg-primary/20 px-1 py-0.5 text-[10px] text-primary">
+									<span className="bg-primary/20 text-primary shrink-0 rounded-sm px-1 py-0.5 text-[10px]">
 										default
 									</span>
 								)}
 							</div>
 							<div className="mt-1 flex items-center gap-1.5">
 								{tone && (
-									<span className="inline-block rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+									<span className="bg-muted text-muted-foreground inline-block rounded-sm px-1.5 py-0.5 text-[10px]">
 										{tone}
 									</span>
 								)}
-								<span className="text-[10px] text-muted-foreground">
+								<span className="text-muted-foreground text-[10px]">
 									{formatRelativeTime(persona.updatedAt)}
 								</span>
 							</div>
@@ -252,15 +275,15 @@ function PersonaSidebar() {
 			{/* Context menu */}
 			{contextMenu && (
 				<div
-					className="fixed z-50 min-w-32 rounded-sm border border-border bg-popover p-1 shadow-md"
+					className="border-border bg-popover fixed z-50 min-w-32 rounded-sm border p-1 shadow-md"
 					style={{ top: contextMenu.y, left: contextMenu.x }}
 				>
 					<button
 						type="button"
 						className={`w-full rounded-sm px-2 py-1 text-left text-xs ${
 							contextMenu.isDefault
-								? "cursor-not-allowed text-muted-foreground"
-								: "text-red-500 hover:bg-muted"
+								? "text-muted-foreground cursor-not-allowed"
+								: "hover:bg-muted text-red-500"
 						}`}
 						onClick={() =>
 							!contextMenu.isDefault && handleDelete(contextMenu.personaId)
@@ -282,7 +305,7 @@ function PersonaProperties() {
 
 	if (!personaId) {
 		return (
-			<div className="p-2 text-muted-foreground text-xs">
+			<div className="text-muted-foreground p-2 text-xs">
 				Select a persona to view properties.
 			</div>
 		);
@@ -307,7 +330,7 @@ function PersonaPropertiesDetail({ personaId }: { personaId: string }) {
 
 	if (!persona) {
 		return (
-			<div className="p-2 text-muted-foreground text-xs">
+			<div className="text-muted-foreground p-2 text-xs">
 				Persona not found.
 			</div>
 		);
@@ -317,8 +340,8 @@ function PersonaPropertiesDetail({ personaId }: { personaId: string }) {
 
 	return (
 		<div className="space-y-4">
-			<div className="space-y-3 rounded-none border border-border p-3">
-				<h3 className="font-medium text-sm">Properties</h3>
+			<div className="border-border space-y-3 rounded-none border p-3">
+				<h3 className="text-sm font-medium">Properties</h3>
 				<div className="space-y-2 text-xs">
 					<div className="flex justify-between">
 						<span className="text-muted-foreground">Name</span>
@@ -339,8 +362,8 @@ function PersonaPropertiesDetail({ personaId }: { personaId: string }) {
 				</div>
 			</div>
 
-			<div className="space-y-3 rounded-none border border-border p-3">
-				<h3 className="font-medium text-sm">Style</h3>
+			<div className="border-border space-y-3 rounded-none border p-3">
+				<h3 className="text-sm font-medium">Style</h3>
 				<div className="space-y-2 text-xs">
 					{style.tone && (
 						<div className="flex justify-between">
@@ -386,7 +409,7 @@ function PersonaPropertiesDetail({ personaId }: { personaId: string }) {
 
 function MainContent() {
 	const matches = useMatches();
-	const isIndexRoute = matches[matches.length - 1]?.id === "/personas";
+	const isIndexRoute = matches.at(-1)?.id === "/personas";
 
 	if (!isIndexRoute) {
 		return <Outlet />;
@@ -395,14 +418,14 @@ function MainContent() {
 	return (
 		<div className="flex h-full items-center justify-center">
 			<div className="max-w-md space-y-4 text-center">
-				<h2 className="font-semibold text-lg">Personas</h2>
+				<h2 className="text-lg font-semibold">Personas</h2>
 				<p className="text-muted-foreground text-sm">
 					Personas define the voice and style of your generated content. Create
 					a new persona or select an existing one from the sidebar to customize
 					its attributes.
 				</p>
-				<div className="space-y-2 text-left text-muted-foreground text-xs">
-					<p className="font-medium text-foreground">Each persona controls:</p>
+				<div className="text-muted-foreground space-y-2 text-left text-xs">
+					<p className="text-foreground font-medium">Each persona controls:</p>
 					<ul className="list-inside list-disc space-y-1">
 						<li>Writing tone (friendly, authoritative, conversational...)</li>
 						<li>Formality level (casual to formal)</li>

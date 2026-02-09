@@ -1,9 +1,10 @@
 import prisma from "@megaforce/db";
 import { type Job, Worker } from "bullmq";
+
 import {
-	type ChatMessage,
 	chatCompletion,
 	chatCompletionJSON,
+	type ChatMessage,
 } from "../../lib/llm";
 import {
 	type EventPayload,
@@ -12,7 +13,7 @@ import {
 	type WsEventType,
 } from "../../websocket/events";
 import { getWsServer } from "../../websocket/server";
-import { type CriticReviewJobData, connection, QueueName } from "../queue";
+import { connection, type CriticReviewJobData, QueueName } from "../queue";
 
 const MAX_CRITIC_ITERATIONS = 5;
 
@@ -68,14 +69,14 @@ Approve (score >= 7) if the ${artifactType} is:
 
 Reject (score < 7) if there are significant gaps, unclear sections, or structural problems.`;
 
-	const contentStr =
+	const contentString =
 		typeof content === "string" ? content : JSON.stringify(content, null, 2);
 
 	const messages: ChatMessage[] = [
 		{ role: "system", content: systemPrompt },
 		{
 			role: "user",
-			content: `Session context:\n${sessionContext}\n\n${artifactType.toUpperCase()} to review:\n${contentStr}`,
+			content: `Session context:\n${sessionContext}\n\n${artifactType.toUpperCase()} to review:\n${contentString}`,
 		},
 	];
 
@@ -91,7 +92,7 @@ async function reviseArtifact(
 	feedback: CriticFeedback,
 	sessionContext: string,
 ): Promise<unknown> {
-	const contentStr =
+	const contentString =
 		typeof currentContent === "string"
 			? currentContent
 			: JSON.stringify(currentContent, null, 2);
@@ -102,7 +103,7 @@ ${artifactType === "outline" ? "Respond with valid JSON matching the same struct
 	const userPrompt = `Session context:\n${sessionContext}
 
 Current ${artifactType}:
-${contentStr}
+${contentString}
 
 Critic feedback:
 - Score: ${feedback.score}/10
@@ -133,7 +134,9 @@ async function getSessionContext(sessionId: string): Promise<string> {
 			sessionPersonas: { include: { persona: true } },
 		},
 	});
-	if (!session) return "";
+	if (!session) {
+		return "";
+	}
 
 	const outputTypes = (session.outputTypes as string[]) ?? [];
 	const clarifying =
@@ -143,8 +146,12 @@ async function getSessionContext(sessionId: string): Promise<string> {
 	let context = `Output types: ${outputTypes.join(", ") || "General"}`;
 	context += `\nTone: ${clarifying.tone || "Professional"}`;
 	context += `\nAudience: ${clarifying.audience || "General"}`;
-	if (clarifying.keywords) context += `\nKeywords: ${clarifying.keywords}`;
-	if (persona) context += `\nPersona: ${persona.name}`;
+	if (clarifying.keywords) {
+		context += `\nKeywords: ${clarifying.keywords}`;
+	}
+	if (persona) {
+		context += `\nPersona: ${persona.name}`;
+	}
 	return context;
 }
 
@@ -222,19 +229,25 @@ async function processCriticReview(
 			const plan = await prisma.plan.findUnique({
 				where: { id: artifactId },
 			});
-			if (!plan) throw new Error(`Plan ${artifactId} not found`);
+			if (!plan) {
+				throw new Error(`Plan ${artifactId} not found`);
+			}
 			currentContent = plan.content;
 		} else if (artifactType === "outline") {
 			const outline = await prisma.outline.findUnique({
 				where: { id: artifactId },
 			});
-			if (!outline) throw new Error(`Outline ${artifactId} not found`);
+			if (!outline) {
+				throw new Error(`Outline ${artifactId} not found`);
+			}
 			currentContent = outline.content;
 		} else {
 			const content = await prisma.generatedContent.findUnique({
 				where: { id: artifactId },
 			});
-			if (!content) throw new Error(`Content ${artifactId} not found`);
+			if (!content) {
+				throw new Error(`Content ${artifactId} not found`);
+			}
 			currentContent = content.content;
 		}
 

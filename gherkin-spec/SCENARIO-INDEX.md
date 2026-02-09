@@ -5,6 +5,7 @@ Quick index of all scenarios across feature files for easy reference.
 ## By Feature File
 
 ### 01-output-type-selection.feature
+
 - User initiates new content creation session
 - User selects single output type
 - User selects multiple output types
@@ -13,6 +14,7 @@ Quick index of all scenarios across feature files for easy reference.
 - No templates match selected output type
 
 ### 02-clarifying-questions.feature
+
 - System asks about tone and style
 - User chooses to use a specific corpus of data
 - User chooses deep research
@@ -24,6 +26,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Skipping optional clarifying questions
 
 ### 03-persona-selection.feature
+
 - View available personas
 - Select single persona
 - Select multiple personas
@@ -36,6 +39,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Delete custom persona
 
 ### 04-plan-creation-and-review.feature
+
 - Initial plan generation
 - Critic reviews plan and raises objections
 - Iterative plan refinement
@@ -49,6 +53,7 @@ Quick index of all scenarios across feature files for easy reference.
 - View plan revision history
 
 ### 05-research-and-outline.feature
+
 - Execute research phase with deep research
 - Ground research in provided corpus
 - Combine corpus and deep research
@@ -68,6 +73,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Export knowledge base
 
 ### 06-content-generation.feature
+
 - Begin content generation
 - Generate simple single-output content
 - Generate complex content with sub-agents
@@ -91,6 +97,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Maximum critic iterations reached
 
 ### 07-session-management.feature
+
 - Create new content session
 - Auto-save session progress
 - View all my sessions
@@ -110,6 +117,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Session storage quota management
 
 ### 08-error-handling.feature
+
 - Network connection lost during research
 - API rate limit exceeded
 - AI model returns error response
@@ -132,6 +140,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Report error to support
 
 ### 09-template-management.feature
+
 - View available templates
 - Create new template from scratch
 - Create template from existing session
@@ -153,6 +162,7 @@ Quick index of all scenarios across feature files for easy reference.
 - View template analytics
 
 ### 10-integrations.feature
+
 - View available integrations
 - Connect WordPress CMS
 - Publish content to WordPress
@@ -179,70 +189,81 @@ Quick index of all scenarios across feature files for easy reference.
 ## By User Goal
 
 ### Starting Content Creation
-- User initiates new content creation session *(01)*
-- Use template to start new session *(09)*
-- Resume incomplete session *(07)*
-- Duplicate existing session *(07)*
+
+- User initiates new content creation session _(01)_
+- Use template to start new session _(09)_
+- Resume incomplete session _(07)_
+- Duplicate existing session _(07)_
 
 ### Configuring Content
-- User selects single/multiple output types *(01)*
-- User chooses corpus vs research *(02)*
-- System asks about tone and style *(02)*
-- Select/create personas *(03)*
+
+- User selects single/multiple output types _(01)_
+- User chooses corpus vs research _(02)_
+- System asks about tone and style _(02)_
+- Select/create personas _(03)_
 
 ### Working with Plans
-- Initial plan generation *(04)*
-- Critic reviews and refines plan *(04)*
-- User approves/edits plan *(04)*
-- View plan revision history *(04)*
+
+- Initial plan generation _(04)_
+- Critic reviews and refines plan _(04)_
+- User approves/edits plan _(04)_
+- View plan revision history _(04)_
 
 ### Research and Knowledge
-- Execute deep research *(05)*
-- Ground in corpus *(05)*
-- Build knowledge base *(05)*
-- Export knowledge base *(05)*
+
+- Execute deep research _(05)_
+- Ground in corpus _(05)_
+- Build knowledge base _(05)_
+- Export knowledge base _(05)_
 
 ### Content Generation
-- Generate simple/complex content *(06)*
-- Sub-agents for parallel generation *(06)*
-- Clarification during generation *(06)*
-- Critic review and refinement *(06)*
+
+- Generate simple/complex content _(06)_
+- Sub-agents for parallel generation _(06)_
+- Clarification during generation _(06)_
+- Critic review and refinement _(06)_
 
 ### Publishing and Export
-- Export in multiple formats *(06)*
-- Publish to WordPress *(10)*
-- Publish to social media *(10)*
-- Save as template *(06, 09)*
+
+- Export in multiple formats _(06)_
+- Publish to WordPress _(10)_
+- Publish to social media _(10)_
+- Save as template _(06, 09)_
 
 ### Session Management
-- Auto-save progress *(07)*
-- View/search sessions *(07)*
-- Version control and comparison *(07)*
-- Share with collaborators *(07)*
+
+- Auto-save progress _(07)_
+- View/search sessions _(07)_
+- Version control and comparison _(07)_
+- Share with collaborators _(07)_
 
 ### Error Recovery
-- Network connection lost *(08)*
-- Browser crash recovery *(08)*
-- Session data corruption *(08)*
-- Invalid input handling *(08)*
+
+- Network connection lost _(08)_
+- Browser crash recovery _(08)_
+- Session data corruption _(08)_
+- Invalid input handling _(08)_
 
 ### Templates
-- Create/edit templates *(09)*
-- Browse template library *(09)*
-- Share templates *(09)*
-- Template with variables *(09)*
+
+- Create/edit templates _(09)_
+- Browse template library _(09)_
+- Share templates _(09)_
+- Template with variables _(09)_
 
 ### Integrations
-- Connect CMS/social media *(10)*
-- Cloud storage integration *(10)*
-- Research databases *(10)*
-- Notifications *(10)*
+
+- Connect CMS/social media _(10)_
+- Cloud storage integration _(10)_
+- Research databases _(10)_
+- Notifications _(10)_
 
 ---
 
 ## By Actor
 
 ### User Actions
+
 - Initiate session
 - Select options
 - Provide input
@@ -254,6 +275,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Configure integrations
 
 ### System Actions
+
 - Generate plans
 - Conduct research
 - Build knowledge base
@@ -265,6 +287,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Manage integrations
 
 ### Critic Actions
+
 - Review plans
 - Review outlines
 - Review content
@@ -273,6 +296,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Approve work
 
 ### Sub-agent Actions
+
 - Generate sections
 - Request clarifications
 - Complete assigned work
@@ -282,49 +306,54 @@ Quick index of all scenarios across feature files for easy reference.
 ## By Priority
 
 ### P0 - Core Functionality (Must Have)
-- User initiates new content creation session *(01)*
-- User selects output types *(01)*
-- System asks clarifying questions *(02)*
-- Select personas *(03)*
-- Plan creation and approval *(04)*
-- Research and outline creation *(05)*
-- Content generation *(06)*
-- User approves content *(06)*
-- Auto-save session progress *(07)*
-- Basic error handling *(08)*
+
+- User initiates new content creation session _(01)_
+- User selects output types _(01)_
+- System asks clarifying questions _(02)_
+- Select personas _(03)_
+- Plan creation and approval _(04)_
+- Research and outline creation _(05)_
+- Content generation _(06)_
+- User approves content _(06)_
+- Auto-save session progress _(07)_
+- Basic error handling _(08)_
 
 ### P1 - Important Features (Should Have)
-- Corpus upload and processing *(02)*
-- Deep research *(05)*
-- Critic review cycles *(04, 05, 06)*
-- Sub-agent orchestration *(06)*
-- Export in multiple formats *(06)*
-- Resume sessions *(07)*
-- Session organization *(07)*
-- Template usage *(09)*
-- Basic integrations (CMS, social) *(10)*
+
+- Corpus upload and processing _(02)_
+- Deep research _(05)_
+- Critic review cycles _(04, 05, 06)_
+- Sub-agent orchestration _(06)_
+- Export in multiple formats _(06)_
+- Resume sessions _(07)_
+- Session organization _(07)_
+- Template usage _(09)_
+- Basic integrations (CMS, social) _(10)_
 
 ### P2 - Enhanced Features (Nice to Have)
-- Custom personas *(03)*
-- Multiple personas/blending *(03)*
-- Session version control *(07)*
-- Session sharing *(07)*
-- Create templates *(09)*
-- Template marketplace *(09)*
-- Advanced integrations *(10)*
-- Analytics *(10)*
+
+- Custom personas _(03)_
+- Multiple personas/blending _(03)_
+- Session version control _(07)_
+- Session sharing _(07)_
+- Create templates _(09)_
+- Template marketplace _(09)_
+- Advanced integrations _(10)_
+- Analytics _(10)_
 
 ### P3 - Advanced Features (Future)
-- Template variables *(09)*
-- Webhook integrations *(10)*
-- Research database integration *(10)*
-- Advanced collaboration *(07)*
+
+- Template variables _(09)_
+- Webhook integrations _(10)_
+- Research database integration _(10)_
+- Advanced collaboration _(07)_
 
 ---
 
 ## By Complexity
 
 ### Simple Scenarios (Quick Implementation)
+
 - User selects single output type
 - User uploads documents
 - View available personas
@@ -335,6 +364,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Auto-save
 
 ### Medium Scenarios (Moderate Effort)
+
 - User provides custom output type
 - Corpus processing
 - Create custom persona
@@ -346,6 +376,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Template usage
 
 ### Complex Scenarios (High Effort)
+
 - Multiple output types
 - Persona blending
 - Critic review cycles
@@ -361,38 +392,43 @@ Quick index of all scenarios across feature files for easy reference.
 ## By Integration Points
 
 ### External Services
-- WordPress publishing *(10)*
-- Google Drive access *(10)*
-- Social media publishing *(10)*
-- Slack notifications *(10)*
-- Research databases *(10)*
-- Analytics platforms *(10)*
-- Webhook endpoints *(10)*
+
+- WordPress publishing _(10)_
+- Google Drive access _(10)_
+- Social media publishing _(10)_
+- Slack notifications _(10)_
+- Research databases _(10)_
+- Analytics platforms _(10)_
+- Webhook endpoints _(10)_
 
 ### Internal Systems
-- File storage *(02, 07)*
-- User authentication *(01, 07)*
-- Session database *(07)*
-- Template library *(09)*
-- Knowledge base *(05)*
-- Critic system *(04, 05, 06)*
+
+- File storage _(02, 07)_
+- User authentication _(01, 07)_
+- Session database _(07)_
+- Template library _(09)_
+- Knowledge base _(05)_
+- Critic system _(04, 05, 06)_
 
 ---
 
 ## By Test Type
 
 ### Happy Path
-- Complete workflow scenarios in order *(01-06)*
+
+- Complete workflow scenarios in order _(01-06)_
 - Standard user journeys
 - Expected user behaviors
 
 ### Alternative Path
+
 - User provides custom inputs
 - User selects different options
 - User edits generated content
 - User uses templates
 
 ### Error Conditions
+
 - All scenarios in file 08
 - Invalid inputs
 - Service failures
@@ -400,6 +436,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Data corruption
 
 ### Edge Cases
+
 - Maximum iterations reached
 - No templates match
 - Insufficient data
@@ -435,5 +472,6 @@ To find scenarios about a specific topic:
 **Total Scenarios**: 150+
 
 **Format**: Each entry shows scenario name and file number
-- *(01)* = File 01-output-type-selection.feature
-- *(10)* = File 10-integrations.feature
+
+- _(01)_ = File 01-output-type-selection.feature
+- _(10)_ = File 10-integrations.feature

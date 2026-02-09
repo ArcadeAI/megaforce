@@ -1,5 +1,6 @@
 import { treaty } from "@elysiajs/eden";
 import { env } from "@megaforce/env/web";
+
 import type { App } from "../../../../server/src/index";
 import { authClient } from "../auth-client";
 

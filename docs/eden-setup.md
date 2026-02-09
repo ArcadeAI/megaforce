@@ -14,10 +14,14 @@ The Elysia app instance is now exported as a type:
 
 ```typescript
 const app = new Elysia()
-  .use(cors({ /* ... */ }))
-  .get("/", () => "OK")
-  // ... more routes
-  .listen(3000);
+	.use(
+		cors({
+			/* ... */
+		}),
+	)
+	.get("/", () => "OK")
+	// ... more routes
+	.listen(3000);
 
 export type App = typeof app;
 ```
@@ -49,8 +53,8 @@ import { api } from "./api";
 const { data, error } = await api.index.get();
 
 if (error) {
-  console.error("Error:", error);
-  return;
+	console.error("Error:", error);
+	return;
 }
 
 // data is typed as "OK" based on the backend implementation
@@ -74,6 +78,7 @@ bun run check-eden-types
 ```
 
 This script verifies:
+
 - The backend exports the `App` type
 - The frontend correctly imports and uses the `App` type
 - Eden packages are installed in both projects
@@ -85,11 +90,11 @@ When you add new routes to the Elysia backend:
 ```typescript
 // In apps/server/src/index.ts
 const app = new Elysia()
-  .get("/users", () => [{ id: 1, name: "Alice" }])
-  .post("/users", ({ body }) => {
-    // handle user creation
-    return { success: true };
-  });
+	.get("/users", () => [{ id: 1, name: "Alice" }])
+	.post("/users", ({ body }) => {
+		// handle user creation
+		return { success: true };
+	});
 ```
 
 The frontend automatically gets type-safe access:
@@ -103,7 +108,7 @@ const { data: users } = await api.users.get();
 
 // POST /users - TypeScript enforces the correct body structure
 const { data: result } = await api.users.post({
-  body: { name: "Bob" }
+	body: { name: "Bob" },
 });
 ```
 

@@ -90,7 +90,9 @@ export class WsServer {
 	 */
 	joinRoom(connectionId: string, room: RoomIdentifier): boolean {
 		const meta = this.metadata.get(connectionId);
-		if (!meta) return false;
+		if (!meta) {
+			return false;
+		}
 
 		const roomKey = getRoomKey(room);
 
@@ -111,7 +113,9 @@ export class WsServer {
 	 */
 	leaveRoom(connectionId: string, roomKey: string): boolean {
 		const meta = this.metadata.get(connectionId);
-		if (!meta) return false;
+		if (!meta) {
+			return false;
+		}
 
 		// Remove from client's room set
 		meta.rooms.delete(roomKey);
@@ -187,7 +191,7 @@ export class WsServer {
 	getClientsInRoom(room: RoomIdentifier): string[] {
 		const roomKey = getRoomKey(room);
 		const clientIds = this.rooms.get(roomKey);
-		return clientIds ? Array.from(clientIds) : [];
+		return clientIds ? [...clientIds] : [];
 	}
 
 	/**
@@ -195,7 +199,7 @@ export class WsServer {
 	 */
 	getClientRooms(connectionId: string): string[] {
 		const meta = this.metadata.get(connectionId);
-		return meta?.rooms ? Array.from(meta.rooms) : [];
+		return meta?.rooms ? [...meta.rooms] : [];
 	}
 
 	/**
@@ -205,12 +209,10 @@ export class WsServer {
 		return {
 			totalClients: this.clients.size,
 			totalRooms: this.rooms.size,
-			clientsPerRoom: Array.from(this.rooms.entries()).map(
-				([roomKey, clients]) => ({
-					room: roomKey,
-					clients: clients.size,
-				}),
-			),
+			clientsPerRoom: [...this.rooms.entries()].map(([roomKey, clients]) => ({
+				room: roomKey,
+				clients: clients.size,
+			})),
 		};
 	}
 
@@ -231,9 +233,11 @@ export class WsServer {
 		this.pingInterval = setInterval(() => {
 			for (const [connectionId, ws] of this.clients) {
 				const meta = this.metadata.get(connectionId);
-				if (!meta) continue;
+				if (!meta) {
+					continue;
+				}
 
-				if (meta.isAlive === false) {
+				if (!meta.isAlive) {
 					// Connection is dead, terminate it
 					console.log(`Terminating dead connection: ${connectionId}`);
 					ws.close();
@@ -247,7 +251,7 @@ export class WsServer {
 					ws.ping();
 				}
 			}
-		}, 30000); // Ping every 30 seconds
+		}, 30_000); // Ping every 30 seconds
 	}
 
 	/**

@@ -7,6 +7,7 @@ This repository contains a comprehensive Gherkin specification for **Megaforce**
 ## Product Description
 
 Megaforce is a sophisticated content creation platform that:
+
 - Combines multiple sources (URLs, documents) for context
 - Uses writing personas with style guides to match desired voice
 - Supports multiple output formats and templates
@@ -116,18 +117,22 @@ This specification is organized into the following feature files:
 ## Key Concepts
 
 ### Actor Roles
+
 - **User** - Content creator using the platform
 - **System** - Megaforce AI platform
 - **Critic** - AI reviewer that provides feedback on plans, outlines, and content
 - **Sub-agents** - Specialized agents spawned for parallel content generation
 
 ### Multi-Stage Approval Process
+
 Each major stage requires user approval before proceeding:
+
 1. Plan must be critic-approved, then user-approved
 2. Outline must be critic-approved, then user-approved
 3. Content must be critic-approved, then user-approved
 
 ### Critic Review Cycle
+
 - System generates initial version
 - Critic reviews and raises objections
 - System revises addressing objections
@@ -135,12 +140,15 @@ Each major stage requires user approval before proceeding:
 - User sees critic-approved version for final approval
 
 ### Content Grounding
+
 Content can be grounded in:
+
 - **Corpus** - User-provided documents and URLs (prioritized as primary sources)
 - **Deep Research** - System-conducted research on the topic
 - **Both** - Corpus as primary, research as supplementary
 
 ### Writing Personas
+
 - Define voice, tone, and style for content
 - Can include uploaded style guides
 - Support blending multiple personas
@@ -180,21 +188,25 @@ Feature: [Feature Name]
 ## Usage
 
 ### For Product Managers
+
 - Use these specifications to understand complete product behavior
 - Reference scenarios when defining new features or changes
 - Ensure acceptance criteria align with documented scenarios
 
 ### For Developers
+
 - Implement features to satisfy scenario requirements
 - Use scenarios as basis for automated tests
 - Reference "Then" clauses for expected behavior
 
 ### For QA/Testers
+
 - Convert scenarios directly into test cases
 - Use as comprehensive test coverage documentation
 - Verify that all scenarios pass before release
 
 ### For Stakeholders
+
 - Read feature descriptions and scenarios in plain English
 - Understand what the product does without technical jargon
 - Provide feedback on requirements and edge cases
@@ -202,6 +214,7 @@ Feature: [Feature Name]
 ## Test Coverage
 
 This specification covers:
+
 - ✅ Happy path scenarios (standard user flows)
 - ✅ Alternative paths (different user choices)
 - ✅ Edge cases (unusual but valid scenarios)
@@ -214,6 +227,7 @@ This specification covers:
 ## Future Enhancements
 
 Potential areas for additional specification:
+
 - Analytics and reporting features
 - Team collaboration and workspace management
 - Advanced AI model configuration
@@ -226,6 +240,7 @@ Potential areas for additional specification:
 ## Contributing
 
 When adding new scenarios:
+
 1. Follow existing Gherkin format and style
 2. Place scenarios in appropriate feature file
 3. Use clear, specific language
@@ -244,6 +259,7 @@ When adding new scenarios:
 ## Validation
 
 To validate these specifications:
+
 1. Review for completeness (all features covered)
 2. Check for consistency across files
 3. Verify clarity (non-technical readers can understand)

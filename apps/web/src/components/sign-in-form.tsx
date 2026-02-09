@@ -58,7 +58,7 @@ export default function SignInForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
+			<h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
 
 			<form
 				onSubmit={(e) => {
@@ -79,7 +79,9 @@ export default function SignInForm({
 									type="email"
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => {
+										field.handleChange(e.target.value);
+									}}
 								/>
 								{field.state.meta.errors.map((error) => (
 									<p key={error?.message} className="text-red-500">
@@ -102,7 +104,9 @@ export default function SignInForm({
 									type="password"
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => {
+										field.handleChange(e.target.value);
+									}}
 								/>
 								{field.state.meta.errors.map((error) => (
 									<p key={error?.message} className="text-red-500">

@@ -5,29 +5,40 @@
 
 import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+
 import { requireAuth } from "../middleware/auth";
 import { requireWorkspace } from "../middleware/workspace";
 
 export const sourcesRoutes = new Elysia({ prefix: "/api/sources" })
 	.derive(async (context) => {
 		const user = await requireAuth(context);
-		if (user instanceof Response) return { user: null, workspace: null };
+		if (user instanceof Response) {
+			return { user: null, workspace: null };
+		}
 		const workspace = await requireWorkspace(user);
-		if (workspace instanceof Response) return { user, workspace: null };
+		if (workspace instanceof Response) {
+			return { user, workspace: null };
+		}
 		return { user, workspace };
 	})
 	.onBeforeHandle((context) => {
 		if (!context.user) {
-			return new Response(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Unauthorized" },
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		if (!context.workspace) {
-			return new Response(JSON.stringify({ error: "No workspace found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No workspace found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	})
 	// List sources
@@ -47,10 +58,13 @@ export const sourcesRoutes = new Elysia({ prefix: "/api/sources" })
 			},
 		});
 		if (!source) {
-			return new Response(JSON.stringify({ error: "Source not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Source not found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		return { success: true, data: source };
 	})
@@ -61,7 +75,7 @@ export const sourcesRoutes = new Elysia({ prefix: "/api/sources" })
 			const source = await prisma.source.create({
 				data: {
 					workspaceId: context.workspace!.id,
-					type: context.body.type as "URL" | "TEXT" | "PDF",
+					type: context.body.type,
 					title: context.body.title,
 					url: context.body.url,
 					content: context.body.content,
@@ -87,10 +101,13 @@ export const sourcesRoutes = new Elysia({ prefix: "/api/sources" })
 			},
 		});
 		if (!existing) {
-			return new Response(JSON.stringify({ error: "Source not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Source not found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		await prisma.source.delete({ where: { id: context.params.id } });
 		return { success: true, data: { id: context.params.id } };

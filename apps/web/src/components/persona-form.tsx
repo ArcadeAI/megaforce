@@ -43,13 +43,17 @@ const PERSPECTIVE_OPTIONS = ["first-person", "second-person", "third-person"];
 
 const SENTENCE_STYLE_OPTIONS = ["concise", "balanced", "elaborate", "varied"];
 
-interface PersonaFormProps {
+interface PersonaFormProperties {
 	persona?: Persona;
 	onSuccess?: (persona: Persona) => void;
 	compact?: boolean;
 }
 
-export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
+export function PersonaForm({
+	persona,
+	onSuccess,
+	compact,
+}: PersonaFormProperties) {
 	const createPersona = useCreatePersona();
 	const updatePersona = useUpdatePersona();
 	const isEdit = !!persona;
@@ -136,7 +140,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 		>
 			{/* Identity */}
 			<div className="space-y-3">
-				<h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+				<h3 className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
 					Identity
 				</h3>
 				<form.Field name="name">
@@ -147,11 +151,13 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								id={field.name}
 								value={field.state.value}
 								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
+								onChange={(e) => {
+									field.handleChange(e.target.value);
+								}}
 								placeholder="e.g. Friendly Expert"
 							/>
 							{field.state.meta.errors.map((error) => (
-								<p key={error?.message} className="text-red-500 text-xs">
+								<p key={error?.message} className="text-xs text-red-500">
 									{error?.message}
 								</p>
 							))}
@@ -167,7 +173,9 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								id={field.name}
 								value={field.state.value}
 								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
+								onChange={(e) => {
+									field.handleChange(e.target.value);
+								}}
 								placeholder="Brief description of this persona..."
 								rows={2}
 							/>
@@ -178,7 +186,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 
 			{/* Style */}
 			<div className="space-y-3">
-				<h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+				<h3 className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
 					Style
 				</h3>
 				<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -188,7 +196,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Label>Tone</Label>
 								<Select
 									value={field.state.value}
-									onValueChange={(v) => v != null && field.handleChange(v)}
+									onValueChange={(v) => v != undefined && field.handleChange(v)}
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -211,7 +219,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Label>Formality</Label>
 								<Select
 									value={field.state.value}
-									onValueChange={(v) => v != null && field.handleChange(v)}
+									onValueChange={(v) => v != undefined && field.handleChange(v)}
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -234,7 +242,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Label>Humor</Label>
 								<Select
 									value={field.state.value}
-									onValueChange={(v) => v != null && field.handleChange(v)}
+									onValueChange={(v) => v != undefined && field.handleChange(v)}
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -255,7 +263,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 
 			{/* Voice */}
 			<div className="space-y-3">
-				<h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+				<h3 className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
 					Voice
 				</h3>
 				<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -265,7 +273,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Label>Vocabulary</Label>
 								<Select
 									value={field.state.value}
-									onValueChange={(v) => v != null && field.handleChange(v)}
+									onValueChange={(v) => v != undefined && field.handleChange(v)}
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -288,7 +296,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Label>Perspective</Label>
 								<Select
 									value={field.state.value}
-									onValueChange={(v) => v != null && field.handleChange(v)}
+									onValueChange={(v) => v != undefined && field.handleChange(v)}
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -311,7 +319,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Label>Sentence Style</Label>
 								<Select
 									value={field.state.value}
-									onValueChange={(v) => v != null && field.handleChange(v)}
+									onValueChange={(v) => v != undefined && field.handleChange(v)}
 								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -333,7 +341,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 			{/* Sample Output (hidden in compact mode) */}
 			{!compact && (
 				<div className="space-y-3">
-					<h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+					<h3 className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
 						Sample Output
 					</h3>
 					<form.Field name="sampleOutput">
@@ -342,7 +350,9 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 								<Textarea
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => {
+										field.handleChange(e.target.value);
+									}}
 									placeholder="Paste an example of writing in this persona's style..."
 									rows={4}
 								/>
@@ -367,7 +377,7 @@ export function PersonaForm({ persona, onSuccess, compact }: PersonaFormProps) {
 
 						return (
 							<div className="space-y-1.5">
-								<h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+								<h3 className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
 									Preview
 								</h3>
 								<p className="text-muted-foreground text-xs">

@@ -4,7 +4,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { authClient } from "@/lib/auth-client";
+
 import { ConnectionState, getWebSocketClient } from "./client";
 import type { RoomIdentifier, WsEventType, WsMessage } from "./events";
 
@@ -175,22 +177,23 @@ export function useRealtimeUpdates<T = unknown>(
 ): void {
 	const { event, onMessage, enabled = true } = options;
 	const client = getWebSocketClient();
-	const onMessageRef = useRef(onMessage);
+	const onMessageReference = useRef(onMessage);
 
 	// Keep callback ref up to date
 	useEffect(() => {
-		onMessageRef.current = onMessage;
+		onMessageReference.current = onMessage;
 	}, [onMessage]);
 
 	useEffect(() => {
-		if (!enabled) return;
+		if (!enabled) {
+			return;
+		}
 
 		const listener = (message: WsMessage) => {
-			onMessageRef.current(message.payload as T);
+			onMessageReference.current(message.payload as T);
 		};
 
-		const unsubscribe = client.on(event, listener);
-		return unsubscribe;
+		return client.on(event, listener);
 	}, [client, event, enabled]);
 }
 
@@ -226,7 +229,9 @@ export function useWebSocketEvent<T = unknown>(
 
 	useRealtimeUpdates<T>({
 		event,
-		onMessage: (data) => setPayload(data),
+		onMessage: (data) => {
+			setPayload(data);
+		},
 		enabled,
 	});
 
@@ -259,15 +264,17 @@ export interface UseRoomSubscriptionOptions {
 export function useRoomSubscription(options: UseRoomSubscriptionOptions): void {
 	const { rooms, enabled = true } = options;
 	const client = getWebSocketClient();
-	const roomsRef = useRef(rooms);
+	const roomsReference = useRef(rooms);
 
 	// Update ref when rooms change
 	useEffect(() => {
-		roomsRef.current = rooms;
+		roomsReference.current = rooms;
 	}, [rooms]);
 
 	useEffect(() => {
-		if (!enabled || rooms.length === 0) return;
+		if (!enabled || rooms.length === 0) {
+			return;
+		}
 
 		// Wait for authentication before joining rooms
 		const currentState = client.getState();
@@ -275,7 +282,7 @@ export function useRoomSubscription(options: UseRoomSubscriptionOptions): void {
 			// Listen for authentication
 			const unsubscribe = client.onStateChange((state) => {
 				if (state === ConnectionState.AUTHENTICATED) {
-					client.joinRooms(roomsRef.current);
+					client.joinRooms(roomsReference.current);
 					unsubscribe();
 				}
 			});
@@ -287,7 +294,7 @@ export function useRoomSubscription(options: UseRoomSubscriptionOptions): void {
 
 		// Leave rooms on unmount
 		return () => {
-			client.leaveRooms(roomsRef.current);
+			client.leaveRooms(roomsReference.current);
 		};
 	}, [client, rooms, enabled]);
 }

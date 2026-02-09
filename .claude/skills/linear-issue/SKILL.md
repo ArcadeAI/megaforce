@@ -80,6 +80,7 @@ When this skill is invoked:
      - Title: Issue title
      - Body: Include issue summary, implementation notes, testing done, and link to Linear issue
      - Use format:
+
        ```
        ## Summary
        [Brief description of changes]

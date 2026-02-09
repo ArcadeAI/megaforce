@@ -18,7 +18,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -153,7 +152,9 @@ const DATA_SOURCE_MODES = [
  * New plans are stored as markdown strings; legacy plans are JSON objects.
  */
 function planContentToMarkdown(content: unknown): string {
-	if (typeof content === "string") return content;
+	if (typeof content === "string") {
+		return content;
+	}
 	// Legacy JSON plan — render as readable markdown
 	const plan = content as Record<string, unknown>;
 	const lines: string[] = [];
@@ -165,34 +166,45 @@ function planContentToMarkdown(content: unknown): string {
 	}
 	if (Array.isArray(plan.keyMessages) && plan.keyMessages.length > 0) {
 		lines.push("## Key Messages");
-		for (const msg of plan.keyMessages) lines.push(`- ${msg}`);
+		for (const message of plan.keyMessages) {
+			lines.push(`- ${message}`);
+		}
 		lines.push("");
 	}
 	const structure = plan.contentStructure as Record<string, unknown> | null;
 	if (structure) {
 		lines.push("## Content Structure");
-		if (structure.format) lines.push(`**Format:** ${structure.format}`);
-		if (structure.estimatedLength)
+		if (structure.format) {
+			lines.push(`**Format:** ${structure.format}`);
+		}
+		if (structure.estimatedLength) {
 			lines.push(`**Estimated Length:** ${structure.estimatedLength}`);
+		}
 		const sections = structure.sections as
-			| Array<{ title: string; purpose: string }>
+			| { title: string; purpose: string }[]
 			| undefined;
 		if (sections?.length) {
 			lines.push("");
-			for (const s of sections) lines.push(`- **${s.title}** — ${s.purpose}`);
+			for (const s of sections) {
+				lines.push(`- **${s.title}** — ${s.purpose}`);
+			}
 		}
 		lines.push("");
 	}
 	if (Array.isArray(plan.successCriteria) && plan.successCriteria.length > 0) {
 		lines.push("## Success Criteria");
-		for (const c of plan.successCriteria) lines.push(`- ${c}`);
+		for (const c of plan.successCriteria) {
+			lines.push(`- ${c}`);
+		}
 		lines.push("");
 	}
 	if (plan.toneAndStyle) {
 		lines.push("## Tone & Style", String(plan.toneAndStyle), "");
 	}
 	// If we couldn't extract anything meaningful, fall back to formatted JSON
-	if (lines.length === 0) return JSON.stringify(content, null, 2);
+	if (lines.length === 0) {
+		return JSON.stringify(content, null, 2);
+	}
 	return lines.join("\n");
 }
 
@@ -201,13 +213,15 @@ function planContentToMarkdown(content: unknown): string {
  * Outlines may be stored as markdown strings or structured JSON objects.
  */
 function outlineContentToMarkdown(content: unknown): string {
-	if (typeof content === "string") return content;
+	if (typeof content === "string") {
+		return content;
+	}
 	const structured = content as {
-		sections?: Array<{
+		sections?: {
 			title: string;
-			subsections?: Array<{ title: string; keyPoints?: string[] }>;
+			subsections?: { title: string; keyPoints?: string[] }[];
 			keyPoints?: string[];
-		}>;
+		}[];
 	};
 	if (structured?.sections) {
 		const lines: string[] = [];
@@ -215,14 +229,18 @@ function outlineContentToMarkdown(content: unknown): string {
 			const section = structured.sections[i];
 			lines.push(`## ${i + 1}. ${section.title}`);
 			if (section.keyPoints) {
-				for (const point of section.keyPoints) lines.push(`- ${point}`);
+				for (const point of section.keyPoints) {
+					lines.push(`- ${point}`);
+				}
 			}
 			if (section.subsections) {
 				for (let k = 0; k < section.subsections.length; k++) {
 					const sub = section.subsections[k];
 					lines.push(`### ${i + 1}.${k + 1} ${sub.title}`);
 					if (sub.keyPoints) {
-						for (const point of sub.keyPoints) lines.push(`- ${point}`);
+						for (const point of sub.keyPoints) {
+							lines.push(`- ${point}`);
+						}
 					}
 				}
 			}
@@ -249,7 +267,7 @@ function StageStepper({
 	const currentIndex = STAGES.indexOf(currentStage as (typeof STAGES)[number]);
 
 	return (
-		<div className="flex items-center gap-1 overflow-x-auto border-border border-b px-4 py-2">
+		<div className="border-border flex items-center gap-1 overflow-x-auto border-b px-4 py-2">
 			{STAGES.map((stage, index) => {
 				const isComplete = index < currentIndex;
 				const isCurrent = index === currentIndex;
@@ -268,13 +286,15 @@ function StageStepper({
 							type="button"
 							disabled={!isComplete && !isCurrent}
 							onClick={() => {
-								if (isComplete || isCurrent) onStageClick(stage);
+								if (isComplete || isCurrent) {
+									onStageClick(stage);
+								}
 							}}
 							className={`flex items-center gap-1.5 rounded-sm px-2 py-1 text-[11px] transition-colors ${
 								isViewing
-									? "bg-primary/15 font-medium text-primary"
+									? "bg-primary/15 text-primary font-medium"
 									: isComplete
-										? "cursor-pointer text-primary/70 hover:bg-primary/10"
+										? "text-primary/70 hover:bg-primary/10 cursor-pointer"
 										: isCurrent
 											? "text-primary"
 											: "text-muted-foreground"
@@ -285,8 +305,8 @@ function StageStepper({
 									isComplete
 										? "bg-primary text-primary-foreground"
 										: isCurrent
-											? "border border-primary text-primary"
-											: "border border-muted-foreground/40 text-muted-foreground"
+											? "border-primary text-primary border"
+											: "border-muted-foreground/40 text-muted-foreground border"
 								}`}
 							>
 								{isComplete ? "\u2713" : index + 1}
@@ -325,27 +345,35 @@ function CriticFeedbackPanel({
 }) {
 	const [isOpen, setIsOpen] = useState(false);
 
-	if (!criticFeedback || criticFeedback.length === 0) return null;
+	if (!criticFeedback || criticFeedback.length === 0) {
+		return null;
+	}
 
 	const entries = criticFeedback as CriticFeedbackEntry[];
 	const reversed = [...entries].reverse();
 
 	const scoreColor = (score: number) => {
-		if (score >= 8) return "bg-green-500/20 text-green-400";
-		if (score >= 5) return "bg-amber-500/20 text-amber-400";
+		if (score >= 8) {
+			return "bg-green-500/20 text-green-400";
+		}
+		if (score >= 5) {
+			return "bg-amber-500/20 text-amber-400";
+		}
 		return "bg-red-500/20 text-red-400";
 	};
 
 	return (
-		<div className="border border-border">
+		<div className="border-border border">
 			<button
 				type="button"
-				onClick={() => setIsOpen(!isOpen)}
-				className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-muted/50"
+				onClick={() => {
+					setIsOpen(!isOpen);
+				}}
+				className="hover:bg-muted/50 flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors"
 			>
-				<span className="font-medium text-xs">
+				<span className="text-xs font-medium">
 					Critic Feedback ({criticIterations} iteration
-					{criticIterations !== 1 ? "s" : ""})
+					{criticIterations === 1 ? "" : "s"})
 				</span>
 				<span className="text-muted-foreground text-xs">
 					{isOpen ? "\u25B2" : "\u25BC"}
@@ -353,18 +381,18 @@ function CriticFeedbackPanel({
 			</button>
 
 			{isOpen && (
-				<div className="space-y-3 border-border border-t px-4 py-3">
+				<div className="border-border space-y-3 border-t px-4 py-3">
 					{reversed.map((entry) => (
 						<div
 							key={entry.iteration}
-							className="space-y-2 border border-border p-3"
+							className="border-border space-y-2 border p-3"
 						>
 							<div className="flex items-center gap-2">
-								<span className="text-[10px] text-muted-foreground">
+								<span className="text-muted-foreground text-[10px]">
 									Iteration {entry.iteration}
 								</span>
 								<span
-									className={`rounded-sm px-1.5 py-0.5 font-medium text-[10px] ${scoreColor(entry.score)}`}
+									className={`rounded-sm px-1.5 py-0.5 text-[10px] font-medium ${scoreColor(entry.score)}`}
 								>
 									{entry.score}/10
 								</span>
@@ -378,7 +406,7 @@ function CriticFeedbackPanel({
 									{entry.approved ? "Approved" : "Rejected"}
 								</span>
 								{entry.timestamp && (
-									<span className="ml-auto text-[10px] text-muted-foreground">
+									<span className="text-muted-foreground ml-auto text-[10px]">
 										{new Date(entry.timestamp).toLocaleString()}
 									</span>
 								)}
@@ -390,12 +418,12 @@ function CriticFeedbackPanel({
 
 							{entry.objections.length > 0 && (
 								<div>
-									<span className="font-medium text-[10px] text-red-400">
+									<span className="text-[10px] font-medium text-red-400">
 										Objections
 									</span>
-									<ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground text-xs">
-										{entry.objections.map((obj) => (
-											<li key={obj}>{obj}</li>
+									<ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-4 text-xs">
+										{entry.objections.map((object) => (
+											<li key={object}>{object}</li>
 										))}
 									</ul>
 								</div>
@@ -403,10 +431,10 @@ function CriticFeedbackPanel({
 
 							{entry.suggestions.length > 0 && (
 								<div>
-									<span className="font-medium text-[10px] text-blue-400">
+									<span className="text-[10px] font-medium text-blue-400">
 										Suggestions
 									</span>
-									<ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground text-xs">
+									<ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-4 text-xs">
 										{entry.suggestions.map((sug) => (
 											<li key={sug}>{sug}</li>
 										))}
@@ -429,7 +457,7 @@ function ReadOnlyOutputSelection({ session }: { session: Session }) {
 	const selected = session.outputTypes ?? [];
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">Output Selection</h2>
+			<h2 className="text-lg font-semibold">Output Selection</h2>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				{OUTPUT_TYPES.filter((t) => selected.includes(t.value)).map((type) => (
 					<Card key={type.value} className="border-primary/30 bg-primary/5">
@@ -448,7 +476,7 @@ function ReadOnlyClarifying({ session }: { session: Session }) {
 	const answers = (session.clarifyingAnswers as Record<string, string>) ?? {};
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">Clarifying Details</h2>
+			<h2 className="text-lg font-semibold">Clarifying Details</h2>
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				{answers.tone && (
 					<div>
@@ -471,7 +499,7 @@ function ReadOnlyClarifying({ session }: { session: Session }) {
 				{answers.additionalContext && (
 					<div className="lg:col-span-2">
 						<Label className="text-muted-foreground">Additional Context</Label>
-						<p className="whitespace-pre-wrap text-xs">
+						<p className="text-xs whitespace-pre-wrap">
 							{answers.additionalContext}
 						</p>
 					</div>
@@ -485,7 +513,7 @@ function ReadOnlyPersona({ session }: { session: Session }) {
 	const persona = session.sessionPersonas?.[0];
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">Selected Persona</h2>
+			<h2 className="text-lg font-semibold">Selected Persona</h2>
 			{persona ? (
 				<Card className="border-primary/30 bg-primary/5">
 					<CardHeader>
@@ -512,7 +540,7 @@ function ReadOnlyPlan({ session }: { session: Session }) {
 	if (!plan) {
 		return (
 			<div className="space-y-4">
-				<h2 className="font-semibold text-lg">Content Plan</h2>
+				<h2 className="text-lg font-semibold">Content Plan</h2>
 				<p className="text-muted-foreground text-xs">No plan data available.</p>
 			</div>
 		);
@@ -522,7 +550,7 @@ function ReadOnlyPlan({ session }: { session: Session }) {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">Content Plan</h2>
+			<h2 className="text-lg font-semibold">Content Plan</h2>
 			<Card>
 				<CardHeader>
 					<CardTitle>Plan v{plan.version}</CardTitle>
@@ -545,7 +573,7 @@ function ReadOnlyOutline({ session }: { session: Session }) {
 	if (!outline) {
 		return (
 			<div className="space-y-4">
-				<h2 className="font-semibold text-lg">Content Outline</h2>
+				<h2 className="text-lg font-semibold">Content Outline</h2>
 				<p className="text-muted-foreground text-xs">
 					No outline data available.
 				</p>
@@ -555,7 +583,7 @@ function ReadOnlyOutline({ session }: { session: Session }) {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">Content Outline</h2>
+			<h2 className="text-lg font-semibold">Content Outline</h2>
 			<Card>
 				<CardHeader>
 					<CardTitle>Outline v{outline.version}</CardTitle>
@@ -575,18 +603,18 @@ function ReadOnlyOutline({ session }: { session: Session }) {
 function ReadOnlyOutlineContent({ content }: { content: unknown }) {
 	if (typeof content === "string") {
 		return (
-			<div className="whitespace-pre-wrap text-xs leading-relaxed">
+			<div className="text-xs leading-relaxed whitespace-pre-wrap">
 				{content}
 			</div>
 		);
 	}
 
 	const structured = content as {
-		sections?: Array<{
+		sections?: {
 			title: string;
-			subsections?: Array<{ title: string; keyPoints?: string[] }>;
+			subsections?: { title: string; keyPoints?: string[] }[];
 			keyPoints?: string[];
-		}>;
+		}[];
 	};
 
 	if (structured?.sections) {
@@ -595,11 +623,11 @@ function ReadOnlyOutlineContent({ content }: { content: unknown }) {
 				{structured.sections.map((section, i) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated sections have no stable ID
 					<div key={`ro-section-${i}`} className="space-y-2">
-						<h4 className="font-semibold text-sm">
+						<h4 className="text-sm font-semibold">
 							{i + 1}. {section.title}
 						</h4>
 						{section.keyPoints && (
-							<ul className="ml-4 list-disc space-y-1 text-muted-foreground text-xs">
+							<ul className="text-muted-foreground ml-4 list-disc space-y-1 text-xs">
 								{section.keyPoints.map((point, j) => (
 									// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated points have no stable ID
 									<li key={`ro-point-${i}-${j}`}>{point}</li>
@@ -609,11 +637,11 @@ function ReadOnlyOutlineContent({ content }: { content: unknown }) {
 						{section.subsections?.map((sub, k) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated subsections have no stable ID
 							<div key={`ro-sub-${i}-${k}`} className="ml-4 space-y-1">
-								<h5 className="font-medium text-xs">
+								<h5 className="text-xs font-medium">
 									{i + 1}.{k + 1} {sub.title}
 								</h5>
 								{sub.keyPoints && (
-									<ul className="ml-4 list-disc space-y-0.5 text-muted-foreground text-xs">
+									<ul className="text-muted-foreground ml-4 list-disc space-y-0.5 text-xs">
 										{sub.keyPoints.map((point, l) => (
 											// biome-ignore lint/suspicious/noArrayIndexKey: LLM-generated points have no stable ID
 											<li key={`ro-subpoint-${i}-${k}-${l}`}>{point}</li>
@@ -629,7 +657,7 @@ function ReadOnlyOutlineContent({ content }: { content: unknown }) {
 	}
 
 	return (
-		<div className="whitespace-pre-wrap text-xs leading-relaxed">
+		<div className="text-xs leading-relaxed whitespace-pre-wrap">
 			{JSON.stringify(content, null, 2)}
 		</div>
 	);
@@ -641,7 +669,7 @@ function ReadOnlyGeneration({ session }: { session: Session }) {
 	if (!content) {
 		return (
 			<div className="space-y-4">
-				<h2 className="font-semibold text-lg">Generated Content</h2>
+				<h2 className="text-lg font-semibold">Generated Content</h2>
 				<p className="text-muted-foreground text-xs">
 					No content data available.
 				</p>
@@ -651,7 +679,7 @@ function ReadOnlyGeneration({ session }: { session: Session }) {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">Generated Content</h2>
+			<h2 className="text-lg font-semibold">Generated Content</h2>
 			<Card>
 				<CardHeader>
 					<CardTitle>Content v{content.version}</CardTitle>
@@ -679,7 +707,9 @@ function OutputSelectionStage({ session }: { session: Session }) {
 	const advanceStage = useAdvanceStage();
 
 	const handleContinue = () => {
-		if (!selectedType) return;
+		if (!selectedType) {
+			return;
+		}
 		advanceStage.mutate({
 			id: session.id,
 			stageData: { outputTypes: [selectedType] },
@@ -689,8 +719,8 @@ function OutputSelectionStage({ session }: { session: Session }) {
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-semibold text-lg">Select Output Type</h2>
-				<p className="mt-1 text-muted-foreground text-sm">
+				<h2 className="text-lg font-semibold">Select Output Type</h2>
+				<p className="text-muted-foreground mt-1 text-sm">
 					Choose a content format to generate.
 				</p>
 			</div>
@@ -706,7 +736,9 @@ function OutputSelectionStage({ session }: { session: Session }) {
 									? "border-primary bg-primary/5 ring-primary"
 									: "hover:bg-muted/50"
 							}`}
-							onClick={() => setSelectedType(type.value)}
+							onClick={() => {
+								setSelectedType(type.value);
+							}}
 						>
 							<CardHeader>
 								<div className="flex items-start justify-between">
@@ -758,9 +790,7 @@ function ClarifyingStage({ session }: { session: Session }) {
 	const [dataSourceMode, setDataSourceMode] = useState(
 		session.dataSourceMode ?? "CORPUS_ONLY",
 	);
-	const [sources, setSources] = useState<
-		Array<{ type: string; value: string }>
-	>(
+	const [sources, setSources] = useState<{ type: string; value: string }[]>(
 		existingSources.length > 0 ? existingSources : [{ type: "URL", value: "" }],
 	);
 
@@ -777,10 +807,10 @@ function ClarifyingStage({ session }: { session: Session }) {
 	const updateSource = (
 		index: number,
 		field: "type" | "value",
-		val: string,
+		value: string,
 	) => {
 		setSources((prev) =>
-			prev.map((s, i) => (i === index ? { ...s, [field]: val } : s)),
+			prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)),
 		);
 	};
 
@@ -805,8 +835,8 @@ function ClarifyingStage({ session }: { session: Session }) {
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-semibold text-lg">Provide Details</h2>
-				<p className="mt-1 text-muted-foreground text-sm">
+				<h2 className="text-lg font-semibold">Provide Details</h2>
+				<p className="text-muted-foreground mt-1 text-sm">
 					Help us understand the tone, audience, and context for your content.
 				</p>
 			</div>
@@ -819,8 +849,10 @@ function ClarifyingStage({ session }: { session: Session }) {
 						<select
 							id="tone"
 							value={tone}
-							onChange={(e) => setTone(e.target.value)}
-							className="flex h-8 w-full rounded-none border border-input bg-transparent px-2.5 py-1 text-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+							onChange={(e) => {
+								setTone(e.target.value);
+							}}
+							className="border-input focus-visible:border-ring focus-visible:ring-ring/50 flex h-8 w-full rounded-none border bg-transparent px-2.5 py-1 text-xs transition-colors outline-none focus-visible:ring-1"
 						>
 							<option value="">Select a tone...</option>
 							{TONE_OPTIONS.map((t) => (
@@ -837,7 +869,9 @@ function ClarifyingStage({ session }: { session: Session }) {
 							id="audience"
 							placeholder="e.g., Software engineers, Marketing managers..."
 							value={audience}
-							onChange={(e) => setAudience(e.target.value)}
+							onChange={(e) => {
+								setAudience(e.target.value);
+							}}
 						/>
 					</div>
 
@@ -847,7 +881,9 @@ function ClarifyingStage({ session }: { session: Session }) {
 							id="keywords"
 							placeholder="Comma-separated keywords..."
 							value={keywords}
-							onChange={(e) => setKeywords(e.target.value)}
+							onChange={(e) => {
+								setKeywords(e.target.value);
+							}}
 						/>
 					</div>
 
@@ -857,9 +893,11 @@ function ClarifyingStage({ session }: { session: Session }) {
 							id="context"
 							placeholder="Any additional context, goals, or requirements..."
 							value={additionalContext}
-							onChange={(e) => setAdditionalContext(e.target.value)}
+							onChange={(e) => {
+								setAdditionalContext(e.target.value);
+							}}
 							rows={4}
-							className="flex w-full rounded-none border border-input bg-transparent px-2.5 py-2 text-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+							className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex w-full rounded-none border bg-transparent px-2.5 py-2 text-xs transition-colors outline-none focus-visible:ring-1"
 						/>
 					</div>
 				</div>
@@ -883,12 +921,14 @@ function ClarifyingStage({ session }: { session: Session }) {
 										name="dataSourceMode"
 										value={mode.value}
 										checked={dataSourceMode === mode.value}
-										onChange={(e) => setDataSourceMode(e.target.value)}
+										onChange={(e) => {
+											setDataSourceMode(e.target.value);
+										}}
 										className="mt-0.5"
 									/>
 									<div>
-										<span className="font-medium text-xs">{mode.label}</span>
-										<p className="text-[11px] text-muted-foreground">
+										<span className="text-xs font-medium">{mode.label}</span>
+										<p className="text-muted-foreground text-[11px]">
 											{mode.description}
 										</p>
 									</div>
@@ -913,10 +953,10 @@ function ClarifyingStage({ session }: { session: Session }) {
 								>
 									<select
 										value={source.type}
-										onChange={(e) =>
-											updateSource(index, "type", e.target.value)
-										}
-										className="h-8 shrink-0 rounded-none border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+										onChange={(e) => {
+											updateSource(index, "type", e.target.value);
+										}}
+										className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-8 shrink-0 rounded-none border bg-transparent px-2 text-xs outline-none focus-visible:ring-1"
 									>
 										<option value="URL">URL</option>
 										<option value="TEXT">Text</option>
@@ -928,15 +968,17 @@ function ClarifyingStage({ session }: { session: Session }) {
 												: "Paste text content..."
 										}
 										value={source.value}
-										onChange={(e) =>
-											updateSource(index, "value", e.target.value)
-										}
+										onChange={(e) => {
+											updateSource(index, "value", e.target.value);
+										}}
 									/>
 									{sources.length > 1 && (
 										<Button
 											size="icon-xs"
 											variant="ghost"
-											onClick={() => removeSource(index)}
+											onClick={() => {
+												removeSource(index);
+											}}
 										>
 											x
 										</Button>
@@ -970,7 +1012,9 @@ function PersonaStage({ session }: { session: Session }) {
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 	const handleContinue = () => {
-		if (!selectedPersonaId) return;
+		if (!selectedPersonaId) {
+			return;
+		}
 		advanceStage.mutate({
 			id: session.id,
 			stageData: { personaIds: [selectedPersonaId] },
@@ -981,8 +1025,8 @@ function PersonaStage({ session }: { session: Session }) {
 		<div className="space-y-6">
 			<div className="flex items-start justify-between">
 				<div>
-					<h2 className="font-semibold text-lg">Select a Persona</h2>
-					<p className="mt-1 text-muted-foreground text-sm">
+					<h2 className="text-lg font-semibold">Select a Persona</h2>
+					<p className="text-muted-foreground mt-1 text-sm">
 						Choose a writing persona to define the voice and style of your
 						content.
 					</p>
@@ -990,7 +1034,9 @@ function PersonaStage({ session }: { session: Session }) {
 				<Button
 					variant="outline"
 					size="sm"
-					onClick={() => setShowCreateDialog(true)}
+					onClick={() => {
+						setShowCreateDialog(true);
+					}}
 				>
 					+ Create New
 				</Button>
@@ -1005,7 +1051,7 @@ function PersonaStage({ session }: { session: Session }) {
 				</div>
 			)}
 
-			{!personasLoading && personas && personas.length === 0 && (
+			{!personasLoading && personas?.length === 0 && (
 				<Card>
 					<CardContent className="py-8 text-center">
 						<p className="text-muted-foreground text-sm">
@@ -1015,7 +1061,9 @@ function PersonaStage({ session }: { session: Session }) {
 							variant="outline"
 							size="sm"
 							className="mt-3"
-							onClick={() => setShowCreateDialog(true)}
+							onClick={() => {
+								setShowCreateDialog(true);
+							}}
 						>
 							Create Your First Persona
 						</Button>
@@ -1035,7 +1083,9 @@ function PersonaStage({ session }: { session: Session }) {
 										? "border-primary bg-primary/5 ring-primary"
 										: "hover:bg-muted/50"
 								}`}
-								onClick={() => setSelectedPersonaId(persona.id)}
+								onClick={() => {
+									setSelectedPersonaId(persona.id);
+								}}
 							>
 								<CardHeader>
 									<div className="flex items-start justify-between">
@@ -1111,7 +1161,9 @@ function PlanStage({ session }: { session: Session }) {
 	} = usePlan(session.id, {
 		refetchInterval: (query) => {
 			const status = query.state.data?.status;
-			if (status === "DRAFT" || status === "CRITIC_REVIEWING") return 3000;
+			if (status === "DRAFT" || status === "CRITIC_REVIEWING") {
+				return 3000;
+			}
 			return false;
 		},
 	});
@@ -1150,49 +1202,62 @@ function PlanStage({ session }: { session: Session }) {
 		editPlan.mutate(
 			{ sessionId: session.id, content: editedContent },
 			{
-				onSuccess: () => setIsEditing(false),
+				onSuccess: () => {
+					setIsEditing(false);
+				},
 			},
 		);
 	};
 
 	const statusLabel = (status: string) => {
 		switch (status) {
-			case "DRAFT":
+			case "DRAFT": {
 				return "Generating...";
-			case "CRITIC_REVIEWING":
+			}
+			case "CRITIC_REVIEWING": {
 				return "Critic reviewing...";
-			case "CRITIC_APPROVED":
+			}
+			case "CRITIC_APPROVED": {
 				return "Ready for review";
-			case "USER_APPROVED":
+			}
+			case "USER_APPROVED": {
 				return "Approved";
-			case "REJECTED":
+			}
+			case "REJECTED": {
 				return "Rejected";
-			default:
+			}
+			default: {
 				return status;
+			}
 		}
 	};
 
 	const statusColor = (status: string) => {
 		switch (status) {
 			case "DRAFT":
-			case "CRITIC_REVIEWING":
+			case "CRITIC_REVIEWING": {
 				return "bg-amber-500/20 text-amber-400";
-			case "CRITIC_APPROVED":
+			}
+			case "CRITIC_APPROVED": {
 				return "bg-blue-500/20 text-blue-400";
-			case "USER_APPROVED":
+			}
+			case "USER_APPROVED": {
 				return "bg-green-500/20 text-green-400";
-			case "REJECTED":
+			}
+			case "REJECTED": {
 				return "bg-red-500/20 text-red-400";
-			default:
+			}
+			default: {
 				return "bg-muted text-muted-foreground";
+			}
 		}
 	};
 
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-semibold text-lg">Content Plan</h2>
-				<p className="mt-1 text-muted-foreground text-sm">
+				<h2 className="text-lg font-semibold">Content Plan</h2>
+				<p className="text-muted-foreground mt-1 text-sm">
 					Generate and review the content plan before proceeding.
 				</p>
 			</div>
@@ -1200,7 +1265,7 @@ function PlanStage({ session }: { session: Session }) {
 			{(isInProgress || generatePlan.isPending || planLoading) && !isReady && (
 				<Card>
 					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+						<div className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
 						<p className="text-muted-foreground text-sm">
 							Generating plan... This may take a moment.
 						</p>
@@ -1271,7 +1336,9 @@ function PlanStage({ session }: { session: Session }) {
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => setIsEditing(false)}
+								onClick={() => {
+									setIsEditing(false);
+								}}
 							>
 								Cancel
 							</Button>
@@ -1333,7 +1400,9 @@ function OutlineStage({ session }: { session: Session }) {
 	} = useOutline(session.id, {
 		refetchInterval: (query) => {
 			const status = query.state.data?.status;
-			if (status === "DRAFT" || status === "CRITIC_REVIEWING") return 3000;
+			if (status === "DRAFT" || status === "CRITIC_REVIEWING") {
+				return 3000;
+			}
 			return false;
 		},
 	});
@@ -1374,49 +1443,62 @@ function OutlineStage({ session }: { session: Session }) {
 		editOutline.mutate(
 			{ sessionId: session.id, content: editedContent },
 			{
-				onSuccess: () => setIsEditing(false),
+				onSuccess: () => {
+					setIsEditing(false);
+				},
 			},
 		);
 	};
 
 	const statusLabel = (status: string) => {
 		switch (status) {
-			case "DRAFT":
+			case "DRAFT": {
 				return "Generating...";
-			case "CRITIC_REVIEWING":
+			}
+			case "CRITIC_REVIEWING": {
 				return "Critic reviewing...";
-			case "CRITIC_APPROVED":
+			}
+			case "CRITIC_APPROVED": {
 				return "Ready for review";
-			case "USER_APPROVED":
+			}
+			case "USER_APPROVED": {
 				return "Approved";
-			case "REJECTED":
+			}
+			case "REJECTED": {
 				return "Rejected";
-			default:
+			}
+			default: {
 				return status;
+			}
 		}
 	};
 
 	const statusColor = (status: string) => {
 		switch (status) {
 			case "DRAFT":
-			case "CRITIC_REVIEWING":
+			case "CRITIC_REVIEWING": {
 				return "bg-amber-500/20 text-amber-400";
-			case "CRITIC_APPROVED":
+			}
+			case "CRITIC_APPROVED": {
 				return "bg-blue-500/20 text-blue-400";
-			case "USER_APPROVED":
+			}
+			case "USER_APPROVED": {
 				return "bg-green-500/20 text-green-400";
-			case "REJECTED":
+			}
+			case "REJECTED": {
 				return "bg-red-500/20 text-red-400";
-			default:
+			}
+			default: {
 				return "bg-muted text-muted-foreground";
+			}
 		}
 	};
 
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-semibold text-lg">Content Outline</h2>
-				<p className="mt-1 text-muted-foreground text-sm">
+				<h2 className="text-lg font-semibold">Content Outline</h2>
+				<p className="text-muted-foreground mt-1 text-sm">
 					Generate and review the content outline before final generation.
 				</p>
 			</div>
@@ -1425,7 +1507,7 @@ function OutlineStage({ session }: { session: Session }) {
 				!isReady && (
 					<Card>
 						<CardContent className="flex flex-col items-center gap-4 py-12">
-							<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+							<div className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
 							<p className="text-muted-foreground text-sm">
 								Generating outline... This may take a moment.
 							</p>
@@ -1499,7 +1581,9 @@ function OutlineStage({ session }: { session: Session }) {
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => setIsEditing(false)}
+								onClick={() => {
+									setIsEditing(false);
+								}}
 							>
 								Cancel
 							</Button>
@@ -1561,7 +1645,9 @@ function GenerationStage({ session }: { session: Session }) {
 	} = useContent(session.id, {
 		refetchInterval: (query) => {
 			const status = query.state.data?.status;
-			if (status === "DRAFT" || status === "CRITIC_REVIEWING") return 3000;
+			if (status === "DRAFT" || status === "CRITIC_REVIEWING") {
+				return 3000;
+			}
 			return false;
 		},
 	});
@@ -1602,7 +1688,9 @@ function GenerationStage({ session }: { session: Session }) {
 		editContent.mutate(
 			{ sessionId: session.id, content: editedContent },
 			{
-				onSuccess: () => setIsEditing(false),
+				onSuccess: () => {
+					setIsEditing(false);
+				},
 			},
 		);
 	};
@@ -1614,10 +1702,10 @@ function GenerationStage({ session }: { session: Session }) {
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.href = url;
-			a.download = `${session.title.replace(/\s+/g, "-").toLowerCase()}.md`;
-			document.body.appendChild(a);
+			a.download = `${session.title.replaceAll(/\s+/g, "-").toLowerCase()}.md`;
+			document.body.append(a);
 			a.click();
-			document.body.removeChild(a);
+			a.remove();
 			URL.revokeObjectURL(url);
 		} catch (error) {
 			console.error("Export failed:", error);
@@ -1626,42 +1714,53 @@ function GenerationStage({ session }: { session: Session }) {
 
 	const statusLabel = (status: string) => {
 		switch (status) {
-			case "DRAFT":
+			case "DRAFT": {
 				return "Generating...";
-			case "CRITIC_REVIEWING":
+			}
+			case "CRITIC_REVIEWING": {
 				return "Critic reviewing...";
-			case "CRITIC_APPROVED":
+			}
+			case "CRITIC_APPROVED": {
 				return "Ready for review";
-			case "USER_APPROVED":
+			}
+			case "USER_APPROVED": {
 				return "Approved";
-			case "REJECTED":
+			}
+			case "REJECTED": {
 				return "Rejected";
-			default:
+			}
+			default: {
 				return status;
+			}
 		}
 	};
 
 	const statusColor = (status: string) => {
 		switch (status) {
 			case "DRAFT":
-			case "CRITIC_REVIEWING":
+			case "CRITIC_REVIEWING": {
 				return "bg-amber-500/20 text-amber-400";
-			case "CRITIC_APPROVED":
+			}
+			case "CRITIC_APPROVED": {
 				return "bg-blue-500/20 text-blue-400";
-			case "USER_APPROVED":
+			}
+			case "USER_APPROVED": {
 				return "bg-green-500/20 text-green-400";
-			case "REJECTED":
+			}
+			case "REJECTED": {
 				return "bg-red-500/20 text-red-400";
-			default:
+			}
+			default: {
 				return "bg-muted text-muted-foreground";
+			}
 		}
 	};
 
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-semibold text-lg">Generated Content</h2>
-				<p className="mt-1 text-muted-foreground text-sm">
+				<h2 className="text-lg font-semibold">Generated Content</h2>
+				<p className="text-muted-foreground mt-1 text-sm">
 					Generate the final content. Review, approve, and export when ready.
 				</p>
 			</div>
@@ -1670,7 +1769,7 @@ function GenerationStage({ session }: { session: Session }) {
 				!isReady && (
 					<Card>
 						<CardContent className="flex flex-col items-center gap-4 py-12">
-							<div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+							<div className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
 							<p className="text-muted-foreground text-sm">
 								Generating content... This may take a moment.
 							</p>
@@ -1744,7 +1843,9 @@ function GenerationStage({ session }: { session: Session }) {
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => setIsEditing(false)}
+								onClick={() => {
+									setIsEditing(false);
+								}}
 							>
 								Cancel
 							</Button>
@@ -1809,10 +1910,10 @@ function CompleteStage({ session }: { session: Session }) {
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.href = url;
-			a.download = `${session.title.replace(/\s+/g, "-").toLowerCase()}.md`;
-			document.body.appendChild(a);
+			a.download = `${session.title.replaceAll(/\s+/g, "-").toLowerCase()}.md`;
+			document.body.append(a);
 			a.click();
-			document.body.removeChild(a);
+			a.remove();
 			URL.revokeObjectURL(url);
 		} catch (error) {
 			console.error("Export failed:", error);
@@ -1823,10 +1924,10 @@ function CompleteStage({ session }: { session: Session }) {
 		<div className="space-y-6">
 			<div className="flex flex-col items-center gap-4 py-12 text-center">
 				<div className="flex size-12 items-center justify-center rounded-full bg-green-500/20">
-					<span className="text-green-400 text-xl">{"\u2713"}</span>
+					<span className="text-xl text-green-400">{"\u2713"}</span>
 				</div>
-				<h2 className="font-semibold text-lg">Session Complete</h2>
-				<p className="max-w-md text-muted-foreground text-sm">
+				<h2 className="text-lg font-semibold">Session Complete</h2>
+				<p className="text-muted-foreground max-w-md text-sm">
 					Your content has been generated and approved. You can export it as
 					Markdown or start a new session.
 				</p>
@@ -1891,8 +1992,8 @@ function SessionDetailPage() {
 		return (
 			<div className="flex h-full items-center justify-center">
 				<div className="text-center">
-					<h2 className="font-semibold text-lg">Session Not Found</h2>
-					<p className="mt-1 text-muted-foreground text-sm">
+					<h2 className="text-lg font-semibold">Session Not Found</h2>
+					<p className="text-muted-foreground mt-1 text-sm">
 						{error?.message ?? "The session could not be loaded."}
 					</p>
 				</div>
@@ -1902,45 +2003,60 @@ function SessionDetailPage() {
 
 	const renderReadOnlyStage = () => {
 		switch (viewingStage) {
-			case "OUTPUT_SELECTION":
+			case "OUTPUT_SELECTION": {
 				return <ReadOnlyOutputSelection session={session} />;
-			case "CLARIFYING":
+			}
+			case "CLARIFYING": {
 				return <ReadOnlyClarifying session={session} />;
-			case "PERSONA":
+			}
+			case "PERSONA": {
 				return <ReadOnlyPersona session={session} />;
-			case "PLAN":
+			}
+			case "PLAN": {
 				return <ReadOnlyPlan session={session} />;
-			case "OUTLINE":
+			}
+			case "OUTLINE": {
 				return <ReadOnlyOutline session={session} />;
-			case "GENERATION":
+			}
+			case "GENERATION": {
 				return <ReadOnlyGeneration session={session} />;
-			default:
+			}
+			default: {
 				return null;
+			}
 		}
 	};
 
 	const renderStage = () => {
 		switch (currentStage) {
-			case "OUTPUT_SELECTION":
+			case "OUTPUT_SELECTION": {
 				return <OutputSelectionStage session={session} />;
-			case "CLARIFYING":
+			}
+			case "CLARIFYING": {
 				return <ClarifyingStage session={session} />;
-			case "PERSONA":
+			}
+			case "PERSONA": {
 				return <PersonaStage session={session} />;
-			case "PLAN":
+			}
+			case "PLAN": {
 				return <PlanStage session={session} />;
-			case "OUTLINE":
+			}
+			case "OUTLINE": {
 				return <OutlineStage session={session} />;
-			case "GENERATION":
+			}
+			case "GENERATION": {
 				return <GenerationStage session={session} />;
-			case "COMPLETE":
+			}
+			case "COMPLETE": {
 				return <CompleteStage session={session} />;
-			default:
+			}
+			default: {
 				return (
-					<div className="text-center text-muted-foreground">
+					<div className="text-muted-foreground text-center">
 						Unknown stage: {currentStage}
 					</div>
 				);
+			}
 		}
 	};
 
@@ -1954,12 +2070,14 @@ function SessionDetailPage() {
 
 			<div className="flex-1 overflow-y-auto p-6">
 				{isViewingPast && (
-					<div className="mb-4 flex items-center gap-2 border border-border bg-muted/50 px-3 py-2 text-muted-foreground text-xs">
+					<div className="border-border bg-muted/50 text-muted-foreground mb-4 flex items-center gap-2 border px-3 py-2 text-xs">
 						Viewing completed stage
 						<button
 							type="button"
-							onClick={() => setViewingStage(currentStage)}
-							className="font-medium text-primary hover:underline"
+							onClick={() => {
+								setViewingStage(currentStage);
+							}}
+							className="text-primary font-medium hover:underline"
 						>
 							Return to current
 						</button>

@@ -5,6 +5,7 @@
 
 import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+
 import { planGenerationQueue } from "../jobs/queue";
 import { requireAuth } from "../middleware/auth";
 import { requireWorkspace } from "../middleware/workspace";
@@ -12,23 +13,33 @@ import { requireWorkspace } from "../middleware/workspace";
 export const plansRoutes = new Elysia({ prefix: "/api/sessions" })
 	.derive(async (context) => {
 		const user = await requireAuth(context);
-		if (user instanceof Response) return { user: null, workspace: null };
+		if (user instanceof Response) {
+			return { user: null, workspace: null };
+		}
 		const workspace = await requireWorkspace(user);
-		if (workspace instanceof Response) return { user, workspace: null };
+		if (workspace instanceof Response) {
+			return { user, workspace: null };
+		}
 		return { user, workspace };
 	})
 	.onBeforeHandle((context) => {
 		if (!context.user) {
-			return new Response(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Unauthorized" },
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		if (!context.workspace) {
-			return new Response(JSON.stringify({ error: "No workspace found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No workspace found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	})
 	// Generate plan
@@ -41,8 +52,8 @@ export const plansRoutes = new Elysia({ prefix: "/api/sessions" })
 			},
 		});
 		if (!session) {
-			return new Response(
-				JSON.stringify({ error: "Session not found or not in PLAN stage" }),
+			return Response.json(
+				{ error: "Session not found or not in PLAN stage" },
 				{ status: 404, headers: { "Content-Type": "application/json" } },
 			);
 		}
@@ -118,10 +129,13 @@ export const plansRoutes = new Elysia({ prefix: "/api/sessions" })
 			orderBy: { version: "desc" },
 		});
 		if (!plan) {
-			return new Response(JSON.stringify({ error: "No plan found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No plan found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 
 		await prisma.plan.update({
@@ -157,10 +171,13 @@ export const plansRoutes = new Elysia({ prefix: "/api/sessions" })
 				orderBy: { version: "desc" },
 			});
 			if (!latestPlan) {
-				return new Response(JSON.stringify({ error: "No plan found" }), {
-					status: 404,
-					headers: { "Content-Type": "application/json" },
-				});
+				return Response.json(
+					{ error: "No plan found" },
+					{
+						status: 404,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
 			}
 
 			const plan = await prisma.plan.create({

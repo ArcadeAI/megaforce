@@ -1,17 +1,22 @@
 import { cn } from "@/lib/utils";
+
 import { TabBar } from "./tab-bar";
 
-interface MainEditorProps {
+interface MainEditorProperties {
 	children?: React.ReactNode;
 	className?: string;
 	scope?: string;
 }
 
-export function MainEditor({ children, className, scope }: MainEditorProps) {
+export function MainEditor({
+	children,
+	className,
+	scope,
+}: MainEditorProperties) {
 	return (
 		<main
 			className={cn(
-				"flex min-w-0 flex-1 flex-col overflow-hidden bg-background",
+				"bg-background flex min-w-0 flex-1 flex-col overflow-hidden",
 				className,
 			)}
 			aria-label="Main content area"

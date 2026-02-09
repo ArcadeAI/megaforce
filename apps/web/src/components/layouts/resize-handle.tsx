@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-interface ResizeHandleProps {
+interface ResizeHandleProperties {
 	onResize: (delta: number) => void;
 	className?: string;
 	direction?: "horizontal" | "vertical";
@@ -10,7 +10,7 @@ export function ResizeHandle({
 	onResize,
 	className,
 	direction = "horizontal",
-}: ResizeHandleProps) {
+}: ResizeHandleProperties) {
 	const handleMouseDown = (e: React.MouseEvent) => {
 		e.preventDefault();
 
@@ -44,7 +44,7 @@ export function ResizeHandle({
 			type="button"
 			onMouseDown={handleMouseDown}
 			className={cn(
-				"group relative flex items-center justify-center border-0 bg-transparent p-0 transition-colors hover:bg-primary/10",
+				"group hover:bg-primary/10 relative flex items-center justify-center border-0 bg-transparent p-0 transition-colors",
 				direction === "horizontal"
 					? "w-1 cursor-col-resize"
 					: "h-1 cursor-row-resize",
@@ -54,7 +54,7 @@ export function ResizeHandle({
 		>
 			<div
 				className={cn(
-					"bg-border transition-colors group-hover:bg-primary/50",
+					"bg-border group-hover:bg-primary/50 transition-colors",
 					direction === "horizontal" ? "h-full w-px" : "h-px w-full",
 				)}
 			/>

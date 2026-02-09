@@ -1,7 +1,7 @@
 ---
 name: debugging
 description: Four-phase debugging framework that ensures root cause identification before fixes. Use when encountering bugs, test failures, unexpected behavior, or when previous fix attempts failed. Enforces investigate-first discipline ('debug this', 'fix this error', 'test is failing', 'not working').
-allowed-tools: '*'
+allowed-tools: "*"
 ---
 
 # Systematic Debugger
@@ -159,9 +159,9 @@ Confirmed by adding pool logging - saw connections increment without decrement o
 Before fixing, write test that fails due to the bug:
 
 ```javascript
-it('handles empty input without crashing', () => {
-  // This test should FAIL before fix, PASS after
-  expect(() => processData('')).not.toThrow();
+it("handles empty input without crashing", () => {
+	// This test should FAIL before fix, PASS after
+	expect(() => processData("")).not.toThrow();
 });
 ```
 

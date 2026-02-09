@@ -1,10 +1,11 @@
 import {
-	type UseMutationOptions,
-	type UseQueryOptions,
 	useMutation,
+	type UseMutationOptions,
 	useQuery,
 	useQueryClient,
+	type UseQueryOptions,
 } from "@tanstack/react-query";
+
 import {
 	type CreateSessionInput,
 	type GeneratedContent,
@@ -38,13 +39,11 @@ export const sessionKeys = {
  * Hook to fetch all sessions
  */
 export function useSessions(
-	options?: Omit<UseQueryOptions<Session[], Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Session[]>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: sessionKeys.list(),
-		queryFn: async () => {
-			return sessionsApi.getAll();
-		},
+		queryFn: async () => sessionsApi.getAll(),
 		...options,
 	});
 }
@@ -54,13 +53,11 @@ export function useSessions(
  */
 export function useSession(
 	id: string,
-	options?: Omit<UseQueryOptions<Session, Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Session>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: sessionKeys.detail(id),
-		queryFn: async () => {
-			return sessionsApi.getById(id);
-		},
+		queryFn: async () => sessionsApi.getById(id),
 		enabled: !!id,
 		...options,
 	});
@@ -75,9 +72,7 @@ export function useCreateSession(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (input: CreateSessionInput) => {
-			return sessionsApi.create(input);
-		},
+		mutationFn: async (input: CreateSessionInput) => sessionsApi.create(input),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 		},
@@ -104,9 +99,7 @@ export function useUpdateSession(
 		}: {
 			id: string;
 			input: UpdateSessionInput;
-		}) => {
-			return sessionsApi.update(id, input);
-		},
+		}) => sessionsApi.update(id, input),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -126,9 +119,7 @@ export function useDeleteSession(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (id: string) => {
-			return sessionsApi.delete(id);
-		},
+		mutationFn: async (id: string) => sessionsApi.delete(id),
 		onSuccess: (_, id) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.removeQueries({ queryKey: sessionKeys.detail(id) });
@@ -156,9 +147,7 @@ export function useAdvanceStage(
 		}: {
 			id: string;
 			stageData?: Record<string, unknown>;
-		}) => {
-			return sessionsApi.advance(id, stageData);
-		},
+		}) => sessionsApi.advance(id, stageData),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -178,9 +167,7 @@ export function useGoBack(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (id: string) => {
-			return sessionsApi.back(id);
-		},
+		mutationFn: async (id: string) => sessionsApi.back(id),
 		onSuccess: (_, id) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -200,9 +187,8 @@ export function useGeneratePlan(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (sessionId: string) => {
-			return sessionsApi.generatePlan(sessionId);
-		},
+		mutationFn: async (sessionId: string) =>
+			sessionsApi.generatePlan(sessionId),
 		onSuccess: (_, sessionId) => {
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.plan(sessionId),
@@ -220,13 +206,11 @@ export function useGeneratePlan(
  */
 export function usePlan(
 	sessionId: string,
-	options?: Omit<UseQueryOptions<Plan | null, Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Plan | null>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: sessionKeys.plan(sessionId),
-		queryFn: async () => {
-			return sessionsApi.getPlan(sessionId);
-		},
+		queryFn: async () => sessionsApi.getPlan(sessionId),
 		enabled: !!sessionId,
 		...options,
 	});
@@ -241,9 +225,7 @@ export function useApprovePlan(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (sessionId: string) => {
-			return sessionsApi.approvePlan(sessionId);
-		},
+		mutationFn: async (sessionId: string) => sessionsApi.approvePlan(sessionId),
 		onSuccess: (_, sessionId) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -276,9 +258,7 @@ export function useEditPlan(
 		}: {
 			sessionId: string;
 			content: string;
-		}) => {
-			return sessionsApi.editPlan(sessionId, content);
-		},
+		}) => sessionsApi.editPlan(sessionId, content),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.plan(variables.sessionId),
@@ -297,9 +277,8 @@ export function useGenerateOutline(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (sessionId: string) => {
-			return sessionsApi.generateOutline(sessionId);
-		},
+		mutationFn: async (sessionId: string) =>
+			sessionsApi.generateOutline(sessionId),
 		onSuccess: (_, sessionId) => {
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.outline(sessionId),
@@ -317,10 +296,7 @@ export function useGenerateOutline(
  */
 export function useOutline(
 	sessionId: string,
-	options?: Omit<
-		UseQueryOptions<Outline | null, Error>,
-		"queryKey" | "queryFn"
-	>,
+	options?: Omit<UseQueryOptions<Outline | null>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: sessionKeys.outline(sessionId),
@@ -342,9 +318,8 @@ export function useApproveOutline(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (sessionId: string) => {
-			return sessionsApi.approveOutline(sessionId);
-		},
+		mutationFn: async (sessionId: string) =>
+			sessionsApi.approveOutline(sessionId),
 		onSuccess: (_, sessionId) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -377,9 +352,7 @@ export function useEditOutline(
 		}: {
 			sessionId: string;
 			content: string;
-		}) => {
-			return sessionsApi.editOutline(sessionId, content);
-		},
+		}) => sessionsApi.editOutline(sessionId, content),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.outline(variables.sessionId),
@@ -398,9 +371,8 @@ export function useGenerateContent(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (sessionId: string) => {
-			return sessionsApi.generateContent(sessionId);
-		},
+		mutationFn: async (sessionId: string) =>
+			sessionsApi.generateContent(sessionId),
 		onSuccess: (_, sessionId) => {
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.content(sessionId),
@@ -419,15 +391,13 @@ export function useGenerateContent(
 export function useContent(
 	sessionId: string,
 	options?: Omit<
-		UseQueryOptions<GeneratedContent | null, Error>,
+		UseQueryOptions<GeneratedContent | null>,
 		"queryKey" | "queryFn"
 	>,
 ) {
 	return useQuery({
 		queryKey: sessionKeys.content(sessionId),
-		queryFn: async () => {
-			return sessionsApi.getContent(sessionId);
-		},
+		queryFn: async () => sessionsApi.getContent(sessionId),
 		enabled: !!sessionId,
 		...options,
 	});
@@ -442,9 +412,8 @@ export function useApproveContent(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (sessionId: string) => {
-			return sessionsApi.approveContent(sessionId);
-		},
+		mutationFn: async (sessionId: string) =>
+			sessionsApi.approveContent(sessionId),
 		onSuccess: (_, sessionId) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -483,9 +452,7 @@ export function useEditContent(
 			sessionId: string;
 			content: string;
 			sections?: Record<string, unknown>[];
-		}) => {
-			return sessionsApi.editContent(sessionId, content, sections);
-		},
+		}) => sessionsApi.editContent(sessionId, content, sections),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: sessionKeys.content(variables.sessionId),
@@ -504,9 +471,7 @@ export function useDuplicateSession(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (id: string) => {
-			return sessionsApi.duplicate(id);
-		},
+		mutationFn: async (id: string) => sessionsApi.duplicate(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 		},
@@ -523,9 +488,7 @@ export function useArchiveSession(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (id: string) => {
-			return sessionsApi.archive(id);
-		},
+		mutationFn: async (id: string) => sessionsApi.archive(id),
 		onSuccess: (_, id) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({
@@ -545,9 +508,7 @@ export function useUnarchiveSession(
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (id: string) => {
-			return sessionsApi.unarchive(id);
-		},
+		mutationFn: async (id: string) => sessionsApi.unarchive(id),
 		onSuccess: (_, id) => {
 			queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
 			queryClient.invalidateQueries({

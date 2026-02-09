@@ -1,4 +1,5 @@
 import { env } from "@megaforce/env/web";
+
 import { authClient } from "../auth-client";
 
 /**
@@ -15,17 +16,17 @@ export type Session = {
 	dataSourceMode: string;
 	createdAt: string;
 	updatedAt: string;
-	sessionPersonas?: Array<{
+	sessionPersonas?: {
 		id: string;
 		personaId: string;
 		role: string;
 		persona: { id: string; name: string; description: string | null };
-	}>;
-	sessionSources?: Array<{
+	}[];
+	sessionSources?: {
 		id: string;
 		sourceId: string;
 		source: { id: string; title: string; type: string; url: string | null };
-	}>;
+	}[];
 };
 
 export type Plan = {
@@ -89,7 +90,7 @@ async function fetchApi<T>(
 	const session = await authClient.getSession();
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
-		...((options.headers as Record<string, string>) ?? {}),
+		...(options.headers as Record<string, string>),
 	};
 
 	if (session?.data?.session?.token) {

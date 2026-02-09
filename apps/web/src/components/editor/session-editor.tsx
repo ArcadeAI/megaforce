@@ -19,9 +19,10 @@ import {
 } from "lucide-react";
 import { marked } from "marked";
 import { useEffect, useMemo } from "react";
+
 import { cn } from "@/lib/utils";
 
-interface SessionEditorProps {
+interface SessionEditorProperties {
 	content: string;
 	onChange?: (content: string) => void;
 	editable: boolean;
@@ -52,7 +53,7 @@ function ToolbarButton({
 			disabled={disabled}
 			title={title}
 			className={cn(
-				"flex size-7 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30",
+				"text-muted-foreground hover:bg-muted hover:text-foreground flex size-7 items-center justify-center transition-colors disabled:pointer-events-none disabled:opacity-30",
 				active && "bg-muted text-foreground",
 			)}
 		>
@@ -62,12 +63,12 @@ function ToolbarButton({
 }
 
 function Divider() {
-	return <div className="mx-0.5 h-5 w-px bg-border" />;
+	return <div className="bg-border mx-0.5 h-5 w-px" />;
 }
 
 function Toolbar({ editor }: { editor: Editor }) {
 	return (
-		<div className="flex items-center gap-0.5 border-border border-b px-1.5 py-1">
+		<div className="border-border flex items-center gap-0.5 border-b px-1.5 py-1">
 			{/* Undo / Redo */}
 			<ToolbarButton
 				onClick={() => editor.chain().focus().undo().run()}
@@ -177,7 +178,7 @@ function InlineBubbleMenu({ editor }: { editor: Editor }) {
 	return (
 		<BubbleMenu
 			editor={editor}
-			className="flex items-center gap-0.5 border border-border bg-background p-0.5 shadow-lg"
+			className="border-border bg-background flex items-center gap-0.5 border p-0.5 shadow-lg"
 		>
 			<ToolbarButton
 				onClick={() => editor.chain().focus().toggleBold().run()}
@@ -213,7 +214,7 @@ function InlineBubbleMenu({ editor }: { editor: Editor }) {
 
 /** Convert markdown to HTML synchronously via marked */
 function markdownToHtml(md: string): string {
-	return marked.parse(md, { async: false }) as string;
+	return marked.parse(md, { async: false });
 }
 
 export function SessionEditor({
@@ -222,7 +223,7 @@ export function SessionEditor({
 	editable,
 	markdown = false,
 	placeholder,
-}: SessionEditorProps) {
+}: SessionEditorProperties) {
 	const htmlContent = useMemo(
 		() => (markdown ? markdownToHtml(content) : content),
 		[content, markdown],
@@ -260,12 +261,14 @@ export function SessionEditor({
 		}
 	}, [editor, htmlContent]);
 
-	if (!editor) return null;
+	if (!editor) {
+		return null;
+	}
 
 	return (
 		<div
 			className={cn(
-				"border border-border bg-background transition-colors",
+				"border-border bg-background border transition-colors",
 				editable && "focus-within:border-muted-foreground/40",
 			)}
 		>

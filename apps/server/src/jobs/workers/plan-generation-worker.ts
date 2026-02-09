@@ -1,6 +1,7 @@
 import prisma from "@megaforce/db";
 import { type Job, Worker } from "bullmq";
-import { type ChatMessage, chatCompletion } from "../../lib/llm";
+
+import { chatCompletion, type ChatMessage } from "../../lib/llm";
 import {
 	createWsMessage,
 	type PlanGeneratedPayload,
@@ -98,7 +99,9 @@ Write clearly and concisely. Do not wrap output in code fences.`;
 		userPrompt += "\n\n**Reference Sources:**";
 		for (const source of sources) {
 			userPrompt += `\n- ${source.title} (${source.type})`;
-			if (source.url) userPrompt += ` - ${source.url}`;
+			if (source.url) {
+				userPrompt += ` - ${source.url}`;
+			}
 			if (source.parsedContent) {
 				userPrompt += `\n  Content preview: ${source.parsedContent.slice(0, 500)}...`;
 			}

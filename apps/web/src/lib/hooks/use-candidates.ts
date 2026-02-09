@@ -1,14 +1,15 @@
 import {
-	type UseMutationOptions,
-	type UseQueryOptions,
 	useMutation,
+	type UseMutationOptions,
 	useQuery,
 	useQueryClient,
+	type UseQueryOptions,
 } from "@tanstack/react-query";
+
 import {
 	type Candidate,
-	type CreateCandidateInput,
 	candidatesApi,
+	type CreateCandidateInput,
 	type UpdateCandidateInput,
 } from "../api/candidates";
 
@@ -29,7 +30,7 @@ export const candidateKeys = {
  */
 export function useCandidates(
 	projectId: string,
-	options?: Omit<UseQueryOptions<Candidate[], Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Candidate[]>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: candidateKeys.list(projectId),
@@ -50,7 +51,7 @@ export function useCandidates(
  */
 export function useCandidate(
 	id: string,
-	options?: Omit<UseQueryOptions<Candidate, Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Candidate>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: candidateKeys.detail(id),

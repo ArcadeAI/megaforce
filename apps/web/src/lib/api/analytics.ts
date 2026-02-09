@@ -39,12 +39,12 @@ export type WorkspaceAnalytics = {
 		totalCandidates: AnalyticsMetric;
 		totalPublished: AnalyticsMetric;
 	};
-	topProjects: Array<{
+	topProjects: {
 		projectId: string;
 		projectName: string;
 		candidateCount: number;
 		publishedCount: number;
-	}>;
+	}[];
 };
 
 export type AnalyticsTimeRange = "7d" | "30d" | "90d" | "1y" | "all";

@@ -5,6 +5,7 @@
 
 import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+
 import { contentGenerationQueue } from "../jobs/queue";
 import { requireAuth } from "../middleware/auth";
 import { requireWorkspace } from "../middleware/workspace";
@@ -12,23 +13,33 @@ import { requireWorkspace } from "../middleware/workspace";
 export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 	.derive(async (context) => {
 		const user = await requireAuth(context);
-		if (user instanceof Response) return { user: null, workspace: null };
+		if (user instanceof Response) {
+			return { user: null, workspace: null };
+		}
 		const workspace = await requireWorkspace(user);
-		if (workspace instanceof Response) return { user, workspace: null };
+		if (workspace instanceof Response) {
+			return { user, workspace: null };
+		}
 		return { user, workspace };
 	})
 	.onBeforeHandle((context) => {
 		if (!context.user) {
-			return new Response(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Unauthorized" },
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		if (!context.workspace) {
-			return new Response(JSON.stringify({ error: "No workspace found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No workspace found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	})
 	// Trigger content generation
@@ -41,10 +52,10 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 			},
 		});
 		if (!session) {
-			return new Response(
-				JSON.stringify({
+			return Response.json(
+				{
 					error: "Session not found or not in GENERATION stage",
-				}),
+				},
 				{ status: 404, headers: { "Content-Type": "application/json" } },
 			);
 		}
@@ -54,8 +65,8 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 			orderBy: { version: "desc" },
 		});
 		if (!outline) {
-			return new Response(
-				JSON.stringify({ error: "No approved outline found" }),
+			return Response.json(
+				{ error: "No approved outline found" },
 				{ status: 400, headers: { "Content-Type": "application/json" } },
 			);
 		}
@@ -128,10 +139,13 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 			orderBy: { version: "desc" },
 		});
 		if (!content) {
-			return new Response(JSON.stringify({ error: "No content found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No content found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 
 		await prisma.generatedContent.update({
@@ -159,10 +173,13 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 				orderBy: { version: "desc" },
 			});
 			if (!latestContent) {
-				return new Response(JSON.stringify({ error: "No content found" }), {
-					status: 404,
-					headers: { "Content-Type": "application/json" },
-				});
+				return Response.json(
+					{ error: "No content found" },
+					{
+						status: 404,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
 			}
 
 			const content = await prisma.generatedContent.create({
@@ -201,8 +218,8 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 				orderBy: { version: "desc" },
 			});
 			if (!outline) {
-				return new Response(
-					JSON.stringify({ error: "No approved outline found" }),
+				return Response.json(
+					{ error: "No approved outline found" },
 					{
 						status: 400,
 						headers: { "Content-Type": "application/json" },
@@ -233,8 +250,8 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 				orderBy: { version: "desc" },
 			});
 			if (!outline) {
-				return new Response(
-					JSON.stringify({ error: "No approved outline found" }),
+				return Response.json(
+					{ error: "No approved outline found" },
 					{
 						status: 400,
 						headers: { "Content-Type": "application/json" },
@@ -273,8 +290,8 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 			},
 		});
 		if (!content) {
-			return new Response(
-				JSON.stringify({ error: "No approved content found" }),
+			return Response.json(
+				{ error: "No approved content found" },
 				{ status: 404, headers: { "Content-Type": "application/json" } },
 			);
 		}
@@ -282,7 +299,7 @@ export const generationRoutes = new Elysia({ prefix: "/api/sessions" })
 		return new Response(content.content, {
 			headers: {
 				"Content-Type": "text/markdown",
-				"Content-Disposition": `attachment; filename="${content.session.title.replace(/[^a-zA-Z0-9-_ ]/g, "")}.md"`,
+				"Content-Disposition": `attachment; filename="${content.session.title.replaceAll(/[^\w- ]/g, "")}.md"`,
 			},
 		});
 	});

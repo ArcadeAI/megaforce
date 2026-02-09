@@ -64,9 +64,9 @@ function PersonaDetailPage() {
 	return (
 		<div className="mx-auto max-w-2xl space-y-8 p-6">
 			<div>
-				<h1 className="font-semibold text-lg">{persona.name}</h1>
+				<h1 className="text-lg font-semibold">{persona.name}</h1>
 				{persona.isDefault && (
-					<span className="mt-1 inline-block rounded-sm bg-primary/20 px-1.5 py-0.5 text-primary text-xs">
+					<span className="bg-primary/20 text-primary mt-1 inline-block rounded-sm px-1.5 py-0.5 text-xs">
 						Default persona
 					</span>
 				)}
@@ -81,15 +81,7 @@ function PersonaDetailPage() {
 
 			{!persona.isDefault && (
 				<div className="border-border border-t pt-6">
-					{!confirmDelete ? (
-						<Button
-							variant="outline"
-							className="text-red-500 hover:text-red-600"
-							onClick={() => setConfirmDelete(true)}
-						>
-							Delete Persona
-						</Button>
-					) : (
+					{confirmDelete ? (
 						<div className="flex items-center gap-2">
 							<span className="text-muted-foreground text-xs">
 								Are you sure?
@@ -102,10 +94,25 @@ function PersonaDetailPage() {
 							>
 								{deletePersona.isPending ? "Deleting..." : "Confirm Delete"}
 							</Button>
-							<Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+							<Button
+								variant="ghost"
+								onClick={() => {
+									setConfirmDelete(false);
+								}}
+							>
 								Cancel
 							</Button>
 						</div>
+					) : (
+						<Button
+							variant="outline"
+							className="text-red-500 hover:text-red-600"
+							onClick={() => {
+								setConfirmDelete(true);
+							}}
+						>
+							Delete Persona
+						</Button>
 					)}
 				</div>
 			)}

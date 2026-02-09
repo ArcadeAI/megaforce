@@ -56,10 +56,8 @@ export function handleError(error: Error, context?: { request?: Request }) {
 
 	// Handle custom application errors
 	if (error instanceof AppError) {
-		return new Response(
-			JSON.stringify(
-				formatErrorResponse(error, error.statusCode, context?.request?.url),
-			),
+		return Response.json(
+			formatErrorResponse(error, error.statusCode, context?.request?.url),
 			{
 				status: error.statusCode,
 				headers: { "Content-Type": "application/json" },
@@ -69,8 +67,8 @@ export function handleError(error: Error, context?: { request?: Request }) {
 
 	// Handle validation errors (Elysia/TypeBox)
 	if (error.name === "ValidationError") {
-		return new Response(
-			JSON.stringify(formatErrorResponse(error, 400, context?.request?.url)),
+		return Response.json(
+			formatErrorResponse(error, 400, context?.request?.url),
 			{
 				status: 400,
 				headers: { "Content-Type": "application/json" },
@@ -80,13 +78,11 @@ export function handleError(error: Error, context?: { request?: Request }) {
 
 	// Handle Prisma errors
 	if (error.name === "PrismaClientKnownRequestError") {
-		return new Response(
-			JSON.stringify(
-				formatErrorResponse(
-					new Error("Database error occurred"),
-					500,
-					context?.request?.url,
-				),
+		return Response.json(
+			formatErrorResponse(
+				new Error("Database error occurred"),
+				500,
+				context?.request?.url,
 			),
 			{
 				status: 500,
@@ -96,13 +92,11 @@ export function handleError(error: Error, context?: { request?: Request }) {
 	}
 
 	// Handle generic errors (500 Internal Server Error)
-	return new Response(
-		JSON.stringify(
-			formatErrorResponse(
-				new Error("Internal server error"),
-				500,
-				context?.request?.url,
-			),
+	return Response.json(
+		formatErrorResponse(
+			new Error("Internal server error"),
+			500,
+			context?.request?.url,
 		),
 		{
 			status: 500,

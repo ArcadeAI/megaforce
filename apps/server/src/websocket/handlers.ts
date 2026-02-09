@@ -4,6 +4,7 @@
  */
 
 import prisma from "@megaforce/db";
+
 import { verifyWsToken } from "../routes/ws-auth";
 import {
 	type AuthPayload,
@@ -23,7 +24,7 @@ import type { WsHandle, WsServer } from "./server";
  * Generate a unique connection ID
  */
 export function generateConnectionId(): string {
-	return `ws_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+	return `ws_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /**
@@ -265,7 +266,7 @@ export async function handleMessage(
 		}
 
 		switch (message.event) {
-			case WS_EVENTS.AUTH:
+			case WS_EVENTS.AUTH: {
 				await handleAuth(
 					ws,
 					wsServer,
@@ -273,8 +274,9 @@ export async function handleMessage(
 					message.payload as AuthPayload,
 				);
 				break;
+			}
 
-			case WS_EVENTS.JOIN_ROOM:
+			case WS_EVENTS.JOIN_ROOM: {
 				handleJoinRoom(
 					ws,
 					wsServer,
@@ -282,8 +284,9 @@ export async function handleMessage(
 					message.payload as JoinRoomPayload,
 				);
 				break;
+			}
 
-			case WS_EVENTS.LEAVE_ROOM:
+			case WS_EVENTS.LEAVE_ROOM: {
 				handleLeaveRoom(
 					ws,
 					wsServer,
@@ -291,18 +294,21 @@ export async function handleMessage(
 					message.payload as LeaveRoomPayload,
 				);
 				break;
+			}
 
-			case WS_EVENTS.PING:
+			case WS_EVENTS.PING: {
 				await handlePing(ws, connectionId);
 				break;
+			}
 
-			default:
+			default: {
 				wsSend(
 					ws,
 					createWsMessage(WS_EVENTS.ERROR, {
 						error: `Unknown event type: ${message.event}`,
 					}),
 				);
+			}
 		}
 	} catch (error) {
 		console.error("Error handling message:", error);

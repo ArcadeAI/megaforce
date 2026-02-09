@@ -22,13 +22,13 @@ export interface LLMOptions {
 
 interface OpenRouterResponse {
 	id: string;
-	choices: Array<{
+	choices: {
 		message: {
 			role: string;
 			content: string;
 		};
 		finish_reason: string;
-	}>;
+	}[];
 	usage: {
 		prompt_tokens: number;
 		completion_tokens: number;
@@ -118,7 +118,7 @@ export async function chatCompletionJSON<T = Record<string, unknown>>(
 		return JSON.parse(content) as T;
 	} catch {
 		// Try extracting JSON from markdown code blocks
-		const jsonMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+		const jsonMatch = /```(?:json)?\s*([\s\S]*?)\n?```/.exec(content);
 		if (jsonMatch?.[1]) {
 			return JSON.parse(jsonMatch[1]) as T;
 		}

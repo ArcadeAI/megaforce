@@ -1,10 +1,11 @@
 import {
-	type UseMutationOptions,
-	type UseQueryOptions,
 	useMutation,
+	type UseMutationOptions,
 	useQuery,
 	useQueryClient,
+	type UseQueryOptions,
 } from "@tanstack/react-query";
+
 import {
 	type CreateWorkspaceInput,
 	type UpdateWorkspaceInput,
@@ -27,7 +28,7 @@ export const workspaceKeys = {
  * Hook to fetch all workspaces
  */
 export function useWorkspaces(
-	options?: Omit<UseQueryOptions<Workspace[], Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Workspace[]>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: workspaceKeys.list(),
@@ -47,7 +48,7 @@ export function useWorkspaces(
  */
 export function useWorkspace(
 	id: string,
-	options?: Omit<UseQueryOptions<Workspace, Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Workspace>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: workspaceKeys.detail(id),

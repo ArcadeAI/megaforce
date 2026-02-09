@@ -1,6 +1,7 @@
 import prisma from "@megaforce/db";
 import { type Job, Worker } from "bullmq";
-import { type ChatMessage, chatCompletionJSON } from "../../lib/llm";
+
+import { chatCompletionJSON, type ChatMessage } from "../../lib/llm";
 import {
 	createWsMessage,
 	type OutlineGeneratedPayload,
@@ -16,22 +17,22 @@ import {
 } from "../queue";
 
 interface KnowledgeFactsResult {
-	facts: Array<{
+	facts: {
 		fact: string;
 		confidence: number;
 		relevance: number;
-	}>;
+	}[];
 }
 
 interface OutlineContent {
-	sections: Array<{
+	sections: {
 		title: string;
-		subsections: Array<{
+		subsections: {
 			title: string;
 			keyPoints: string[];
 			sourceRefs: string[];
-		}>;
-	}>;
+		}[];
+	}[];
 }
 
 async function processOutlineGeneration(
@@ -77,7 +78,7 @@ async function processOutlineGeneration(
 	const sourcesWithContent = sources.filter((s) => s.parsedContent);
 
 	let knowledgeBase = null;
-	const knowledgeEntries: Array<{ fact: string; sourceRef: string }> = [];
+	const knowledgeEntries: { fact: string; sourceRef: string }[] = [];
 
 	if (sourcesWithContent.length > 0) {
 		// Create a knowledge base for this session

@@ -5,20 +5,26 @@
 
 import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+
 import { requireAuth } from "../middleware/auth";
 
 export const workspacesRoutes = new Elysia({ prefix: "/api/workspaces" })
 	.derive(async (context) => {
 		const user = await requireAuth(context);
-		if (user instanceof Response) return { user: null };
+		if (user instanceof Response) {
+			return { user: null };
+		}
 		return { user };
 	})
 	.onBeforeHandle((context) => {
 		if (!context.user) {
-			return new Response(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Unauthorized" },
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	})
 	// List user's workspaces
@@ -35,10 +41,13 @@ export const workspacesRoutes = new Elysia({ prefix: "/api/workspaces" })
 			where: { id: context.params.id, userId: context.user!.id },
 		});
 		if (!workspace) {
-			return new Response(JSON.stringify({ error: "Workspace not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Workspace not found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		return { success: true, data: workspace };
 	})
@@ -68,10 +77,13 @@ export const workspacesRoutes = new Elysia({ prefix: "/api/workspaces" })
 				where: { id: context.params.id, userId: context.user!.id },
 			});
 			if (!existing) {
-				return new Response(JSON.stringify({ error: "Workspace not found" }), {
-					status: 404,
-					headers: { "Content-Type": "application/json" },
-				});
+				return Response.json(
+					{ error: "Workspace not found" },
+					{
+						status: 404,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
 			}
 			const workspace = await prisma.workspace.update({
 				where: { id: context.params.id },

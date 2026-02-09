@@ -6,29 +6,23 @@
 import { Elysia, t } from "elysia";
 
 export const projectsRoutes = new Elysia({ prefix: "/api/projects" })
-	.get("/", () => {
-		return {
-			success: true,
-			data: [],
-			message: "Projects list endpoint - not implemented",
-		};
-	})
-	.get("/:id", ({ params }) => {
-		return {
-			success: true,
-			data: { id: params.id },
-			message: "Project detail endpoint - not implemented",
-		};
-	})
+	.get("/", () => ({
+		success: true,
+		data: [],
+		message: "Projects list endpoint - not implemented",
+	}))
+	.get("/:id", ({ params }) => ({
+		success: true,
+		data: { id: params.id },
+		message: "Project detail endpoint - not implemented",
+	}))
 	.post(
 		"/",
-		({ body }) => {
-			return {
-				success: true,
-				data: body,
-				message: "Create project endpoint - not implemented",
-			};
-		},
+		({ body }) => ({
+			success: true,
+			data: body,
+			message: "Create project endpoint - not implemented",
+		}),
 		{
 			body: t.Object({
 				name: t.String(),
@@ -38,13 +32,11 @@ export const projectsRoutes = new Elysia({ prefix: "/api/projects" })
 	)
 	.patch(
 		"/:id",
-		({ params }) => {
-			return {
-				success: true,
-				data: { id: params.id },
-				message: "Update project endpoint - not implemented",
-			};
-		},
+		({ params }) => ({
+			success: true,
+			data: { id: params.id },
+			message: "Update project endpoint - not implemented",
+		}),
 		{
 			body: t.Object({
 				name: t.Optional(t.String()),
@@ -52,10 +44,8 @@ export const projectsRoutes = new Elysia({ prefix: "/api/projects" })
 			}),
 		},
 	)
-	.delete("/:id", ({ params }) => {
-		return {
-			success: true,
-			data: { id: params.id },
-			message: "Delete project endpoint - not implemented",
-		};
-	});
+	.delete("/:id", ({ params }) => ({
+		success: true,
+		data: { id: params.id },
+		message: "Delete project endpoint - not implemented",
+	}));

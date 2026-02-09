@@ -41,13 +41,15 @@ interface StoredTab {
 }
 
 function generateTabId(): string {
-	return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	return `tab-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
 function loadTabsFromStorage(): Tab[] {
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) return [];
+		if (!stored) {
+			return [];
+		}
 		const parsed = JSON.parse(stored) as StoredTab[];
 		return parsed.map((tab) => ({
 			...tab,
@@ -93,9 +95,7 @@ function saveActiveTabToStorage(tabId: string | null): void {
 }
 
 export function TabProvider({ children }: { children: ReactNode }) {
-	const [tabs, setTabs] = useState<Tab[]>(() => {
-		return loadTabsFromStorage();
-	});
+	const [tabs, setTabs] = useState<Tab[]>(() => loadTabsFromStorage());
 
 	const [activeTabId, setActiveTabId] = useState<string | null>(() => {
 		const storedActiveId = loadActiveTabFromStorage();
@@ -139,15 +139,21 @@ export function TabProvider({ children }: { children: ReactNode }) {
 	const closeTab = useCallback((tabId: string) => {
 		setTabs((prevTabs) => {
 			const index = prevTabs.findIndex((t) => t.id === tabId);
-			if (index === -1) return prevTabs;
+			if (index === -1) {
+				return prevTabs;
+			}
 
 			const newTabs = prevTabs.filter((t) => t.id !== tabId);
 
 			// If we're closing the active tab, switch to adjacent tab
 			setActiveTabId((prevActiveId) => {
-				if (prevActiveId !== tabId) return prevActiveId;
+				if (prevActiveId !== tabId) {
+					return prevActiveId;
+				}
 
-				if (newTabs.length === 0) return null;
+				if (newTabs.length === 0) {
+					return null;
+				}
 
 				// Switch to the tab to the right, or left if at the end
 				const newIndex = index < newTabs.length ? index : index - 1;
@@ -161,7 +167,9 @@ export function TabProvider({ children }: { children: ReactNode }) {
 	const switchTab = useCallback((tabId: string) => {
 		setTabs((prevTabs) => {
 			const exists = prevTabs.some((t) => t.id === tabId);
-			if (!exists) return prevTabs;
+			if (!exists) {
+				return prevTabs;
+			}
 
 			setActiveTabId(tabId);
 			return prevTabs;
@@ -208,7 +216,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
 	// Keyboard shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+			const isMac = navigator.platform.toUpperCase().includes("MAC");
 			const modifier = isMac ? e.metaKey : e.ctrlKey;
 
 			// Ctrl/Cmd + Shift + W: Close active tab
@@ -234,12 +242,12 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
 			// Ctrl/Cmd + Shift + 1-9: Switch to tab by index
 			if (modifier && e.shiftKey) {
-				const num = Number.parseInt(e.key, 10);
-				if (num >= 1 && num <= 9) {
+				const number_ = Number.parseInt(e.key, 10);
+				if (number_ >= 1 && number_ <= 9) {
 					e.preventDefault();
-					const tabIndex = num - 1;
+					const tabIndex = number_ - 1;
 					if (tabs[tabIndex]) {
-						console.log(`Switching to tab ${num}`);
+						console.log(`Switching to tab ${number_}`);
 						switchTab(tabs[tabIndex].id);
 					}
 					return;
@@ -266,8 +274,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
 			}
 		};
 
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
+		globalThis.addEventListener("keydown", handleKeyDown);
+		return () => {
+			globalThis.removeEventListener("keydown", handleKeyDown);
+		};
 	}, [tabs, activeTabId, closeTab, openTab, switchTab]);
 
 	const value: TabContextValue = {

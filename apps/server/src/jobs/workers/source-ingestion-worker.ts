@@ -1,5 +1,6 @@
 import prisma from "@megaforce/db";
 import { type Job, Worker } from "bullmq";
+
 import { connection, QueueName, type SourceIngestionJobData } from "../queue";
 
 /**
@@ -11,25 +12,25 @@ function stripHtml(html: string): string {
 	let text = html;
 
 	// Remove <script> tags and their content
-	text = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+	text = text.replaceAll(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
 
 	// Remove <style> tags and their content
-	text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
+	text = text.replaceAll(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
 
 	// Remove all remaining HTML tags
-	text = text.replace(/<[^>]+>/g, " ");
+	text = text.replaceAll(/<[^>]+>/g, " ");
 
 	// Decode common HTML entities
 	text = text
-		.replace(/&amp;/g, "&")
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
-		.replace(/&nbsp;/g, " ");
+		.replaceAll("&amp;", "&")
+		.replaceAll("&lt;", "<")
+		.replaceAll("&gt;", ">")
+		.replaceAll("&quot;", '"')
+		.replaceAll("&#39;", "'")
+		.replaceAll("&nbsp;", " ");
 
 	// Collapse whitespace (newlines, tabs, multiple spaces) into single spaces
-	text = text.replace(/\s+/g, " ").trim();
+	text = text.replaceAll(/\s+/g, " ").trim();
 
 	return text;
 }
@@ -38,7 +39,9 @@ function stripHtml(html: string): string {
  * Count words by splitting on whitespace, filtering out empty strings.
  */
 function countWords(text: string): number {
-	if (!text) return 0;
+	if (!text) {
+		return 0;
+	}
 	return text.split(/\s+/).filter(Boolean).length;
 }
 

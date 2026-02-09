@@ -1,6 +1,7 @@
 import prisma from "@megaforce/db";
 import { type Job, Worker } from "bullmq";
-import { type ChatMessage, chatCompletion } from "../../lib/llm";
+
+import { chatCompletion, type ChatMessage } from "../../lib/llm";
 import {
 	type ContentGenerationCompletePayload,
 	type ContentGenerationProgressPayload,
@@ -11,18 +12,18 @@ import {
 } from "../../websocket/events";
 import { getWsServer } from "../../websocket/server";
 import {
-	type ContentGenerationJobData,
 	connection,
+	type ContentGenerationJobData,
 	criticReviewQueue,
 	QueueName,
 } from "../queue";
 
 interface OutlineSection {
 	title: string;
-	subsections: Array<{
+	subsections: {
 		title: string;
 		keyPoints: string[];
-	}>;
+	}[];
 }
 
 interface GeneratedSection {
@@ -39,19 +40,23 @@ interface GeneratedSection {
  * 4. Markdown string: parse headings into sections
  */
 function extractOutlineSections(content: unknown): OutlineSection[] {
-	if (!content) return [];
+	if (!content) {
+		return [];
+	}
 
 	// Handle string content (markdown from user edits)
 	if (typeof content === "string") {
 		return parseMarkdownToSections(content);
 	}
 
-	if (typeof content !== "object") return [];
+	if (typeof content !== "object") {
+		return [];
+	}
 
 	// Direct { sections: [...] } format
-	const obj = content as Record<string, unknown>;
-	if (Array.isArray(obj.sections) && obj.sections.length > 0) {
-		return normalizeSections(obj.sections);
+	const object = content as Record<string, unknown>;
+	if (Array.isArray(object.sections) && object.sections.length > 0) {
+		return normalizeSections(object.sections);
 	}
 
 	// Top-level array
@@ -60,11 +65,13 @@ function extractOutlineSections(content: unknown): OutlineSection[] {
 	}
 
 	// Nested wrapper: look one level deep for a sections array
-	for (const value of Object.values(obj)) {
+	for (const value of Object.values(object)) {
 		if (value && typeof value === "object") {
 			if (Array.isArray(value) && value.length > 0) {
 				const normalized = normalizeSections(value);
-				if (normalized.length > 0) return normalized;
+				if (normalized.length > 0) {
+					return normalized;
+				}
 			}
 			const nested = value as Record<string, unknown>;
 			if (Array.isArray(nested.sections) && nested.sections.length > 0) {
@@ -102,12 +109,14 @@ function parseMarkdownToSections(markdown: string): OutlineSection[] {
 	let currentSubsection: { title: string; keyPoints: string[] } | null = null;
 
 	for (const line of lines) {
-		const h2Match = line.match(/^##\s+(.+)/);
-		const h3Match = line.match(/^###\s+(.+)/);
-		const bulletMatch = line.match(/^\s*[-*]\s+(.+)/);
+		const h2Match = /^##\s+(.+)/.exec(line);
+		const h3Match = /^###\s+(.+)/.exec(line);
+		const bulletMatch = /^\s*[-*]\s+(.+)/.exec(line);
 
 		if (h2Match?.[1]) {
-			if (currentSection) sections.push(currentSection);
+			if (currentSection) {
+				sections.push(currentSection);
+			}
 			currentSection = {
 				title: h2Match[1].replace(/^\d+\.\s*/, ""),
 				subsections: [],
@@ -131,7 +140,9 @@ function parseMarkdownToSections(markdown: string): OutlineSection[] {
 			}
 		}
 	}
-	if (currentSection) sections.push(currentSection);
+	if (currentSection) {
+		sections.push(currentSection);
+	}
 
 	// If no h2 headings were found, treat the whole content as one section
 	if (sections.length === 0 && markdown.trim().length > 0) {
@@ -204,12 +215,12 @@ async function processContentGeneration(
 		where: { sessionId },
 	});
 
-	let knowledgeEntries: Array<{
+	let knowledgeEntries: {
 		fact: string;
 		sourceRef: string | null;
 		confidence: number;
 		relevanceScore: number;
-	}> = [];
+	}[] = [];
 
 	if (knowledgeBase) {
 		knowledgeEntries = await prisma.knowledgeEntry.findMany({
@@ -240,10 +251,12 @@ async function processContentGeneration(
 	let overallContext = `Output types: ${outputTypes.join(", ") || "General content"}`;
 	overallContext += `\nTone: ${clarifying.tone || "Professional"}`;
 	overallContext += `\nAudience: ${clarifying.audience || "General audience"}`;
-	if (clarifying.keywords)
+	if (clarifying.keywords) {
 		overallContext += `\nKeywords: ${clarifying.keywords}`;
-	if (clarifying.additionalContext)
+	}
+	if (clarifying.additionalContext) {
 		overallContext += `\nAdditional context: ${clarifying.additionalContext}`;
+	}
 
 	// Build persona style instructions
 	let personaInstructions = "";
@@ -255,19 +268,25 @@ async function processContentGeneration(
 		const style = persona.styleProfile as Record<string, string> | null;
 		if (style) {
 			personaInstructions += `\nStyle attributes: tone=${style.tone || "professional"}, formality=${style.formality || "moderate"}`;
-			if (style.vocabulary)
+			if (style.vocabulary) {
 				personaInstructions += `, vocabulary=${style.vocabulary}`;
-			if (style.sentence_style)
+			}
+			if (style.sentence_style) {
 				personaInstructions += `, sentence_style=${style.sentence_style}`;
+			}
 		}
-		if (persona.vocabularyLevel)
+		if (persona.vocabularyLevel) {
 			personaInstructions += `\nVocabulary level: ${persona.vocabularyLevel}`;
-		if (persona.perspective)
+		}
+		if (persona.perspective) {
 			personaInstructions += `\nPerspective: ${persona.perspective}`;
-		if (persona.sentenceStyle)
+		}
+		if (persona.sentenceStyle) {
 			personaInstructions += `\nSentence style: ${persona.sentenceStyle}`;
-		if (persona.sampleOutput)
+		}
+		if (persona.sampleOutput) {
 			personaInstructions += `\nSample output for style reference:\n${persona.sampleOutput.slice(0, 500)}`;
+		}
 	}
 
 	// Build knowledge base context string
@@ -276,7 +295,9 @@ async function processContentGeneration(
 		kbContext = "\n\nRelevant Knowledge Base Facts:";
 		for (const entry of knowledgeEntries.slice(0, 20)) {
 			kbContext += `\n- ${entry.fact}`;
-			if (entry.sourceRef) kbContext += ` [Source: ${entry.sourceRef}]`;
+			if (entry.sourceRef) {
+				kbContext += ` [Source: ${entry.sourceRef}]`;
+			}
 		}
 	}
 

@@ -33,22 +33,23 @@ Start Session
 
 ## Feature Quick Links
 
-| Feature | File | Key Scenarios |
-|---------|------|---------------|
-| Output Selection | `01-output-type-selection.feature` | Single/multiple outputs, custom types |
-| Clarifying Questions | `02-clarifying-questions.feature` | Tone, corpus, research, context |
-| Personas | `03-persona-selection.feature` | Select, create, blend personas |
-| Plan & Critic | `04-plan-creation-and-review.feature` | Plan creation, critic review, user approval |
-| Research & Outline | `05-research-and-outline.feature` | Research, knowledge base, outline |
-| Content Generation | `06-content-generation.feature` | Generate, sub-agents, finalize |
-| Sessions | `07-session-management.feature` | Save, resume, organize, share |
-| Error Handling | `08-error-handling.feature` | Recovery, validation, errors |
-| Templates | `09-template-management.feature` | Create, use, share templates |
-| Integrations | `10-integrations.feature` | Connect external platforms |
+| Feature              | File                                  | Key Scenarios                               |
+| -------------------- | ------------------------------------- | ------------------------------------------- |
+| Output Selection     | `01-output-type-selection.feature`    | Single/multiple outputs, custom types       |
+| Clarifying Questions | `02-clarifying-questions.feature`     | Tone, corpus, research, context             |
+| Personas             | `03-persona-selection.feature`        | Select, create, blend personas              |
+| Plan & Critic        | `04-plan-creation-and-review.feature` | Plan creation, critic review, user approval |
+| Research & Outline   | `05-research-and-outline.feature`     | Research, knowledge base, outline           |
+| Content Generation   | `06-content-generation.feature`       | Generate, sub-agents, finalize              |
+| Sessions             | `07-session-management.feature`       | Save, resume, organize, share               |
+| Error Handling       | `08-error-handling.feature`           | Recovery, validation, errors                |
+| Templates            | `09-template-management.feature`      | Create, use, share templates                |
+| Integrations         | `10-integrations.feature`             | Connect external platforms                  |
 
 ## Common User Journeys
 
 ### Journey 1: Quick Blog Post
+
 1. Select "blog post" output
 2. Choose "casual" tone, enable deep research
 3. Select existing persona
@@ -62,6 +63,7 @@ Start Session
 ---
 
 ### Journey 2: Multi-format Campaign
+
 1. Select "blog post" + "social media thread"
 2. Provide corpus documents, choose "professional" tone
 3. Select different personas for each output
@@ -76,6 +78,7 @@ Start Session
 ---
 
 ### Journey 3: Template-based Content
+
 1. Browse templates library
 2. Select "Product Launch Post" template
 3. Customize template variables
@@ -88,6 +91,7 @@ Start Session
 ---
 
 ### Journey 4: Resume Previous Work
+
 1. View saved sessions
 2. Select incomplete session
 3. Resume from last checkpoint (e.g., outline approval)
@@ -117,26 +121,28 @@ Present to User
 ## Data Sources
 
 ### Corpus Options
+
 - Upload documents (PDF, DOCX, TXT, MD)
 - Provide URLs
 - Connect to cloud storage (Google Drive, etc.)
 - Use previous corpus from saved sessions
 
 ### Research Options
+
 - Deep research: System researches topic autonomously
 - Research databases: Academic/authoritative sources
 - Both: Corpus as primary + research as supplementary
 
 ## Persona Types
 
-| Persona Attribute | Description |
-|------------------|-------------|
-| Name | Identifier |
-| Writing Style | Key characteristics |
-| Tone | Professional, casual, technical, etc. |
-| Vocabulary Level | Technical vs accessible |
-| Perspective | 1st person, 3rd person |
-| Sample Output | Examples of voice |
+| Persona Attribute | Description                           |
+| ----------------- | ------------------------------------- |
+| Name              | Identifier                            |
+| Writing Style     | Key characteristics                   |
+| Tone              | Professional, casual, technical, etc. |
+| Vocabulary Level  | Technical vs accessible               |
+| Perspective       | 1st person, 3rd person                |
+| Sample Output     | Examples of voice                     |
 
 ## Export Formats
 
@@ -149,24 +155,24 @@ Present to User
 
 ## Integration Categories
 
-| Category | Examples | Primary Use |
-|----------|----------|-------------|
-| CMS | WordPress, Ghost | Publishing |
-| Social Media | Twitter, LinkedIn | Distribution |
-| Storage | Google Drive, Dropbox | Corpus sources |
-| Research | Google Scholar, PubMed | Deep research |
-| Notifications | Slack, Email | Updates |
-| Analytics | Google Analytics | Performance tracking |
+| Category      | Examples               | Primary Use          |
+| ------------- | ---------------------- | -------------------- |
+| CMS           | WordPress, Ghost       | Publishing           |
+| Social Media  | Twitter, LinkedIn      | Distribution         |
+| Storage       | Google Drive, Dropbox  | Corpus sources       |
+| Research      | Google Scholar, PubMed | Deep research        |
+| Notifications | Slack, Email           | Updates              |
+| Analytics     | Google Analytics       | Performance tracking |
 
 ## Error Recovery Strategies
 
-| Error Type | Recovery Action |
-|------------|----------------|
-| Network loss | Auto-save → Retry → Resume |
-| Invalid file | Reject → Explain → Allow replacement |
-| API failure | Retry with backoff → Fallback |
-| Quota exceeded | Save progress → Notify → Offer upgrade |
-| Browser crash | Auto-save → Detect → Offer restore |
+| Error Type      | Recovery Action                        |
+| --------------- | -------------------------------------- |
+| Network loss    | Auto-save → Retry → Resume             |
+| Invalid file    | Reject → Explain → Allow replacement   |
+| API failure     | Retry with backoff → Fallback          |
+| Quota exceeded  | Save progress → Notify → Offer upgrade |
+| Browser crash   | Auto-save → Detect → Offer restore     |
 | Concurrent edit | Lock → Detect conflict → Merge options |
 
 ## Session States
@@ -187,6 +193,7 @@ Present to User
 ## Keyboard Shortcuts (Future Implementation)
 
 Consider adding shortcuts for:
+
 - `Ctrl/Cmd + S` - Save session
 - `Ctrl/Cmd + Enter` - Approve current stage
 - `Ctrl/Cmd + E` - Edit current item
@@ -196,6 +203,7 @@ Consider adding shortcuts for:
 ## Best Practices
 
 ### For Users
+
 1. Provide clear, specific context in clarifying questions
 2. Use templates for repeated content types
 3. Save successful configurations as templates
@@ -204,6 +212,7 @@ Consider adding shortcuts for:
 6. Provide corpus when domain-specific content is needed
 
 ### For Administrators
+
 1. Monitor integration health
 2. Set appropriate rate limits
 3. Regularly backup session data
@@ -213,18 +222,19 @@ Consider adding shortcuts for:
 
 ## Limits and Quotas (Example Values)
 
-| Resource | Limit | Configurable |
-|----------|-------|--------------|
-| File upload size | 50 MB | Per plan |
-| Corpus documents | 100 files | Per plan |
-| Session storage | 10 GB | Per user |
-| Active sessions | Unlimited | - |
-| Critic iterations | 5 | System-wide |
-| Sub-agents | 10 concurrent | Per session |
+| Resource          | Limit         | Configurable |
+| ----------------- | ------------- | ------------ |
+| File upload size  | 50 MB         | Per plan     |
+| Corpus documents  | 100 files     | Per plan     |
+| Session storage   | 10 GB         | Per user     |
+| Active sessions   | Unlimited     | -            |
+| Critic iterations | 5             | System-wide  |
+| Sub-agents        | 10 concurrent | Per session  |
 
 ## Support and Troubleshooting
 
 ### Common Issues
+
 - **Plan keeps getting rejected** → Provide more specific requirements
 - **Research returns no results** → Broaden search terms or provide corpus
 - **Content doesn't match persona** → Review persona style guide
@@ -232,6 +242,7 @@ Consider adding shortcuts for:
 - **Session won't load** → Check auto-save timestamp, contact support
 
 ### Getting Help
+
 1. Check error message for specific guidance
 2. Review relevant feature file scenarios
 3. Search knowledge base

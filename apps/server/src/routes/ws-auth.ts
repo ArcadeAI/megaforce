@@ -4,6 +4,7 @@
  */
 
 import { randomBytes } from "node:crypto";
+
 import { auth } from "@megaforce/auth";
 import { Elysia } from "elysia";
 
@@ -36,10 +37,13 @@ export const wsAuthRoutes = new Elysia().get(
 			});
 
 			if (!session?.user?.id) {
-				return new Response(JSON.stringify({ error: "Unauthorized" }), {
-					status: 401,
-					headers: { "Content-Type": "application/json" },
-				});
+				return Response.json(
+					{ error: "Unauthorized" },
+					{
+						status: 401,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
 			}
 
 			// Generate a random token
@@ -58,8 +62,8 @@ export const wsAuthRoutes = new Elysia().get(
 			};
 		} catch (error) {
 			console.error("Error generating WS token:", error);
-			return new Response(
-				JSON.stringify({ error: "Failed to generate token" }),
+			return Response.json(
+				{ error: "Failed to generate token" },
 				{
 					status: 500,
 					headers: { "Content-Type": "application/json" },

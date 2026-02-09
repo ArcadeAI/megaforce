@@ -5,11 +5,13 @@
 Megaforce is a multi-user content generation platform where users create personas that write content in specific styles. The app features an IDE-like interface for managing sources, personas, projects, and approving AI-generated content candidates before publishing to social platforms.
 
 **🚀 MVP Strategy (Lean Approach):**
+
 - **Phases 1-5 (5 weeks):** Ship working Twitter tweet flow end-to-end
 - **Phases 6-14 (9 weeks):** Incrementally add features based on feedback
 - **Goal:** Get user feedback fast, iterate based on real usage
 
 **MVP Scope (Phase 5 Deliverable):**
+
 - ✅ URL sources with simple markdown extraction
 - ✅ Personas with manually-entered style profiles
 - ✅ Projects with source references
@@ -18,6 +20,7 @@ Megaforce is a multi-user content generation platform where users create persona
 - ✅ Scheduled publishing to Twitter via Arcade.dev
 
 **Post-MVP Features (Phases 6-14):**
+
 - Phase 6: Content calendar & analytics
 - Phase 7: Automated style learning
 - Phase 8: PDF support (LlamaParse + R2)
@@ -28,6 +31,7 @@ Megaforce is a multi-user content generation platform where users create persona
 - Phase 14: Polish & production
 
 **Tech Stack:**
+
 - UI: VS Code-style layout, Tiptap editor, TailwindCSS, shadcn/ui
 - Backend: Elysia, Prisma, BullMQ (Redis), WebSocket
 - AI: OpenRouter (per-project model selection)
@@ -42,6 +46,7 @@ Megaforce is a multi-user content generation platform where users create persona
 **Strategy:** Ship fast, iterate based on feedback. Start with Twitter tweets only, add features incrementally.
 
 ### Phase 1: Foundation & Infrastructure (Week 1)
+
 - Database schema, Redis, WebSocket
 - VS Code-style layout
 - BullMQ job queues
@@ -49,27 +54,32 @@ Megaforce is a multi-user content generation platform where users create persona
 - Implement a local development version to test the app fully locally
 
 ### Phase 2: URL Sources (Week 2)
+
 - Simple URL-to-markdown extraction
 - Text sources
 - No PDFs, no platform-specific parsers
 
 ### Phase 3: Personas & Twitter (Week 3)
+
 - Manual style profiles
 - Connect Twitter via Arcade.dev
 - Skip automated style learning
 
 ### Phase 4: Projects & Tweet Generation (Week 4)
+
 - Generate single tweets via OpenRouter
 - Only SINGLE_TWEET output type
 - Per-project model selection
 
 ### Phase 5: Approval & Publishing (Week 5) ⭐ **MVP**
+
 - **FULL END-TO-END FLOW WORKS!**
 - Inbox, Tiptap editing, scheduling
 - Publish to Twitter via Arcade.dev
 - First usable version for user feedback
 
 ### Phase 6-14: Incremental Features
+
 - Calendar & analytics (Week 6)
 - Automated style learning (Week 7)
 - PDF support (Week 8)
@@ -81,11 +91,13 @@ Megaforce is a multi-user content generation platform where users create persona
 ## 1. Database Schema
 
 ### Location
+
 `/Users/mateo/Arcade/pg/megaforce/packages/db/prisma/schema/megaforce.prisma`
 
 ### Models to Create
 
 **Core Entities:**
+
 - `Workspace` - Single workspace per user, contains all resources
 - `Source` - URLs, text, or PDFs (content to write about or style examples)
 - `Persona` - Characters with writing styles, linked to social channels
@@ -94,20 +106,24 @@ Megaforce is a multi-user content generation platform where users create persona
 - `OutputConfig` - Configuration for each output type (tweet, thread, LinkedIn post, etc.)
 
 **Content Workflow:**
+
 - `ContentCandidate` - AI-generated content awaiting approval
 - `PublishedContent` - Approved content that's been published or scheduled
 
 **Linking Tables (Many-to-Many):**
+
 - `PersonaSource` - Links personas to sources for style learning, tracks confirmation status
 - `ProjectSource` - Links projects to reference sources
 - `ProjectPersona` - Links personas to projects with custom instructions
 - `SocialChannel` - Links personas to social platforms via Arcade.dev
 
 **Background Processing:**
+
 - `JobQueue` - Tracks BullMQ jobs (ingestion, style learning, generation, publishing, analytics)
 - `WebSocketConnection` - Tracks active WebSocket connections for real-time updates
 
 **Key Enums:**
+
 - `SourceType`: URL, TEXT, PDF
 - `SocialPlatform`: TWITTER, LINKEDIN, REDDIT
 - `OutputType`: TWITTER_THREAD, SINGLE_TWEET, LINKEDIN_POST, BLOG_POST, REDDIT_POST
@@ -117,6 +133,7 @@ Megaforce is a multi-user content generation platform where users create persona
 
 **Style Profile Structure (JSON):**
 Stored in `Persona.styleProfile` as structured attributes:
+
 ```json
 {
   "tone": "casual|professional|humorous|serious",
@@ -136,6 +153,7 @@ Stored in `Persona.styleProfile` as structured attributes:
 Update `/Users/mateo/Arcade/pg/megaforce/packages/db/prisma/schema/auth.prisma`:
 
 Add to existing `User` model:
+
 ```prisma
 workspaces     Workspace[]
 wsConnections  WebSocketConnection[]
@@ -214,10 +232,12 @@ apps/server/src/
 ### API Routes (RESTful)
 
 **Workspaces**
+
 - `GET /api/workspaces` - Get user's workspace
 - `PATCH /api/workspaces/:id` - Update workspace settings
 
 **Sources**
+
 - `GET /api/sources` - List sources (filterable by type, project)
 - `POST /api/sources` - Create source (text or URL)
 - `GET /api/sources/:id` - Get source details
@@ -227,6 +247,7 @@ apps/server/src/
 - `POST /api/sources/:id/parse` - Trigger re-parsing
 
 **Personas**
+
 - `GET /api/personas` - List personas
 - `POST /api/personas` - Create persona
 - `GET /api/personas/:id` - Get persona with style profile
@@ -238,6 +259,7 @@ apps/server/src/
 - `POST /api/personas/:id/style-confirmations` - Confirm/reject style updates
 
 **Social Channels**
+
 - `GET /api/personas/:personaId/channels` - List channels
 - `POST /api/personas/:personaId/channels` - Connect channel
 - `PATCH /api/channels/:id` - Update channel
@@ -245,6 +267,7 @@ apps/server/src/
 - `POST /api/channels/:id/test` - Test connection
 
 **Projects**
+
 - `GET /api/projects` - List projects
 - `POST /api/projects` - Create project
 - `GET /api/projects/:id` - Get project details
@@ -261,6 +284,7 @@ apps/server/src/
 - `POST /api/projects/:id/generate` - Trigger content generation
 
 **Candidates**
+
 - `GET /api/candidates` - Inbox-style list (filterable by status, persona, project)
 - `GET /api/candidates/:id` - Get candidate details
 - `POST /api/candidates/:id/approve` - Approve as-is
@@ -270,23 +294,27 @@ apps/server/src/
 - `PATCH /api/candidates/:id/schedule` - Schedule approved candidate
 
 **Publishing**
+
 - `GET /api/published` - List published content
 - `GET /api/published/:id` - Get published content details
 - `POST /api/published/:id/retry` - Retry failed publish
 
 **Analytics**
+
 - `GET /api/analytics/overview` - Workspace analytics
 - `GET /api/analytics/personas/:id` - Persona analytics
 - `GET /api/analytics/content/:id` - Individual content analytics
 - `POST /api/analytics/refresh` - Trigger analytics fetch
 
 **File Upload**
+
 - `POST /api/upload` - Get presigned R2 URL for file upload
 - `POST /api/sources/:id/confirm-upload` - Confirm upload complete, trigger processing
 
 ### Background Jobs (BullMQ)
 
 **Queues:**
+
 1. `sourceIngestionQueue` - Priority: High
 2. `styleLearningQueue` - Priority: Medium
 3. `contentGenerationQueue` - Priority: High
@@ -296,6 +324,7 @@ apps/server/src/
 **Job Workflows:**
 
 **Source Ingestion:**
+
 - Input: `{ sourceId, type, url?, fileUrl? }`
 - Process:
   - PDF: Call LlamaParse API, store result
@@ -305,6 +334,7 @@ apps/server/src/
 - Events: `source:parsing`, `source:parsed`, `source:failed`
 
 **Style Learning:**
+
 - Input: `{ personaId, sourceIds }`
 - Process:
   - Fetch source contents
@@ -316,6 +346,7 @@ apps/server/src/
 - User must confirm/reject via UI to update persona's styleProfile
 
 **Content Generation:**
+
 - Input: `{ outputConfigId, projectId, personaId, candidateCount, modelId? }`
 - Process:
   - Fetch project sources, persona style, instructions
@@ -326,6 +357,7 @@ apps/server/src/
 - Events: `generation:started`, `generation:progress`, `generation:completed`
 
 **Publishing:**
+
 - Input: `{ publishedContentId, candidateId, channelId, scheduledFor? }`
 - Process:
   - Wait until scheduledFor time if set
@@ -338,6 +370,7 @@ apps/server/src/
 - Retry: 3 attempts with exponential backoff (1s, 2s, 4s)
 
 **Analytics Fetch:**
+
 - Input: `{ publishedContentIds }`
 - Process:
   - Call Arcade.dev to fetch engagement metrics
@@ -349,30 +382,35 @@ apps/server/src/
 ### WebSocket Events
 
 **Event Types:**
+
 ```typescript
 // Sources
-'source:created' | 'source:parsing' | 'source:parsed' | 'source:failed'
+"source:created" | "source:parsing" | "source:parsed" | "source:failed";
 
 // Style Learning
-'style:learning' | 'style:ready_for_confirmation' | 'style:confirmed'
+"style:learning" | "style:ready_for_confirmation" | "style:confirmed";
 
 // Generation
-'generation:started' | 'generation:progress' | 'generation:completed'
+"generation:started" | "generation:progress" | "generation:completed";
 
 // Candidates
-'candidate:created' | 'candidate:updated'
+"candidate:created" | "candidate:updated";
 
 // Publishing
-'publishing:started' | 'publishing:success' | 'publishing:failed' | 'publishing:scheduled'
+"publishing:started" |
+	"publishing:success" |
+	"publishing:failed" |
+	"publishing:scheduled";
 
 // Analytics
-'analytics:updated'
+("analytics:updated");
 
 // Jobs
-'job:progress' | 'job:completed' | 'job:failed'
+"job:progress" | "job:completed" | "job:failed";
 ```
 
 **Event Rooms:**
+
 - `user:{userId}` - User-specific events
 - `workspace:{workspaceId}` - Workspace events
 - `project:{projectId}` - Project-specific events
@@ -510,6 +548,7 @@ apps/web/src/
 **Component:** `/Users/mateo/Arcade/pg/megaforce/apps/web/src/components/layouts/app-layout.tsx`
 
 **Layout Structure:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Header (User menu, theme toggle)                           │
@@ -531,6 +570,7 @@ apps/web/src/
 ```
 
 **Features:**
+
 - Resizable panels (left sidebar 200-400px, right sidebar 250-400px)
 - Tab management (open, close, switch, drag to reorder)
 - Keyboard shortcuts (Cmd+B toggle sidebar, Cmd+W close tab, Cmd+T new tab)
@@ -540,12 +580,14 @@ apps/web/src/
 ### State Management Strategy
 
 **TanStack Query for Server State:**
+
 - All API data fetching and caching
 - Automatic refetching and cache invalidation
 - Optimistic updates for better UX
 - Error and loading state management
 
 **React Context for UI State:**
+
 - Active workspace
 - Tab management (open tabs, active tab)
 - Sidebar collapse state
@@ -560,11 +602,12 @@ apps/web/src/
 Automatically connects to WebSocket server when user logs in, subscribes to relevant rooms, and invalidates TanStack Query cache when events arrive.
 
 Example:
+
 ```typescript
 // In candidate inbox component
-useRealtimeUpdates(['candidate:created', 'candidate:updated'], () => {
-  queryClient.invalidateQueries({ queryKey: ['candidates'] })
-})
+useRealtimeUpdates(["candidate:created", "candidate:updated"], () => {
+	queryClient.invalidateQueries({ queryKey: ["candidates"] });
+});
 ```
 
 ---
@@ -576,6 +619,7 @@ useRealtimeUpdates(['candidate:created', 'candidate:updated'], () => {
 **Service:** `/Users/mateo/Arcade/pg/megaforce/apps/server/src/services/ai/openrouter-client.ts`
 
 **Configuration:**
+
 - API Key: `OPENROUTER_API_KEY` (env var)
 - Per-project model selection with user override
 - Suggested models:
@@ -584,6 +628,7 @@ useRealtimeUpdates(['candidate:created', 'candidate:updated'], () => {
   - Style analysis: `anthropic/claude-3.5-sonnet`
 
 **Use Cases:**
+
 1. **Style Analysis** - Extract writing patterns from sources
 2. **Content Generation** - Create candidates based on persona + sources
 3. **Content Refinement** - Regenerate based on rejection feedback
@@ -597,6 +642,7 @@ useRealtimeUpdates(['candidate:created', 'candidate:updated'], () => {
 library `@arcadeai/arcadejs`
 
 **Configuration:**
+
 - API Key: `ARCADE_API_KEY` (env var)
 - Each persona will use their persona ID as the user_id with Arcade.dev
 - Arcade.dev manages auth and refresh tokens, so there's no need to worry about that on our end
@@ -604,15 +650,18 @@ library `@arcadeai/arcadejs`
 **Platform Operations:**
 
 **Twitter/X:**
+
 - Tools: https://docs.arcade.dev/en/resources/integrations/social-communication/x
 - Publish single tweets or threads
 - Fetch likes, retweets, replies, views
 
 **LinkedIn:**
+
 - Tools: https://docs.arcade.dev/en/resources/integrations/social-communication/linkedin
 - Publish posts with optional link placement
 
 **Reddit:**
+
 - Tools: https://docs.arcade.dev/en/resources/integrations/social-communication/reddit
 - Submit text or link posts to specified subreddit
 - Fetch upvotes, comments, awards
@@ -624,9 +673,11 @@ library `@arcadeai/arcadejs`
 **Service:** `/Users/mateo/Arcade/pg/megaforce/apps/server/src/services/source-parser/pdf-parser.ts`
 
 **Configuration:**
+
 - API Key: `LLAMAPARSE_API_KEY` (env var)
 
 **Workflow:**
+
 1. Upload PDF to LlamaParse
 2. Poll for parsing completion
 3. Retrieve structured content (preserves tables, layouts)
@@ -639,11 +690,13 @@ library `@arcadeai/arcadejs`
 **Service:** `/Users/mateo/Arcade/pg/megaforce/apps/server/src/services/storage/r2-client.ts`
 
 **Configuration:**
+
 - Bucket: Create `megaforce-sources` bucket
 - Credentials: `CLOUDFLARE_R2_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
 - Path structure: `{workspaceId}/{sourceId}/{filename}`
 
 **Upload Flow:**
+
 1. Frontend requests presigned URL: `POST /api/upload`
 2. Backend generates presigned URL (15-minute expiry)
 3. Frontend uploads directly to R2
@@ -655,11 +708,13 @@ library `@arcadeai/arcadejs`
 ### Redis (Job Queue & WebSocket)
 
 **Configuration:**
+
 - Self-hosted Docker container
 - Connection: `redis://localhost:6379`
 
 **Docker Compose:**
 Add to `/Users/mateo/Arcade/pg/megaforce/docker-compose.yml`:
+
 ```yaml
 services:
   postgres:
@@ -679,6 +734,7 @@ volumes:
 ```
 
 **Usage:**
+
 - BullMQ job queues
 - WebSocket adapter for multi-instance deployments (future)
 - Session caching (optional)
@@ -730,6 +786,7 @@ volumes:
 **Component:** `/Users/mateo/Arcade/pg/megaforce/apps/web/src/routes/dashboard/inbox.tsx`
 
 **UI Design:**
+
 - Left pane: List of pending candidates (sorted by creation date)
 - Right pane: Selected candidate preview with Tiptap editor
 - Actions bar: Approve | Edit & Approve | Reject | Regenerate
@@ -743,6 +800,7 @@ volumes:
 5. **Regenerate**: Creates new generation job with same config
 
 **Keyboard Shortcuts:**
+
 - `j/k` - Navigate candidates
 - `a` - Approve
 - `e` - Edit
@@ -761,6 +819,7 @@ volumes:
 8. **Status updates**: SCHEDULED → PUBLISHING → PUBLISHED
 
 **Failed Publishing:**
+
 - Automatic retry (3 attempts with backoff)
 - If all fail: Status → FAILED, user can manually retry
 
@@ -789,12 +848,14 @@ volumes:
 **Component:** `/Users/mateo/Arcade/pg/megaforce/apps/web/src/routes/dashboard/analytics.tsx`
 
 **Metrics Displayed:**
+
 - Workspace overview: Total posts, avg engagement, top platform
 - Persona performance: Which personas perform best
 - Content performance: Top posts, engagement trends over time
 - Platform breakdown: Engagement by platform
 
 **Charts:**
+
 - Engagement over time (line chart)
 - Platform comparison (bar chart)
 - Persona performance (pie chart)
@@ -812,16 +873,19 @@ volumes:
 ### Phase 1: Foundation & Infrastructure (Week 1)
 
 **Database:**
+
 - [ ] Create `megaforce.prisma` schema file with all models
 - [ ] Update `auth.prisma` to add User relations
 - [ ] Run `bun db:push` to sync schema
 - [ ] Test database connections
 
 **Docker:**
+
 - [ ] Update `docker-compose.yml` to add Redis service
 - [ ] Start Redis: `bun db:start`
 
 **Backend Setup:**
+
 - [ ] Install dependencies: `bullmq`, `ioredis`, `@aws-sdk/client-s3`, `ws`, `axios`, `cheerio` (for URL scraping)
 - [ ] Set up BullMQ queues in `/apps/server/src/jobs/queue.ts`
 - [ ] Create queue workers structure (empty processors)
@@ -831,6 +895,7 @@ volumes:
 - [ ] Add workspace middleware to inject workspace context
 
 **Frontend Setup:**
+
 - [ ] Install dependencies: `@tiptap/react`, `@tiptap/starter-kit`, `socket.io-client`, `@tanstack/react-query`, `date-fns`
 - [ ] Create VS Code-style layout components
 - [ ] Implement tab management system
@@ -839,6 +904,7 @@ volumes:
 - [ ] Create API client utility functions
 
 **Environment:**
+
 - [ ] Add new env vars to `packages/env/src/server.ts`:
   - `REDIS_URL`, `OPENROUTER_API_KEY`, `ARCADE_API_KEY`
   - `ENCRYPTION_KEY` (32 chars, for encrypting social credentials)
@@ -848,6 +914,7 @@ volumes:
 **Deliverable:** App runs with new layout, WebSocket connected, job queue initialized
 
 **Testing:**
+
 - [ ] Run `bun dev` → App loads without errors
 - [ ] WebSocket connects successfully
 - [ ] Redis queue initializes
@@ -857,12 +924,14 @@ volumes:
 ### Phase 2: URL Sources (Simple Text Extraction) (Week 2)
 
 **Backend:**
+
 - [ ] Implement sources CRUD API routes (URLs and TEXT only, no PDFs)
 - [ ] Create simple URL-to-markdown parser using `cheerio` or `@mozilla/readability`
 - [ ] Implement source ingestion worker for URLs
 - [ ] Add WebSocket events for parsing progress
 
 **Frontend:**
+
 - [ ] Create sources list page
 - [ ] Create source detail page
 - [ ] Implement URL input component
@@ -872,6 +941,7 @@ volumes:
 - [ ] Show parsed content preview
 
 **Testing:**
+
 - [ ] Add URL → Verify generic markdown extraction → Content appears
 - [ ] Add text source → Verify direct storage
 - [ ] View source list → Verify sources displayed
@@ -884,6 +954,7 @@ volumes:
 ### Phase 3: Personas & Twitter Connection (Week 3)
 
 **Backend:**
+
 - [ ] Implement personas CRUD API routes
 - [ ] Implement social channels API (Twitter only)
 - [ ] Create Arcade.dev client service (Twitter auth & posting)
@@ -892,6 +963,7 @@ volumes:
 - [ ] Store persona style profile as structured JSON (manual entry for now)
 
 **Frontend:**
+
 - [ ] Create personas list page
 - [ ] Create persona editor page
 - [ ] Implement style profile form (manual entry of tone, formality, etc.)
@@ -900,6 +972,7 @@ volumes:
 - [ ] Add persona creation wizard
 
 **Testing:**
+
 - [ ] Create persona → Manually enter style attributes → Save
 - [ ] Link sources to persona → Verify association
 - [ ] Connect Twitter account via Arcade.dev → Verify credentials stored
@@ -912,6 +985,7 @@ volumes:
 ### Phase 4: Projects & Tweet Generation (Week 4)
 
 **Backend:**
+
 - [ ] Implement projects CRUD API routes
 - [ ] Implement project-source linking
 - [ ] Implement project-persona configuration
@@ -923,6 +997,7 @@ volumes:
 - [ ] Add WebSocket events for generation progress
 
 **Frontend:**
+
 - [ ] Create projects list page
 - [ ] Create project detail page (sources, personas, outputs tabs)
 - [ ] Implement project creation wizard
@@ -933,6 +1008,7 @@ volumes:
 - [ ] Add "Generate" button with progress indicator
 
 **Testing:**
+
 - [ ] Create project → Add sources → Add persona → Configure tweet output
 - [ ] Select model (e.g., `openai/gpt-4o-mini`) → Click "Generate"
 - [ ] Monitor WebSocket → Verify candidate created with PENDING status
@@ -945,6 +1021,7 @@ volumes:
 ### Phase 5: Approval & Publishing to Twitter (Week 5)
 
 **Backend:**
+
 - [ ] Implement candidates CRUD API routes
 - [ ] Implement approval endpoints (approve, approve-edit, reject)
 - [ ] Implement scheduling endpoint
@@ -954,6 +1031,7 @@ volumes:
 - [ ] Add WebSocket events for publishing status
 
 **Frontend:**
+
 - [ ] Create candidate inbox page (list + preview)
 - [ ] Implement candidate cards
 - [ ] Create Tiptap editor for editing tweets
@@ -962,6 +1040,7 @@ volumes:
 - [ ] Add keyboard shortcuts (j/k navigation, a/e/r actions)
 
 **Testing:**
+
 - [ ] Review candidate → Approve → Schedule for 2 minutes from now
 - [ ] Wait → Verify WebSocket event `publishing:success`
 - [ ] Check Twitter → Verify tweet posted
@@ -975,12 +1054,14 @@ volumes:
 ### Phase 6: Content Calendar & Analytics (Week 6)
 
 **Backend:**
+
 - [ ] Implement analytics fetch worker
 - [ ] Create Twitter metrics fetcher via Arcade.dev
 - [ ] Implement analytics API routes
 - [ ] Schedule periodic analytics refresh
 
 **Frontend:**
+
 - [ ] Create content calendar page (month grid + timeline list)
 - [ ] Implement view toggle
 - [ ] Show scheduled and published tweets on calendar
@@ -988,6 +1069,7 @@ volumes:
 - [ ] Add manual analytics refresh button
 
 **Testing:**
+
 - [ ] View calendar → Verify scheduled tweets shown
 - [ ] Publish tweet → Wait 1 hour → Fetch analytics → Verify metrics
 - [ ] View analytics dashboard → Verify charts render
@@ -999,17 +1081,20 @@ volumes:
 ### Phase 7: Automated Style Learning (Week 7)
 
 **Backend:**
+
 - [ ] Create OpenRouter style analyzer service
 - [ ] Implement style learning worker
 - [ ] Add style confirmation endpoints
 - [ ] Add WebSocket events for style learning
 
 **Frontend:**
+
 - [ ] Create style confirmation modal
 - [ ] Add "Learn from sources" button in persona editor
 - [ ] Show pending style updates in UI
 
 **Testing:**
+
 - [ ] Link sources to persona → Click "Learn style"
 - [ ] Wait for analysis → Review style confirmation modal
 - [ ] Approve → Verify persona style profile updated automatically
@@ -1022,6 +1107,7 @@ volumes:
 ### Phase 8: PDF Sources (LlamaParse + R2) (Week 8)
 
 **Backend:**
+
 - [ ] Install `llamaindex` dependency
 - [ ] Create R2 client service
 - [ ] Create LlamaParse integration
@@ -1030,12 +1116,14 @@ volumes:
 - [ ] Add env vars: `CLOUDFLARE_R2_*`, `LLAMAPARSE_API_KEY`
 
 **Frontend:**
+
 - [ ] Install `react-dropzone`
 - [ ] Create file upload component (drag-and-drop)
 - [ ] Add PDF source type to source creation
 - [ ] Show PDF parsing progress
 
 **Testing:**
+
 - [ ] Upload PDF → Verify R2 upload → LlamaParse extracts content
 - [ ] Use PDF as source in project → Generate tweet → Verify works
 
@@ -1046,17 +1134,20 @@ volumes:
 ### Phase 9: Twitter Threads (Week 9)
 
 **Backend:**
+
 - [ ] Add `TWITTER_THREAD` to OutputType enum
 - [ ] Update content generator to handle threads
 - [ ] Update Twitter publisher to post threads via Arcade.dev
 - [ ] Update analytics fetcher for thread metrics
 
 **Frontend:**
+
 - [ ] Create Twitter thread output config form (num tweets, tone)
 - [ ] Update Tiptap editor with thread visualization
 - [ ] Show thread structure in candidate preview
 
 **Testing:**
+
 - [ ] Configure thread output (5 tweets) → Generate → Verify thread created
 - [ ] Approve thread → Publish → Verify all tweets posted in sequence
 - [ ] View analytics → Verify thread metrics
@@ -1068,6 +1159,7 @@ volumes:
 ### Phase 10: LinkedIn Integration (Week 10)
 
 **Backend:**
+
 - [ ] Update Arcade.dev client for LinkedIn
 - [ ] Add LinkedIn to SocialPlatform enum
 - [ ] Implement LinkedIn publisher
@@ -1076,11 +1168,13 @@ volumes:
 - [ ] Implement LinkedIn analytics fetcher
 
 **Frontend:**
+
 - [ ] Add LinkedIn to channel connector
 - [ ] Create LinkedIn post output config form
 - [ ] Update inbox to show LinkedIn candidates
 
 **Testing:**
+
 - [ ] Connect LinkedIn account → Generate post → Approve → Publish
 - [ ] Verify post appears on LinkedIn
 - [ ] Fetch analytics → Verify likes/comments/shares
@@ -1092,6 +1186,7 @@ volumes:
 ### Phase 11: Reddit Integration (Week 11)
 
 **Backend:**
+
 - [ ] Update Arcade.dev client for Reddit
 - [ ] Add Reddit to SocialPlatform enum
 - [ ] Implement Reddit publisher
@@ -1100,11 +1195,13 @@ volumes:
 - [ ] Implement Reddit analytics fetcher
 
 **Frontend:**
+
 - [ ] Add Reddit to channel connector
 - [ ] Create Reddit post output config form (subreddit selection)
 - [ ] Update inbox for Reddit candidates
 
 **Testing:**
+
 - [ ] Connect Reddit → Generate post → Approve → Publish to subreddit
 - [ ] Verify post appears on Reddit
 - [ ] Fetch analytics → Verify upvotes/comments
@@ -1116,16 +1213,19 @@ volumes:
 ### Phase 12: Blog Posts (Week 12)
 
 **Backend:**
+
 - [ ] Add `BLOG_POST` to OutputType enum
 - [ ] Update content generator for long-form blog posts
 - [ ] Add blog post storage (no publishing, just export)
 
 **Frontend:**
+
 - [ ] Create blog post output config form (length, sections)
 - [ ] Enhance Tiptap editor for long-form content
 - [ ] Add export options (Markdown, HTML)
 
 **Testing:**
+
 - [ ] Generate blog post → Verify 500-1000 words
 - [ ] Export as Markdown → Verify formatting preserved
 
@@ -1136,16 +1236,19 @@ volumes:
 ### Phase 13: Platform-Specific Parsers (Week 13)
 
 **Backend:**
+
 - [ ] Implement Twitter URL parser (extract tweets, threads)
 - [ ] Implement LinkedIn URL parser
 - [ ] Implement Reddit URL parser
 - [ ] Update URL router to detect platform and use specialized parser
 
 **Frontend:**
+
 - [ ] Add platform badges in source cards
 - [ ] Show platform-specific metadata (author, date, engagement)
 
 **Testing:**
+
 - [ ] Add Twitter URL → Verify specialized extraction
 - [ ] Add LinkedIn URL → Verify specialized extraction
 - [ ] Add unknown URL → Verify generic fallback
@@ -1157,6 +1260,7 @@ volumes:
 ### Phase 14: Polish & Production (Week 14)
 
 **Backend:**
+
 - [ ] Add comprehensive error handling
 - [ ] Implement rate limiting
 - [ ] Add input validation to all routes
@@ -1165,6 +1269,7 @@ volumes:
 - [ ] Add database backups
 
 **Frontend:**
+
 - [ ] Add loading skeletons
 - [ ] Add empty states
 - [ ] Implement error boundaries
@@ -1173,6 +1278,7 @@ volumes:
 - [ ] Mobile responsiveness
 
 **Documentation:**
+
 - [ ] README with setup
 - [ ] Environment variables guide
 - [ ] Deployment guide
@@ -1185,6 +1291,7 @@ volumes:
 ## 7. Critical Files & Paths
 
 ### Backend
+
 - `/packages/db/prisma/schema/megaforce.prisma` - Core data model
 - `/packages/db/prisma/schema/auth.prisma` - Update User model
 - `/apps/server/src/index.ts` - Main entry, register routes and WebSocket
@@ -1196,6 +1303,7 @@ volumes:
 - `/docker-compose.yml` - Add Redis service
 
 ### Frontend
+
 - `/apps/web/src/components/layouts/app-layout.tsx` - VS Code-style layout
 - `/apps/web/src/routes/dashboard.tsx` - Main app shell
 - `/apps/web/src/routes/dashboard/inbox.tsx` - Approval inbox
@@ -1205,6 +1313,7 @@ volumes:
 - `/apps/web/src/lib/api/client.ts` - API client wrapper
 
 ### Environment
+
 - `/packages/env/src/server.ts` - Server environment validation
 - `.env` - Add all new environment variables
 
@@ -1217,6 +1326,7 @@ volumes:
 **Goal:** Verify core workflow - URL source to published Twitter tweet
 
 **Steps:**
+
 1. **Create URL Source**
    - Add URL (e.g., blog post, article) → Verify parsing job starts
    - Monitor WebSocket → Verify `source:parsed` event
@@ -1260,6 +1370,7 @@ volumes:
    - PublishedContent: platformPostId set, publishedAt timestamp
 
 **Success Criteria:**
+
 - ✅ URL content extracted successfully
 - ✅ Tweet generated based on source + persona style
 - ✅ Tweet published to Twitter at scheduled time
@@ -1271,6 +1382,7 @@ volumes:
 ## 9. Security Considerations
 
 ### Data Protection
+
 - [ ] Encrypt social platform credentials in database (use `ENCRYPTION_KEY`)
 - [ ] Store API keys in environment variables, never commit to git
 - [ ] Use httpOnly, secure cookies for session management (already configured)
@@ -1278,17 +1390,20 @@ volumes:
 - [ ] Implement CORS with strict origin validation (already configured)
 
 ### Rate Limiting
+
 - [ ] Per-user rate limits on generation (max N requests per hour)
 - [ ] Per-user rate limits on publishing (respect platform limits)
 - [ ] Global rate limiting on expensive operations (style learning)
 
 ### File Upload Security
+
 - [ ] Validate file types (only allow PDFs)
 - [ ] Limit file sizes (10MB max)
 - [ ] Scan uploads for malware (optional, use ClamAV or similar)
 - [ ] Use presigned URLs with short expiry (15 minutes)
 
 ### Content Safety
+
 - [ ] Sanitize user-generated content to prevent XSS
 - [ ] Consider content moderation API for generated text (optional)
 - [ ] Respect platform terms of service and rate limits
@@ -1298,23 +1413,27 @@ volumes:
 ## 10. Performance Optimization
 
 ### Database
+
 - [ ] Add indexes on foreign keys, status fields, date ranges (already in schema)
 - [ ] Use Prisma connection pooling
 - [ ] Implement cursor-based pagination for all lists
 - [ ] Use `select` and `include` carefully to avoid over-fetching
 
 ### Caching
+
 - [ ] Use Redis for job queue
 - [ ] Cache frequently accessed data (workspace, personas)
 - [ ] Implement TanStack Query cache with appropriate stale times
 
 ### Frontend
+
 - [ ] Code splitting for routes (automatic with Vite)
 - [ ] Lazy load heavy components (Tiptap, calendar, charts)
 - [ ] Optimize images (use WebP, lazy loading)
 - [ ] Minimize bundle size (tree shaking, no unused dependencies)
 
 ### Background Jobs
+
 - [ ] Process jobs concurrently (multiple workers)
 - [ ] Use job priorities (publishing > generation > analytics)
 - [ ] Implement job progress tracking for long-running tasks
@@ -1344,6 +1463,7 @@ volumes:
 ## Success Metrics
 
 ### Technical
+
 - ✅ All database migrations run successfully
 - ✅ WebSocket connections stable, events delivered reliably
 - ✅ Job queue processes tasks without failures
@@ -1352,6 +1472,7 @@ volumes:
 - ✅ Content generation completes in < 30 seconds per candidate
 
 ### User Experience
+
 - ✅ User can create first persona and link sources in < 5 minutes
 - ✅ User can generate and approve first candidate in < 2 minutes
 - ✅ Published content appears on platform within 1 minute of scheduled time
@@ -1375,6 +1496,7 @@ volumes:
 ## Questions & Assumptions
 
 ### Assumptions Made:
+
 1. Single workspace per user simplifies MVP (can add multi-workspace later)
 2. Tiptap's WYSIWYG mode is preferred over raw markdown editing
 3. Cloudflare R2 chosen for zero egress fees (ideal for serving files to LlamaParse)
@@ -1384,6 +1506,7 @@ volumes:
 7. Automatic style learning with confirmation strikes balance between automation and control
 
 ### Clarified with User:
+
 - ✅ Per-project model selection (not per-persona)
 - ✅ Style learning requires human confirmation before overwriting
 - ✅ Option to add new writing style instead of overwriting existing
@@ -1395,4 +1518,3 @@ volumes:
 ---
 
 This plan provides a comprehensive roadmap for implementing Megaforce. Each phase builds on the previous, ensuring a stable foundation before adding complexity. The phased approach allows for iterative testing and refinement.
-

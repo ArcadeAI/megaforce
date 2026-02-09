@@ -22,7 +22,7 @@ bun db:migrate             # create/apply migration
 bun db:generate            # regenerate Prisma client
 bun db:studio              # open Prisma Studio
 
-# Linting (Biome)
+# Linting (ESLint + Prettier)
 bun check                  # lint + format entire repo
 
 # Type checking
@@ -70,7 +70,8 @@ bun build                  # build all packages
 
 ## Code Style
 
-- **Formatter**: Biome — tabs for indentation, double quotes for JS/TS
+- **Linter**: ESLint (via safeword config) — `bun run lint`
+- **Formatter**: Prettier — tabs for indentation, double quotes for JS/TS
 - **Package manager**: Bun (not npm/npx)
 - **Env vars**: Root `.env` loaded first, then app-local `.env` overrides. Web vars prefixed with `VITE_`.
 - **Prisma schema**: Split across `packages/db/prisma/schema/` (schema.prisma, auth.prisma, megaforce.prisma)

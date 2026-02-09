@@ -4,6 +4,7 @@
  */
 
 import prisma from "@megaforce/db";
+
 import type { AuthenticatedUser } from "./auth";
 
 export interface WorkspaceContext {
@@ -68,11 +69,11 @@ export async function requireWorkspace(user: AuthenticatedUser) {
 	const workspace = await getUserWorkspace(user.id);
 
 	if (!workspace) {
-		return new Response(
-			JSON.stringify({
+		return Response.json(
+			{
 				error: "Not Found",
 				message: "No workspace found for user",
-			}),
+			},
 			{
 				status: 404,
 				headers: { "Content-Type": "application/json" },

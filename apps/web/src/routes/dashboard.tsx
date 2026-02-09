@@ -46,7 +46,7 @@ function RouteComponent() {
 
 	return (
 		<div className="space-y-4 p-6">
-			<h1 className="font-bold text-2xl">Dashboard</h1>
+			<h1 className="text-2xl font-bold">Dashboard</h1>
 			<p>Welcome {session.data?.user.name}</p>
 
 			<div className="space-y-2 rounded-lg border p-4">

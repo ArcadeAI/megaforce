@@ -50,11 +50,11 @@ export async function requireAuth(context: Context) {
 	const user = await authenticateRequest(context.request);
 
 	if (!user) {
-		return new Response(
-			JSON.stringify({
+		return Response.json(
+			{
 				error: "Unauthorized",
 				message: "Authentication required",
-			}),
+			},
 			{
 				status: 401,
 				headers: { "Content-Type": "application/json" },

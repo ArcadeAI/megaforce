@@ -7,8 +7,7 @@ export const connection = new Redis(env.REDIS_URL, {
 	maxRetriesPerRequest: null,
 	enableReadyCheck: false,
 	retryStrategy(times: number) {
-		const delay = Math.min(times * 50, 2000);
-		return delay;
+		return Math.min(times * 50, 2000);
 	},
 });
 

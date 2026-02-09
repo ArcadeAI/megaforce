@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+
 import { useWorkspaces } from "@/lib/hooks";
 
 export const Route = createFileRoute("/api-test")({
@@ -10,10 +11,10 @@ function ApiTestComponent() {
 
 	return (
 		<div className="mx-auto max-w-2xl p-8">
-			<h1 className="mb-6 font-bold text-2xl">TanStack Query API Test</h1>
+			<h1 className="mb-6 text-2xl font-bold">TanStack Query API Test</h1>
 
 			<div className="space-y-4">
-				<div className="rounded-lg border bg-card p-4">
+				<div className="bg-card rounded-lg border p-4">
 					<h2 className="mb-2 font-semibold">Query Status</h2>
 					<div className="space-y-1 text-sm">
 						<p>
@@ -41,7 +42,7 @@ function ApiTestComponent() {
 					<div className="rounded-lg border bg-red-500/10 p-4 text-red-500">
 						<p className="font-semibold">Error fetching workspaces</p>
 						<p className="mt-1 text-sm">{error?.message}</p>
-						<p className="mt-2 text-muted-foreground text-xs">
+						<p className="text-muted-foreground mt-2 text-xs">
 							(This is expected if the server doesn't have workspaces endpoints
 							yet)
 						</p>
@@ -60,15 +61,15 @@ function ApiTestComponent() {
 				<button
 					type="button"
 					onClick={() => refetch()}
-					className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+					className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2"
 				>
 					Refetch
 				</button>
 			</div>
 
-			<div className="mt-8 rounded-lg border bg-muted/50 p-4">
+			<div className="bg-muted/50 mt-8 rounded-lg border p-4">
 				<h2 className="mb-2 font-semibold">How to Test</h2>
-				<ol className="list-inside list-decimal space-y-1 text-muted-foreground text-sm">
+				<ol className="text-muted-foreground list-inside list-decimal space-y-1 text-sm">
 					<li>
 						Open TanStack Query DevTools (bottom right corner, tanstack icon)
 					</li>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+
 import { cn } from "@/lib/utils";
+
 import { MainEditor } from "./main-editor";
 import { PropertiesPanel } from "./properties-panel";
 import { SidebarNav } from "./sidebar-nav";
 
-interface AppLayoutProps {
+interface AppLayoutProperties {
 	sidebarContent?: React.ReactNode;
 	mainContent?: React.ReactNode;
 	propertiesContent?: React.ReactNode;
@@ -30,7 +32,7 @@ export function AppLayout({
 	propertiesContent,
 	className,
 	scope,
-}: AppLayoutProps) {
+}: AppLayoutProperties) {
 	// Sidebar state
 	const [sidebarWidth, setSidebarWidth] = useState(() => {
 		const stored = localStorage.getItem(STORAGE_KEYS.sidebarWidth);
@@ -91,7 +93,9 @@ export function AppLayout({
 				width={sidebarWidth}
 				isCollapsed={sidebarCollapsed}
 				onWidthChange={setSidebarWidth}
-				onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+				onToggleCollapse={() => {
+					setSidebarCollapsed(!sidebarCollapsed);
+				}}
 				minWidth={200}
 				maxWidth={400}
 			>
@@ -106,7 +110,9 @@ export function AppLayout({
 				width={propertiesWidth}
 				isCollapsed={propertiesCollapsed}
 				onWidthChange={setPropertiesWidth}
-				onToggleCollapse={() => setPropertiesCollapsed(!propertiesCollapsed)}
+				onToggleCollapse={() => {
+					setPropertiesCollapsed(!propertiesCollapsed);
+				}}
 				minWidth={250}
 				maxWidth={400}
 			>

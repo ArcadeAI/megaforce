@@ -1,10 +1,11 @@
 import {
-	type UseMutationOptions,
-	type UseQueryOptions,
 	useMutation,
+	type UseMutationOptions,
 	useQuery,
 	useQueryClient,
+	type UseQueryOptions,
 } from "@tanstack/react-query";
+
 import {
 	type CreateProjectInput,
 	type Project,
@@ -29,7 +30,7 @@ export const projectKeys = {
  */
 export function useProjects(
 	workspaceId: string,
-	options?: Omit<UseQueryOptions<Project[], Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Project[]>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: projectKeys.list(workspaceId),
@@ -50,7 +51,7 @@ export function useProjects(
  */
 export function useProject(
 	id: string,
-	options?: Omit<UseQueryOptions<Project, Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Project>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: projectKeys.detail(id),

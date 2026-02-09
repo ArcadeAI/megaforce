@@ -1,11 +1,13 @@
 # Megaforce Database Schema Analysis
 
 ## Overview
+
 Complete analysis of the Megaforce multi-file Prisma schema for MEG-7 migration verification.
 
 ## Schema Files
 
 ### 1. schema.prisma (Generator & Datasource Config)
+
 ```prisma
 generator client {
   provider = "prisma-client"
@@ -20,6 +22,7 @@ datasource db {
 ```
 
 **Configuration:**
+
 - ✅ Bun runtime specified
 - ✅ ESM module format
 - ✅ PostgreSQL provider
@@ -28,6 +31,7 @@ datasource db {
 ### 2. auth.prisma (4 Models)
 
 #### User Model
+
 ```prisma
 model User {
   id            String    @id
@@ -48,21 +52,25 @@ model User {
   @@map("user")
 }
 ```
+
 **Relations:** 2 auth (sessions, accounts) + 2 megaforce (workspaces, wsConnections)
 **Constraints:** Unique email
 **Indexes:** Unique index on email
 
 #### Session Model
+
 - Foreign key to User with cascade delete
 - Unique token constraint
 - Index on userId
 
 #### Account Model
+
 - Foreign key to User with cascade delete
 - Supports OAuth and password auth
 - Index on userId
 
 #### Verification Model
+
 - Email verification tokens
 - Index on identifier
 
@@ -71,67 +79,80 @@ model User {
 #### Core Entity Models (5)
 
 **Workspace** - Central hub
+
 - Relations to User (owner)
 - Relations to: sources, personas, projects, candidates, publishedContent, jobs, wsConnections
 - Index on userId
 
 **Source** - Content sources
+
 - Types: URL, TEXT, PDF
 - Relations to Workspace, PersonaSource, ProjectSource
 - Indexes on: workspaceId, type, status
 
 **Persona** - AI personas with style profiles
+
 - Relations to Workspace, PersonaSource, SocialChannel, ProjectPersona, Candidate, PublishedContent
 - Index on workspaceId
 
 **SocialChannel** - Social media connections
+
 - Platforms: TWITTER, LINKEDIN, REDDIT
 - Relations to Persona, PublishedContent
 - Indexes on: personaId, platform
 
 **Project** - Content generation projects
+
 - Relations to Workspace, ProjectSource, ProjectPersona, OutputConfig, Candidate
 - Index on workspaceId
 
 #### Content Workflow Models (3)
 
 **OutputConfig** - Output format configurations
+
 - Types: TWITTER_THREAD, SINGLE_TWEET, LINKEDIN_POST, BLOG_POST, REDDIT_POST
 - Relations to Project, Candidate
 - Indexes on: projectId, outputType
 
 **ContentCandidate** - Generated content awaiting approval
+
 - Status: GENERATING, PENDING, APPROVED, SCHEDULED, REJECTED, PUBLISHED, FAILED
 - Relations to Workspace, Project, OutputConfig, Persona, PublishedContent
 - Indexes on: workspaceId, projectId, personaId, status, createdAt
 
 **PublishedContent** - Published to social media
+
 - Relations to Workspace, Candidate, Persona, Channel
 - Indexes on: workspaceId, personaId, channelId, scheduledFor, publishedAt, status
 
 #### Linking Tables (3)
 
 **PersonaSource** - Links personas to their training sources
+
 - Status: PENDING, CONFIRMED, REJECTED
 - Unique constraint on (personaId, sourceId)
 - Indexes on: personaId, sourceId, status
 
 **ProjectSource** - Links projects to their content sources
+
 - Unique constraint on (projectId, sourceId)
 - Indexes on: projectId, sourceId
 
 **ProjectPersona** - Links projects to personas with custom instructions
+
 - Unique constraint on (projectId, personaId)
 - Indexes on: projectId, personaId
 
 #### Background Processing Models (2)
 
 **JobQueue** - Async job processing
+
 - Job types: SOURCE_INGESTION, STYLE_LEARNING, CONTENT_GENERATION, CONTENT_PUBLISHING, ANALYTICS_FETCH
 - Relations to Workspace
 - Indexes on: workspaceId, jobType, status, priority, createdAt
 
 **WebSocketConnection** - Real-time connections
+
 - Relations to Workspace, User
 - Unique connectionId
 - Indexes on: workspaceId, userId, connectionId
@@ -179,12 +200,14 @@ User
 ## Index Strategy Analysis
 
 ### Well-Indexed (✅)
+
 - All foreign keys have indexes
 - Common query fields indexed (status, type, platform)
 - Temporal queries supported (createdAt, scheduledFor, publishedAt)
 - Unique constraints where appropriate
 
 ### Performance Considerations
+
 - Content-heavy fields use @db.Text (description, content, etc.)
 - JSON fields for flexible metadata
 - Strategic indexing prevents over-indexing
@@ -193,35 +216,39 @@ User
 ## Data Integrity Features
 
 ### Foreign Key Constraints
+
 - ✅ All relations have FK constraints
 - ✅ Cascade deletes prevent orphaned records
 - ✅ Proper referential integrity
 
 ### Validation
+
 - ✅ Required fields enforced at DB level
 - ✅ Enums constrain values
 - ✅ Unique constraints prevent duplicates
 - ✅ Default values for timestamps and booleans
 
 ### Timestamp Tracking
+
 - ✅ All models have createdAt
 - ✅ Most models have updatedAt
 - ✅ Automatic tracking via @default and @updatedAt
 
 ## Schema Quality Assessment
 
-| Aspect | Rating | Notes |
-|--------|--------|-------|
-| Structure | ⭐⭐⭐⭐⭐ | Well-organized multi-file schema |
-| Relations | ⭐⭐⭐⭐⭐ | Proper bidirectional relations |
-| Indexes | ⭐⭐⭐⭐⭐ | Strategic indexing for performance |
-| Constraints | ⭐⭐⭐⭐⭐ | Strong data integrity |
-| Naming | ⭐⭐⭐⭐⭐ | Consistent, clear naming |
-| Documentation | ⭐⭐⭐⭐ | Good inline comments |
+| Aspect        | Rating     | Notes                              |
+| ------------- | ---------- | ---------------------------------- |
+| Structure     | ⭐⭐⭐⭐⭐ | Well-organized multi-file schema   |
+| Relations     | ⭐⭐⭐⭐⭐ | Proper bidirectional relations     |
+| Indexes       | ⭐⭐⭐⭐⭐ | Strategic indexing for performance |
+| Constraints   | ⭐⭐⭐⭐⭐ | Strong data integrity              |
+| Naming        | ⭐⭐⭐⭐⭐ | Consistent, clear naming           |
+| Documentation | ⭐⭐⭐⭐   | Good inline comments               |
 
 ## Migration Readiness
 
 ### ✅ Ready for Production
+
 - Schema is syntactically valid (validated by Prisma generate)
 - All relations are bidirectional and properly typed
 - Indexes are strategically placed
@@ -230,6 +257,7 @@ User
 - Follows Prisma best practices
 
 ### Pre-Migration Checklist
+
 - ✅ Schema validation passed
 - ✅ Prisma client generated successfully
 - ✅ Multi-file schema configured correctly
@@ -237,6 +265,7 @@ User
 - ✅ Backup strategy in place (for production)
 
 ### Post-Migration Verification
+
 - [ ] Run verify-migration.sql
 - [ ] Test creating records across relations
 - [ ] Test cascade deletes
@@ -254,6 +283,7 @@ User
 ## Conclusion
 
 The Megaforce schema is **production-ready** and well-designed. It demonstrates:
+
 - Proper relational design
 - Strong data integrity
 - Performance optimization through indexing

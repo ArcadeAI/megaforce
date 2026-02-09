@@ -1,3 +1,5 @@
+import "../index.css";
+
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -12,8 +14,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TabProvider } from "@/contexts/tab-context";
 import { useWebSocket } from "@/lib/websocket";
-
-import "../index.css";
 
 export type RouterAppContext = {
 	queryClient: QueryClient;

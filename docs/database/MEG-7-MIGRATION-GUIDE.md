@@ -1,17 +1,20 @@
 # MEG-7: Database Migration Guide
 
 ## Objective
+
 Apply the new Megaforce schema to the database and verify everything works correctly.
 
 ## Prerequisites Status
 
 ### ✅ Schema Validation
+
 - **Status**: PASSED
 - **Details**: Prisma client generated successfully without errors
 - **Command**: `bun run db:generate`
 - **Result**: Generated Prisma Client (7.2.0) to ./prisma/generated in 98ms
 
 ### ✅ Schema Configuration
+
 - **Multi-file schema**: Configured in `prisma.config.ts`
 - **Schema location**: `packages/db/prisma/schema/`
 - **Files**:
@@ -20,6 +23,7 @@ Apply the new Megaforce schema to the database and verify everything works corre
   - `megaforce.prisma` - All Megaforce models and enums
 
 ### ⚠️ Database Server
+
 - **Status**: NOT RUNNING (expected in CI/local dev environment)
 - **Configuration**: PostgreSQL at localhost:5432
 - **Database**: megaforce
@@ -28,12 +32,14 @@ Apply the new Megaforce schema to the database and verify everything works corre
 ## Migration Steps
 
 ### Step 1: Start Database Server
+
 ```bash
 cd packages/db
 bun run db:start
 ```
 
 This will start the PostgreSQL container defined in `docker-compose.yml`:
+
 - Image: postgres:latest
 - Container: megaforce-postgres
 - Port: 5432
@@ -42,11 +48,13 @@ This will start the PostgreSQL container defined in `docker-compose.yml`:
 - Password: password
 
 ### Step 2: Run Schema Push
+
 ```bash
 bun run db:push
 ```
 
 Expected output:
+
 ```
 Prisma schema loaded from prisma/schema.
 Datasource "db": PostgreSQL database "megaforce" at "localhost:5432"
@@ -55,7 +63,9 @@ Datasource "db": PostgreSQL database "megaforce" at "localhost:5432"
 ```
 
 ### Step 3: Verify Migration
+
 Run the verification SQL script to confirm all tables, indexes, and constraints:
+
 ```bash
 psql postgresql://postgres:password@localhost:5432/megaforce -f /tmp/claude/-workspace-main/cb9c412b-7dbb-48c8-ada2-94378c4a478c/scratchpad/verify-migration.sql
 ```
@@ -63,6 +73,7 @@ psql postgresql://postgres:password@localhost:5432/megaforce -f /tmp/claude/-wor
 ## Expected Database Schema
 
 ### Auth Tables (4 tables)
+
 1. **user**
    - Columns: id, name, email, emailVerified, image, createdAt, updatedAt
    - Relations: sessions[], accounts[], workspaces[], wsConnections[]
@@ -129,6 +140,7 @@ psql postgresql://postgres:password@localhost:5432/megaforce -f /tmp/claude/-wor
     - Relations: workspace, user
 
 ### Enums (6 enums)
+
 - SourceType: URL, TEXT, PDF
 - SocialPlatform: TWITTER, LINKEDIN, REDDIT
 - OutputType: TWITTER_THREAD, SINGLE_TWEET, LINKEDIN_POST, BLOG_POST, REDDIT_POST
@@ -139,19 +151,23 @@ psql postgresql://postgres:password@localhost:5432/megaforce -f /tmp/claude/-wor
 ## Review Checklist Verification
 
 ### ✅ Migration runs without errors
+
 - **Pre-check**: Schema validation passed
 - **Verification**: Run `bun run db:push` and check for success message
 - **Expected**: No errors, all models synced
 
 ### ✅ All tables exist in database
+
 - **Verification**: Run query from verify-migration.sql section 1
 - **Expected**: 17 tables total (4 auth + 13 megaforce)
 
 ### ✅ Foreign key constraints are active
+
 - **Verification**: Run query from verify-migration.sql section 2
 - **Expected**: All relations have corresponding FK constraints with onDelete: Cascade
 
 ### ✅ No data loss on existing auth tables
+
 - **Verification**: Run query from verify-migration.sql section 4
 - **Expected**: All existing user, session, account, verification records preserved
 - **Note**: Since this appears to be a fresh schema (no prior data), this check confirms 0 rows as expected
@@ -159,16 +175,19 @@ psql postgresql://postgres:password@localhost:5432/megaforce -f /tmp/claude/-wor
 ## Critical Relations to Verify
 
 ### User ↔ Workspace
+
 - User can have multiple workspaces
 - Workspace belongs to one user
 - Cascade delete: Deleting user deletes all their workspaces
 
 ### User ↔ WebSocketConnection
+
 - User can have multiple WebSocket connections
 - Connection belongs to one user
 - Cascade delete: Deleting user removes all their connections
 
 ### Workspace ↔ Everything
+
 - Workspace is the central hub for all Megaforce entities
 - All major entities link back to workspace
 - Cascade delete: Deleting workspace removes all related data
@@ -176,6 +195,7 @@ psql postgresql://postgres:password@localhost:5432/megaforce -f /tmp/claude/-wor
 ## Testing Post-Migration
 
 ### Test 1: Create User and Workspace
+
 ```sql
 INSERT INTO "user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
 VALUES ('test-user-1', 'Test User', 'test@example.com', false, NOW(), NOW());
@@ -185,6 +205,7 @@ VALUES ('test-ws-1', 'Test Workspace', 'test-user-1', NOW(), NOW());
 ```
 
 ### Test 2: Verify Cascade Delete
+
 ```sql
 -- This should also delete the workspace due to cascade
 DELETE FROM "user" WHERE id = 'test-user-1';

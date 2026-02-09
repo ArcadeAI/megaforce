@@ -1,0 +1,6 @@
+dist/
+.next/
+.turbo/
+routeTree.gen.ts
+.safeword/
+node_modules/

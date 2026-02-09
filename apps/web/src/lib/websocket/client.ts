@@ -4,6 +4,7 @@
  */
 
 import { env } from "@megaforce/env/web";
+
 import type {
 	AuthPayload,
 	JoinRoomPayload,
@@ -39,8 +40,8 @@ export class WebSocketClient {
 	private ws: WebSocket | null = null;
 	private config: Required<WebSocketClientConfig>;
 	private state: ConnectionState = ConnectionState.DISCONNECTED;
-	private eventListeners: Map<WsEventType, Set<EventListener>> = new Map();
-	private stateListeners: Set<StateChangeListener> = new Set();
+	private eventListeners = new Map<WsEventType, Set<EventListener>>();
+	private stateListeners = new Set<StateChangeListener>();
 	private reconnectAttempts = 0;
 	private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 	private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
@@ -57,7 +58,7 @@ export class WebSocketClient {
 			autoReconnect: config.autoReconnect ?? true,
 			reconnectInterval: config.reconnectInterval ?? 3000,
 			maxReconnectAttempts: config.maxReconnectAttempts ?? 10,
-			heartbeatInterval: config.heartbeatInterval ?? 30000,
+			heartbeatInterval: config.heartbeatInterval ?? 30_000,
 		};
 	}
 
@@ -130,14 +131,16 @@ export class WebSocketClient {
 	// ============================================================================
 
 	private setupEventHandlers(): void {
-		if (!this.ws) return;
+		if (!this.ws) {
+			return;
+		}
 
-		this.ws.onopen = () => {
+		this.ws.addEventListener("open", () => {
 			console.log("WebSocket connected");
 			this.setState(ConnectionState.CONNECTED);
 			this.reconnectAttempts = 0;
 			this.authenticate();
-		};
+		});
 
 		this.ws.onmessage = (event) => {
 			try {
@@ -153,7 +156,7 @@ export class WebSocketClient {
 			this.setState(ConnectionState.ERROR);
 		};
 
-		this.ws.onclose = (event) => {
+		this.ws.addEventListener("close", (event) => {
 			console.log("WebSocket closed:", event.code, event.reason);
 			this.clearHeartbeat();
 
@@ -168,25 +171,28 @@ export class WebSocketClient {
 			} else {
 				this.setState(ConnectionState.DISCONNECTED);
 			}
-		};
+		});
 	}
 
 	private handleMessage(message: WsMessage): void {
 		// Handle connection-related events
 		switch (message.event) {
-			case WS_EVENTS.AUTHENTICATED:
+			case WS_EVENTS.AUTHENTICATED: {
 				this.setState(ConnectionState.AUTHENTICATED);
 				this.startHeartbeat();
 				this.resubscribeToRooms();
 				break;
+			}
 
-			case WS_EVENTS.PONG:
+			case WS_EVENTS.PONG: {
 				// Heartbeat response received
 				break;
+			}
 
-			case WS_EVENTS.ERROR:
+			case WS_EVENTS.ERROR: {
 				console.error("WebSocket error event:", message.payload);
 				break;
+			}
 		}
 
 		// Notify event listeners
@@ -229,14 +235,14 @@ export class WebSocketClient {
 		}
 
 		// Add to subscribed rooms list
-		rooms.forEach((room) => {
+		for (const room of rooms) {
 			const exists = this.subscribedRooms.some(
 				(r) => r.type === room.type && r.id === room.id,
 			);
 			if (!exists) {
 				this.subscribedRooms.push(room);
 			}
-		});
+		}
 
 		const message = createWsMessage<JoinRoomPayload>(WS_EVENTS.JOIN_ROOM, {
 			rooms,
@@ -286,7 +292,7 @@ export class WebSocketClient {
 	 * Send a message to the server
 	 */
 	public send<T>(message: WsMessage<T>): void {
-		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+		if (this.ws?.readyState !== WebSocket.OPEN) {
 			console.warn("Cannot send message: WebSocket is not open");
 			return;
 		}
@@ -312,7 +318,9 @@ export class WebSocketClient {
 		this.eventListeners.get(event)?.add(listener);
 
 		// Return unsubscribe function
-		return () => this.off(event, listener);
+		return () => {
+			this.off(event, listener);
+		};
 	}
 
 	/**
@@ -354,7 +362,9 @@ export class WebSocketClient {
 	// ============================================================================
 
 	private scheduleReconnect(): void {
-		if (this.reconnectTimeout) return;
+		if (this.reconnectTimeout) {
+			return;
+		}
 
 		this.reconnectAttempts++;
 		this.setState(ConnectionState.RECONNECTING);
@@ -363,7 +373,7 @@ export class WebSocketClient {
 		const delay =
 			Math.min(
 				this.config.reconnectInterval * 2 ** (this.reconnectAttempts - 1),
-				30000,
+				30_000,
 			) +
 			Math.random() * 1000;
 

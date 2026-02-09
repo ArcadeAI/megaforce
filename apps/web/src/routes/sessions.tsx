@@ -63,8 +63,8 @@ const STATUS_COLORS: Record<string, string> = {
 	ARCHIVED: "text-muted-foreground",
 };
 
-function formatDate(dateStr: string): string {
-	const date = new Date(dateStr);
+function formatDate(dateString: string): string {
+	const date = new Date(dateString);
 	return date.toLocaleDateString("en-US", {
 		month: "short",
 		day: "numeric",
@@ -72,19 +72,27 @@ function formatDate(dateStr: string): string {
 	});
 }
 
-function formatRelativeTime(dateStr: string): string {
-	const date = new Date(dateStr);
+function formatRelativeTime(dateString: string): string {
+	const date = new Date(dateString);
 	const now = new Date();
 	const diffMs = now.getTime() - date.getTime();
-	const diffMins = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMs / 3600000);
-	const diffDays = Math.floor(diffMs / 86400000);
+	const diffMins = Math.floor(diffMs / 60_000);
+	const diffHours = Math.floor(diffMs / 3_600_000);
+	const diffDays = Math.floor(diffMs / 86_400_000);
 
-	if (diffMins < 1) return "just now";
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
-	return formatDate(dateStr);
+	if (diffMins < 1) {
+		return "just now";
+	}
+	if (diffMins < 60) {
+		return `${diffMins}m ago`;
+	}
+	if (diffHours < 24) {
+		return `${diffHours}h ago`;
+	}
+	if (diffDays < 7) {
+		return `${diffDays}d ago`;
+	}
+	return formatDate(dateString);
 }
 
 function SessionSidebar() {
@@ -106,10 +114,16 @@ function SessionSidebar() {
 	} | null>(null);
 
 	useEffect(() => {
-		if (!contextMenu) return;
-		const dismiss = () => setContextMenu(null);
+		if (!contextMenu) {
+			return;
+		}
+		const dismiss = () => {
+			setContextMenu(null);
+		};
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") dismiss();
+			if (e.key === "Escape") {
+				dismiss();
+			}
 		};
 		document.addEventListener("click", dismiss);
 		document.addEventListener("keydown", onKeyDown);
@@ -180,11 +194,13 @@ function SessionSidebar() {
 	return (
 		<div className="flex h-full flex-col gap-3">
 			<div className="flex items-center justify-between">
-				<h3 className="font-medium text-sm">Sessions</h3>
+				<h3 className="text-sm font-medium">Sessions</h3>
 				<Button
 					size="xs"
 					variant="outline"
-					onClick={() => setIsCreating(true)}
+					onClick={() => {
+						setIsCreating(true);
+					}}
 					disabled={createSession.isPending}
 				>
 					+ New
@@ -194,7 +210,9 @@ function SessionSidebar() {
 			<Input
 				placeholder="Search sessions..."
 				value={searchQuery}
-				onChange={(e) => setSearchQuery(e.target.value)}
+				onChange={(e) => {
+					setSearchQuery(e.target.value);
+				}}
 				className="h-7 text-xs"
 			/>
 
@@ -203,9 +221,13 @@ function SessionSidebar() {
 					<Input
 						placeholder="Session title..."
 						value={newTitle}
-						onChange={(e) => setNewTitle(e.target.value)}
+						onChange={(e) => {
+							setNewTitle(e.target.value);
+						}}
 						onKeyDown={(e) => {
-							if (e.key === "Enter") handleCreateSession();
+							if (e.key === "Enter") {
+								handleCreateSession();
+							}
 							if (e.key === "Escape") {
 								setIsCreating(false);
 								setNewTitle("");
@@ -231,7 +253,7 @@ function SessionSidebar() {
 				)}
 
 				{filteredSessions?.length === 0 && !isLoading && (
-					<p className="py-4 text-center text-muted-foreground text-xs">
+					<p className="text-muted-foreground py-4 text-center text-xs">
 						{searchQuery
 							? "No sessions match your search."
 							: "No sessions yet. Create one to get started."}
@@ -249,13 +271,17 @@ function SessionSidebar() {
 							className={`w-full cursor-pointer rounded-none border p-2.5 text-left transition-colors ${
 								isActive
 									? "border-primary/50 bg-primary/10"
-									: "border-transparent hover:bg-muted"
+									: "hover:bg-muted border-transparent"
 							} ${session.status === "ARCHIVED" ? "opacity-60" : ""}`}
-							onClick={() => handleOpenSession(session)}
-							onContextMenu={(e) => handleContextMenu(e, session.id)}
+							onClick={() => {
+								handleOpenSession(session);
+							}}
+							onContextMenu={(e) => {
+								handleContextMenu(e, session.id);
+							}}
 						>
 							<div className="flex items-start justify-between gap-1">
-								<span className="truncate font-medium text-xs">
+								<span className="truncate text-xs font-medium">
 									{session.title}
 								</span>
 								<span
@@ -270,7 +296,7 @@ function SessionSidebar() {
 								>
 									{STAGE_LABELS[session.currentStage] ?? session.currentStage}
 								</span>
-								<span className="text-[10px] text-muted-foreground">
+								<span className="text-muted-foreground text-[10px]">
 									{formatRelativeTime(session.updatedAt)}
 								</span>
 							</div>
@@ -283,8 +309,10 @@ function SessionSidebar() {
 			{sessions?.some((s) => s.status === "ARCHIVED") && (
 				<button
 					type="button"
-					className="text-center text-muted-foreground text-xs hover:text-foreground"
-					onClick={() => setShowArchived((prev) => !prev)}
+					className="text-muted-foreground hover:text-foreground text-center text-xs"
+					onClick={() => {
+						setShowArchived((prev) => !prev);
+					}}
 				>
 					{showArchived ? "Hide archived" : "Show archived"}
 				</button>
@@ -293,13 +321,15 @@ function SessionSidebar() {
 			{/* Context menu */}
 			{contextMenu && (
 				<div
-					className="fixed z-50 min-w-32 rounded-sm border border-border bg-popover p-1 shadow-md"
+					className="border-border bg-popover fixed z-50 min-w-32 rounded-sm border p-1 shadow-md"
 					style={{ top: contextMenu.y, left: contextMenu.x }}
 				>
 					<button
 						type="button"
-						className="w-full rounded-sm px-2 py-1 text-left text-xs hover:bg-muted"
-						onClick={() => handleDuplicate(contextMenu.sessionId)}
+						className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-xs"
+						onClick={() => {
+							handleDuplicate(contextMenu.sessionId);
+						}}
 					>
 						Duplicate
 					</button>
@@ -307,16 +337,20 @@ function SessionSidebar() {
 					"ARCHIVED" ? (
 						<button
 							type="button"
-							className="w-full rounded-sm px-2 py-1 text-left text-xs hover:bg-muted"
-							onClick={() => handleUnarchive(contextMenu.sessionId)}
+							className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-xs"
+							onClick={() => {
+								handleUnarchive(contextMenu.sessionId);
+							}}
 						>
 							Unarchive
 						</button>
 					) : (
 						<button
 							type="button"
-							className="w-full rounded-sm px-2 py-1 text-left text-xs hover:bg-muted"
-							onClick={() => handleArchive(contextMenu.sessionId)}
+							className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-xs"
+							onClick={() => {
+								handleArchive(contextMenu.sessionId);
+							}}
 						>
 							Archive
 						</button>
@@ -334,7 +368,7 @@ function SessionProperties() {
 
 	if (!sessionId) {
 		return (
-			<div className="p-2 text-muted-foreground text-xs">
+			<div className="text-muted-foreground p-2 text-xs">
 				Select a session to view properties.
 			</div>
 		);
@@ -359,7 +393,7 @@ function SessionPropertiesDetail({ sessionId }: { sessionId: string }) {
 
 	if (!sessionData) {
 		return (
-			<div className="p-2 text-muted-foreground text-xs">
+			<div className="text-muted-foreground p-2 text-xs">
 				Session not found.
 			</div>
 		);
@@ -367,8 +401,8 @@ function SessionPropertiesDetail({ sessionId }: { sessionId: string }) {
 
 	return (
 		<div className="space-y-4">
-			<div className="space-y-3 rounded-none border border-border p-3">
-				<h3 className="font-medium text-sm">Properties</h3>
+			<div className="border-border space-y-3 rounded-none border p-3">
+				<h3 className="text-sm font-medium">Properties</h3>
 				<div className="space-y-2 text-xs">
 					<div className="flex justify-between">
 						<span className="text-muted-foreground">Title</span>
@@ -411,7 +445,7 @@ function SessionPropertiesDetail({ sessionId }: { sessionId: string }) {
 
 function MainContent() {
 	const matches = useMatches();
-	const isIndexRoute = matches[matches.length - 1]?.id === "/sessions";
+	const isIndexRoute = matches.at(-1)?.id === "/sessions";
 
 	if (!isIndexRoute) {
 		return <Outlet />;
@@ -420,14 +454,14 @@ function MainContent() {
 	return (
 		<div className="flex h-full items-center justify-center">
 			<div className="max-w-md space-y-4 text-center">
-				<h2 className="font-semibold text-lg">Welcome to Megaforce</h2>
+				<h2 className="text-lg font-semibold">Welcome to Megaforce</h2>
 				<p className="text-muted-foreground text-sm">
 					Create a new session or select an existing one from the sidebar to
 					begin generating content. Each session guides you through a multi-step
 					workflow from output selection to final content generation.
 				</p>
-				<div className="space-y-2 text-left text-muted-foreground text-xs">
-					<p className="font-medium text-foreground">Workflow stages:</p>
+				<div className="text-muted-foreground space-y-2 text-left text-xs">
+					<p className="text-foreground font-medium">Workflow stages:</p>
 					<ol className="list-inside list-decimal space-y-1">
 						<li>Choose output types (blog, article, social, etc.)</li>
 						<li>Provide clarifying details (tone, audience, keywords)</li>

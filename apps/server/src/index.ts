@@ -1,7 +1,15 @@
+// Import workers to start processing jobs
+import "./jobs/workers/content-generation-worker";
+import "./jobs/workers/critic-review-worker";
+import "./jobs/workers/outline-generation-worker";
+import "./jobs/workers/plan-generation-worker";
+import "./jobs/workers/source-ingestion-worker";
+
 import { cors } from "@elysiajs/cors";
 import { auth } from "@megaforce/auth";
 import { env } from "@megaforce/env/server";
 import { Elysia } from "elysia";
+
 import { requireAuth } from "./middleware/auth";
 import { handleError } from "./middleware/error-handler";
 import { requireWorkspace } from "./middleware/workspace";
@@ -22,13 +30,6 @@ import {
 } from "./websocket/handlers";
 import { initWsServer } from "./websocket/server";
 
-// Import workers to start processing jobs
-import "./jobs/workers/content-generation-worker";
-import "./jobs/workers/critic-review-worker";
-import "./jobs/workers/outline-generation-worker";
-import "./jobs/workers/plan-generation-worker";
-import "./jobs/workers/source-ingestion-worker";
-
 // Initialize WebSocket server (room/client management)
 const wsServer = initWsServer();
 
@@ -42,9 +43,7 @@ const app = new Elysia()
 		}),
 	)
 	// Global error handler
-	.onError((context) => {
-		return handleError(context.error as Error, context);
-	})
+	.onError((context) => handleError(context.error as Error, context))
 	// Public routes - Better Auth handler
 	.onRequest((context) => {
 		const url = new URL(context.request.url);
@@ -84,12 +83,10 @@ const app = new Elysia()
 					}
 				})
 				// Example protected route
-				.get("/me", (context) => {
-					return {
-						user: context.user,
-						workspace: context.workspace,
-					};
-				}),
+				.get("/me", (context) => ({
+					user: context.user,
+					workspace: context.workspace,
+				})),
 		// Add more protected routes here as needed
 	)
 	// API Routes

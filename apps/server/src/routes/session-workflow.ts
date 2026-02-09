@@ -5,6 +5,7 @@
 
 import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+
 import { requireAuth } from "../middleware/auth";
 import { requireWorkspace } from "../middleware/workspace";
 
@@ -25,15 +26,19 @@ function getStageIndex(stage: string): number {
 }
 
 function getNextStage(stage: string): SessionStage | null {
-	const idx = getStageIndex(stage);
-	if (idx === -1 || idx >= STAGE_ORDER.length - 1) return null;
-	return STAGE_ORDER[idx + 1] ?? null;
+	const index = getStageIndex(stage);
+	if (index === -1 || index >= STAGE_ORDER.length - 1) {
+		return null;
+	}
+	return STAGE_ORDER[index + 1] ?? null;
 }
 
 function getPreviousStage(stage: string): SessionStage | null {
-	const idx = getStageIndex(stage);
-	if (idx <= 0) return null;
-	return STAGE_ORDER[idx - 1] ?? null;
+	const index = getStageIndex(stage);
+	if (index <= 0) {
+		return null;
+	}
+	return STAGE_ORDER[index - 1] ?? null;
 }
 
 export const sessionWorkflowRoutes = new Elysia({
@@ -41,23 +46,33 @@ export const sessionWorkflowRoutes = new Elysia({
 })
 	.derive(async (context) => {
 		const user = await requireAuth(context);
-		if (user instanceof Response) return { user: null, workspace: null };
+		if (user instanceof Response) {
+			return { user: null, workspace: null };
+		}
 		const workspace = await requireWorkspace(user);
-		if (workspace instanceof Response) return { user, workspace: null };
+		if (workspace instanceof Response) {
+			return { user, workspace: null };
+		}
 		return { user, workspace };
 	})
 	.onBeforeHandle((context) => {
 		if (!context.user) {
-			return new Response(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Unauthorized" },
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		if (!context.workspace) {
-			return new Response(JSON.stringify({ error: "No workspace found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No workspace found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	})
 	// Advance to next stage
@@ -71,16 +86,19 @@ export const sessionWorkflowRoutes = new Elysia({
 				},
 			});
 			if (!session) {
-				return new Response(JSON.stringify({ error: "Session not found" }), {
-					status: 404,
-					headers: { "Content-Type": "application/json" },
-				});
+				return Response.json(
+					{ error: "Session not found" },
+					{
+						status: 404,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
 			}
 
 			const nextStage = getNextStage(session.currentStage);
 			if (!nextStage) {
-				return new Response(
-					JSON.stringify({ error: "Already at final stage" }),
+				return Response.json(
+					{ error: "Already at final stage" },
 					{ status: 400, headers: { "Content-Type": "application/json" } },
 				);
 			}
@@ -94,10 +112,10 @@ export const sessionWorkflowRoutes = new Elysia({
 					!Array.isArray(stageData.outputTypes) ||
 					stageData.outputTypes.length !== 1
 				) {
-					return new Response(
-						JSON.stringify({
+					return Response.json(
+						{
 							error: "Exactly one output type must be selected",
-						}),
+						},
 						{ status: 400, headers: { "Content-Type": "application/json" } },
 					);
 				}
@@ -144,10 +162,10 @@ export const sessionWorkflowRoutes = new Elysia({
 					!Array.isArray(stageData.personaIds) ||
 					stageData.personaIds.length === 0
 				) {
-					return new Response(
-						JSON.stringify({
+					return Response.json(
+						{
 							error: "At least one persona must be selected",
-						}),
+						},
 						{ status: 400, headers: { "Content-Type": "application/json" } },
 					);
 				}
@@ -192,18 +210,24 @@ export const sessionWorkflowRoutes = new Elysia({
 			},
 		});
 		if (!session) {
-			return new Response(JSON.stringify({ error: "Session not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Session not found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 
 		const prevStage = getPreviousStage(session.currentStage);
 		if (!prevStage) {
-			return new Response(JSON.stringify({ error: "Already at first stage" }), {
-				status: 400,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Already at first stage" },
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 
 		const updated = await prisma.contentSession.update({

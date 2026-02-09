@@ -5,29 +5,40 @@
 
 import prisma from "@megaforce/db";
 import { Elysia, t } from "elysia";
+
 import { requireAuth } from "../middleware/auth";
 import { requireWorkspace } from "../middleware/workspace";
 
 export const personasRoutes = new Elysia({ prefix: "/api/personas" })
 	.derive(async (context) => {
 		const user = await requireAuth(context);
-		if (user instanceof Response) return { user: null, workspace: null };
+		if (user instanceof Response) {
+			return { user: null, workspace: null };
+		}
 		const workspace = await requireWorkspace(user);
-		if (workspace instanceof Response) return { user, workspace: null };
+		if (workspace instanceof Response) {
+			return { user, workspace: null };
+		}
 		return { user, workspace };
 	})
 	.onBeforeHandle((context) => {
 		if (!context.user) {
-			return new Response(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Unauthorized" },
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		if (!context.workspace) {
-			return new Response(JSON.stringify({ error: "No workspace found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "No workspace found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	})
 	// List personas
@@ -70,10 +81,13 @@ export const personasRoutes = new Elysia({ prefix: "/api/personas" })
 			},
 		});
 		if (!persona) {
-			return new Response(JSON.stringify({ error: "Persona not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Persona not found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		return { success: true, data: persona };
 	})
@@ -122,10 +136,13 @@ export const personasRoutes = new Elysia({ prefix: "/api/personas" })
 				},
 			});
 			if (!existing) {
-				return new Response(JSON.stringify({ error: "Persona not found" }), {
-					status: 404,
-					headers: { "Content-Type": "application/json" },
-				});
+				return Response.json(
+					{ error: "Persona not found" },
+					{
+						status: 404,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
 			}
 			const persona = await prisma.persona.update({
 				where: { id: context.params.id },
@@ -174,14 +191,17 @@ export const personasRoutes = new Elysia({ prefix: "/api/personas" })
 			},
 		});
 		if (!existing) {
-			return new Response(JSON.stringify({ error: "Persona not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
+			return Response.json(
+				{ error: "Persona not found" },
+				{
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 		if (existing.isDefault) {
-			return new Response(
-				JSON.stringify({ error: "Cannot delete the default persona" }),
+			return Response.json(
+				{ error: "Cannot delete the default persona" },
 				{ status: 400, headers: { "Content-Type": "application/json" } },
 			);
 		}

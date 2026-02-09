@@ -1,7 +1,9 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { useScopedTabs, useTabs } from "@/contexts/tab-context";
+
 import { Tab } from "./tab";
 
 export function TabBar({ scope }: { scope?: string }) {
@@ -52,7 +54,7 @@ export function TabBar({ scope }: { scope?: string }) {
 
 	if (tabs.length === 0) {
 		return (
-			<div className="flex h-9 items-center justify-between border-border border-b bg-muted/30 px-2">
+			<div className="border-border bg-muted/30 flex h-9 items-center justify-between border-b px-2">
 				<span className="text-muted-foreground text-sm">No tabs open</span>
 				<Button
 					variant="ghost"
@@ -67,7 +69,7 @@ export function TabBar({ scope }: { scope?: string }) {
 	}
 
 	return (
-		<div className="flex h-9 items-center border-border border-b bg-muted/30">
+		<div className="border-border bg-muted/30 flex h-9 items-center border-b">
 			{/* Tab list */}
 			<div className="scrollbar-thin flex flex-1 overflow-x-auto">
 				{tabs.map((tab) => (
@@ -85,7 +87,7 @@ export function TabBar({ scope }: { scope?: string }) {
 			</div>
 
 			{/* New tab button */}
-			<div className="flex shrink-0 items-center border-border border-l px-1">
+			<div className="border-border flex shrink-0 items-center border-l px-1">
 				<Button
 					variant="ghost"
 					size="icon-sm"

@@ -14,7 +14,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **PostgreSQL** - Database engine
 - **Authentication** - Better-Auth
 - **Turborepo** - Optimized monorepo build system
-- **Biome** - Linting and formatting
+- **ESLint + Prettier** - Linting and formatting
 - **Husky** - Git hooks for code quality
 
 ## Getting Started
@@ -74,4 +74,4 @@ megaforce/
 - `bun run check-types`: Check TypeScript types across all apps
 - `bun run db:push`: Push schema changes to database
 - `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Biome formatting and linting
+- `bun run check`: Run ESLint + Prettier formatting and linting

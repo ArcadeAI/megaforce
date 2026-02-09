@@ -1,10 +1,11 @@
 import {
-	type UseMutationOptions,
-	type UseQueryOptions,
 	useMutation,
+	type UseMutationOptions,
 	useQuery,
 	useQueryClient,
+	type UseQueryOptions,
 } from "@tanstack/react-query";
+
 import {
 	type CreatePersonaInput,
 	type Persona,
@@ -27,7 +28,7 @@ export const personaKeys = {
  * Hook to fetch all personas for the current workspace
  */
 export function usePersonas(
-	options?: Omit<UseQueryOptions<Persona[], Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Persona[]>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: personaKeys.list(),
@@ -41,7 +42,7 @@ export function usePersonas(
  */
 export function usePersona(
 	id: string,
-	options?: Omit<UseQueryOptions<Persona, Error>, "queryKey" | "queryFn">,
+	options?: Omit<UseQueryOptions<Persona>, "queryKey" | "queryFn">,
 ) {
 	return useQuery({
 		queryKey: personaKeys.detail(id),
