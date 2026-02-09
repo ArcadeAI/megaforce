@@ -18,6 +18,7 @@ import {
 	useArchiveSession,
 	useCreateSession,
 	useDuplicateSession,
+	useSession,
 	useSessions,
 	useUnarchiveSession,
 } from "@/lib/hooks/use-sessions";
@@ -62,6 +63,43 @@ const STATUS_COLORS: Record<string, string> = {
 	COMPLETED: "text-blue-400",
 	ARCHIVED: "text-muted-foreground",
 };
+
+const STAGE_ORDER = [
+	"OUTPUT_SELECTION",
+	"CLARIFYING",
+	"PERSONA",
+	"PLAN",
+	"OUTLINE",
+	"GENERATION",
+	"COMPLETE",
+] as const;
+
+const OUTPUT_TYPE_LABELS: Record<string, string> = {
+	BLOG_POST: "Blog Post",
+	ARTICLE: "Article",
+	SOCIAL_MEDIA: "Social Media",
+	TECHNICAL_DOCS: "Technical Docs",
+	MARKETING_COPY: "Marketing Copy",
+	CUSTOM: "Custom",
+};
+
+const DATA_SOURCE_LABELS: Record<string, string> = {
+	CORPUS_ONLY: "Corpus Only",
+	DEEP_RESEARCH: "Deep Research",
+	BOTH: "Both",
+};
+
+const REVIEW_STATUS_LABELS: Record<string, string> = {
+	DRAFT: "Draft",
+	CRITIC_REVIEWING: "Reviewing",
+	CRITIC_APPROVED: "Approved",
+	APPROVED: "Approved",
+	REJECTED: "Rejected",
+};
+
+function stageIndex(stage: string): number {
+	return STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]);
+}
 
 function formatDate(dateString: string): string {
 	const date = new Date(dateString);
@@ -377,9 +415,40 @@ function SessionProperties() {
 	return <SessionPropertiesDetail sessionId={sessionId} />;
 }
 
+function PropertyRow({
+	label,
+	children,
+}: {
+	label: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="flex justify-between">
+			<span className="text-muted-foreground">{label}</span>
+			<span className="truncate pl-2 text-right">{children}</span>
+		</div>
+	);
+}
+
+function PropertySection({
+	title,
+	children,
+}: {
+	title: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="border-border space-y-2 border p-3">
+			<h3 className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
+				{title}
+			</h3>
+			{children}
+		</div>
+	);
+}
+
 function SessionPropertiesDetail({ sessionId }: { sessionId: string }) {
-	const { data: session, isLoading } = useSessions();
-	const sessionData = session?.find((s) => s.id === sessionId);
+	const { data: s, isLoading } = useSession(sessionId);
 
 	if (isLoading) {
 		return (
@@ -391,7 +460,7 @@ function SessionPropertiesDetail({ sessionId }: { sessionId: string }) {
 		);
 	}
 
-	if (!sessionData) {
+	if (!s) {
 		return (
 			<div className="text-muted-foreground p-2 text-xs">
 				Session not found.
@@ -399,46 +468,135 @@ function SessionPropertiesDetail({ sessionId }: { sessionId: string }) {
 		);
 	}
 
+	const index = stageIndex(s.currentStage);
+	const clarifying = s.clarifyingAnswers as Record<string, string> | null;
+	const personas = s.sessionPersonas;
+	const latestPlan = s.plans?.[0];
+	const latestOutline = s.outlines?.[0];
+	const latestContent = s.generatedContent?.[0];
+	const metrics = latestContent?.metrics as Record<string, number> | null;
+
 	return (
 		<div className="space-y-4">
+			{/* Properties */}
 			<div className="border-border space-y-3 rounded-none border p-3">
 				<h3 className="text-sm font-medium">Properties</h3>
 				<div className="space-y-2 text-xs">
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">Title</span>
-						<span className="truncate pl-2 text-right">
-							{sessionData.title}
-						</span>
-					</div>
+					<PropertyRow label="Title">{s.title}</PropertyRow>
 					<div className="flex justify-between">
 						<span className="text-muted-foreground">Stage</span>
 						<span
-							className={`inline-block rounded-sm px-1.5 py-0.5 text-[10px] ${STAGE_COLORS[sessionData.currentStage] ?? "bg-muted text-muted-foreground"}`}
+							className={`inline-block rounded-sm px-1.5 py-0.5 text-[10px] ${STAGE_COLORS[s.currentStage] ?? "bg-muted text-muted-foreground"}`}
 						>
-							{STAGE_LABELS[sessionData.currentStage] ??
-								sessionData.currentStage}
+							{STAGE_LABELS[s.currentStage] ?? s.currentStage}
 						</span>
 					</div>
 					<div className="flex justify-between">
 						<span className="text-muted-foreground">Status</span>
 						<span
-							className={
-								STATUS_COLORS[sessionData.status] ?? "text-muted-foreground"
-							}
+							className={STATUS_COLORS[s.status] ?? "text-muted-foreground"}
 						>
-							{sessionData.status.toLowerCase()}
+							{s.status.toLowerCase()}
 						</span>
 					</div>
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">Created</span>
-						<span>{formatDate(sessionData.createdAt)}</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">Updated</span>
-						<span>{formatRelativeTime(sessionData.updatedAt)}</span>
-					</div>
+					<PropertyRow label="Created">{formatDate(s.createdAt)}</PropertyRow>
+					<PropertyRow label="Updated">
+						{formatRelativeTime(s.updatedAt)}
+					</PropertyRow>
 				</div>
 			</div>
+
+			{/* Output Types — shown after OUTPUT_SELECTION */}
+			{index > 0 && s.outputTypes?.length ? (
+				<PropertySection title="Output">
+					<div className="flex flex-wrap gap-1">
+						{s.outputTypes.map((type) => (
+							<span
+								key={type}
+								className="rounded-sm bg-blue-500/20 px-1.5 py-0.5 text-[10px] text-blue-400"
+							>
+								{OUTPUT_TYPE_LABELS[type] ?? type}
+							</span>
+						))}
+					</div>
+				</PropertySection>
+			) : null}
+
+			{/* Brief — shown after CLARIFYING */}
+			{index > 1 && clarifying ? (
+				<PropertySection title="Brief">
+					<div className="space-y-1.5 text-xs">
+						{clarifying.tone ? (
+							<PropertyRow label="Tone">{clarifying.tone}</PropertyRow>
+						) : null}
+						{clarifying.audience ? (
+							<PropertyRow label="Audience">{clarifying.audience}</PropertyRow>
+						) : null}
+						{clarifying.keywords ? (
+							<PropertyRow label="Keywords">{clarifying.keywords}</PropertyRow>
+						) : null}
+						<PropertyRow label="Research">
+							{DATA_SOURCE_LABELS[s.dataSourceMode] ?? s.dataSourceMode}
+						</PropertyRow>
+					</div>
+				</PropertySection>
+			) : null}
+
+			{/* Persona — shown after PERSONA */}
+			{index > 2 && personas?.length ? (
+				<PropertySection title="Persona">
+					<div className="space-y-1 text-xs">
+						{personas.map((sp) => (
+							<div key={sp.id} className="flex justify-between">
+								<span>{sp.persona.name}</span>
+								<span className="text-muted-foreground lowercase">
+									{sp.role}
+								</span>
+							</div>
+						))}
+					</div>
+				</PropertySection>
+			) : null}
+
+			{/* Plan — shown after PLAN */}
+			{index > 3 && latestPlan ? (
+				<PropertySection title="Plan">
+					<p className="text-muted-foreground text-xs">
+						v{latestPlan.version} &middot;{" "}
+						{REVIEW_STATUS_LABELS[latestPlan.status] ?? latestPlan.status}{" "}
+						&middot; {latestPlan.criticIterations} critic{" "}
+						{latestPlan.criticIterations === 1 ? "round" : "rounds"}
+					</p>
+				</PropertySection>
+			) : null}
+
+			{/* Outline — shown after OUTLINE */}
+			{index > 4 && latestOutline ? (
+				<PropertySection title="Outline">
+					<p className="text-muted-foreground text-xs">
+						v{latestOutline.version} &middot;{" "}
+						{REVIEW_STATUS_LABELS[latestOutline.status] ?? latestOutline.status}{" "}
+						&middot; {latestOutline.criticIterations} critic{" "}
+						{latestOutline.criticIterations === 1 ? "round" : "rounds"}
+					</p>
+				</PropertySection>
+			) : null}
+
+			{/* Content — shown after GENERATION */}
+			{index > 5 && latestContent ? (
+				<PropertySection title="Content">
+					<p className="text-muted-foreground text-xs">
+						v{latestContent.version} &middot;{" "}
+						{REVIEW_STATUS_LABELS[latestContent.status] ?? latestContent.status}
+						{metrics?.wordCount
+							? ` \u00B7 ${metrics.wordCount.toLocaleString()} words`
+							: ""}
+						{metrics?.readingTime
+							? ` \u00B7 ${metrics.readingTime} min read`
+							: ""}
+					</p>
+				</PropertySection>
+			) : null}
 		</div>
 	);
 }

@@ -27,6 +27,9 @@ export type Session = {
 		sourceId: string;
 		source: { id: string; title: string; type: string; url: string | null };
 	}[];
+	plans?: Plan[];
+	outlines?: Outline[];
+	generatedContent?: GeneratedContent[];
 };
 
 export type Plan = {
