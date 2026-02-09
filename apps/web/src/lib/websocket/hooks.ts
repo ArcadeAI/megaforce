@@ -38,6 +38,23 @@ export function useWebSocket(
 	const [state, setState] = useState<ConnectionState>(client.getState());
 	const { data: session } = authClient.useSession();
 
+	// Fetch a fresh WebSocket token from the API
+	const fetchToken = useCallback(async (): Promise<string | null> => {
+		try {
+			const response = await fetch(
+				`${import.meta.env.VITE_SERVER_URL}/api/ws-token`,
+				{ credentials: "include" },
+			);
+			if (!response.ok) {
+				return null;
+			}
+			const data = await response.json();
+			return data.token ?? null;
+		} catch {
+			return null;
+		}
+	}, []);
+
 	// Subscribe to state changes
 	useEffect(() => {
 		const unsubscribe = client.onStateChange((newState) => {
@@ -50,66 +67,36 @@ export function useWebSocket(
 		return unsubscribe;
 	}, [client]);
 
-	// Auto-connect when session is available
+	// Provide the token fetcher to the client for reconnection
+	useEffect(() => {
+		client.setTokenProvider(fetchToken);
+	}, [client, fetchToken]);
+
+	// Auto-connect when session is available, or reconnect after disconnect
 	useEffect(() => {
 		if (
 			autoConnect &&
 			session?.session &&
 			client.getState() === ConnectionState.DISCONNECTED
 		) {
-			// Fetch WebSocket token from API
 			const connectWithToken = async () => {
-				try {
-					const response = await fetch(
-						`${import.meta.env.VITE_SERVER_URL}/api/ws-token`,
-						{
-							credentials: "include", // Include cookies for auth
-						},
-					);
-
-					if (!response.ok) {
-						console.error("Failed to fetch WebSocket token:", response.status);
-						return;
-					}
-
-					const data = await response.json();
-
-					if (data.token) {
-						console.log("Auto-connecting WebSocket with fetched token");
-						client.connect(data.token);
-					}
-				} catch (error) {
-					console.error("Error fetching WebSocket token:", error);
+				const token = await fetchToken();
+				if (token) {
+					client.connect(token);
 				}
 			};
-
 			connectWithToken();
 		}
-	}, [autoConnect, session, client]);
+	}, [autoConnect, session, client, state, fetchToken]);
 
 	const connect = useCallback(async () => {
-		try {
-			const response = await fetch(
-				`${import.meta.env.VITE_SERVER_URL}/api/ws-token`,
-				{
-					credentials: "include",
-				},
-			);
-
-			if (!response.ok) {
-				console.error("Cannot connect: failed to fetch WebSocket token");
-				return;
-			}
-
-			const data = await response.json();
-
-			if (data.token) {
-				client.connect(data.token);
-			}
-		} catch (error) {
-			console.error("Cannot connect: error fetching WebSocket token", error);
+		const token = await fetchToken();
+		if (token) {
+			client.connect(token);
+		} else {
+			console.error("Cannot connect: failed to fetch WebSocket token");
 		}
-	}, [client]);
+	}, [client, fetchToken]);
 
 	const disconnect = useCallback(() => {
 		client.disconnect();

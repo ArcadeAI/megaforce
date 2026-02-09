@@ -210,7 +210,12 @@ function handleLeaveRoom(
 	console.log(`Client ${connectionId} left rooms: ${leftRooms.join(", ")}`);
 }
 
-async function handlePing(ws: WsHandle, connectionId: string): Promise<void> {
+async function handlePing(
+	ws: WsHandle,
+	wsServer: WsServer,
+	connectionId: string,
+): Promise<void> {
+	wsServer.handlePong(connectionId);
 	wsSend(ws, createWsMessage(WS_EVENTS.PONG, {}));
 	await updateLastPing(connectionId);
 }
@@ -297,7 +302,7 @@ export async function handleMessage(
 			}
 
 			case WS_EVENTS.PING: {
-				await handlePing(ws, connectionId);
+				await handlePing(ws, wsServer, connectionId);
 				break;
 			}
 

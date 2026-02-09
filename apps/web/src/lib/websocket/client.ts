@@ -35,6 +35,7 @@ export interface WebSocketClientConfig {
 
 type EventListener = (message: WsMessage) => void;
 type StateChangeListener = (state: ConnectionState) => void;
+type TokenProvider = () => Promise<string | null>;
 
 export class WebSocketClient {
 	private ws: WebSocket | null = null;
@@ -46,6 +47,7 @@ export class WebSocketClient {
 	private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 	private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 	private token: string | null = null;
+	private tokenProvider: TokenProvider | null = null;
 	private subscribedRooms: RoomIdentifier[] = [];
 
 	constructor(config: WebSocketClientConfig = {}) {
@@ -126,6 +128,14 @@ export class WebSocketClient {
 		return this.state === ConnectionState.AUTHENTICATED;
 	}
 
+	/**
+	 * Set a callback that provides fresh tokens for reconnection.
+	 * Without this, reconnects reuse the original (possibly expired) token.
+	 */
+	public setTokenProvider(provider: TokenProvider): void {
+		this.tokenProvider = provider;
+	}
+
 	// ============================================================================
 	// Event Handlers
 	// ============================================================================
@@ -160,11 +170,11 @@ export class WebSocketClient {
 			console.log("WebSocket closed:", event.code, event.reason);
 			this.clearHeartbeat();
 
-			// Don't reconnect on intentional closes (policy violation / auth failure)
-			const noRetryCodes = [1008, 1000];
+			// Only skip reconnect on intentional close (1000).
+			// Auth failures (1008) are retryable since we fetch fresh tokens.
 			if (
 				this.config.autoReconnect &&
-				!noRetryCodes.includes(event.code) &&
+				event.code !== 1000 &&
 				this.reconnectAttempts < this.config.maxReconnectAttempts
 			) {
 				this.scheduleReconnect();
@@ -381,10 +391,26 @@ export class WebSocketClient {
 			`Scheduling reconnect attempt ${this.reconnectAttempts}/${this.config.maxReconnectAttempts} in ${Math.round(delay)}ms`,
 		);
 
-		this.reconnectTimeout = setTimeout(() => {
+		this.reconnectTimeout = setTimeout(async () => {
 			this.reconnectTimeout = null;
-			if (this.token) {
-				this.connect(this.token);
+
+			// Fetch a fresh token if a provider is available, fall back to stored token
+			let token: string | null;
+			if (this.tokenProvider) {
+				try {
+					token = await this.tokenProvider();
+				} catch (error) {
+					console.error("Failed to fetch fresh token for reconnect:", error);
+					token = null;
+				}
+			} else {
+				token = this.token;
+			}
+
+			if (token) {
+				this.connect(token);
+			} else {
+				this.setState(ConnectionState.DISCONNECTED);
 			}
 		}, delay);
 	}
