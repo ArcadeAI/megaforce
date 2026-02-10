@@ -114,6 +114,20 @@ This specification is organized into the following feature files:
     - Analytics platforms
     - Webhook and API integrations
 
+### Developer Platform
+
+11. **[11-mcp-api.feature](11-mcp-api.feature)**
+    - MCP server discovery and connection
+    - Authentication and API key management
+    - Granular tools for step-by-step content creation
+    - One-shot content generation tool
+    - Configurable approval gates (auto-approve / manual)
+    - Persona and template management via MCP
+    - Streaming progress notifications and polling
+    - Context injection (corpus, rules, constraints)
+    - MCP resource exposure (sessions, personas, templates)
+    - Error handling and rate limiting
+
 ## Key Concepts
 
 ### Actor Roles
@@ -122,6 +136,7 @@ This specification is organized into the following feature files:
 - **System** - Megaforce AI platform
 - **Critic** - AI reviewer that provides feedback on plans, outlines, and content
 - **Sub-agents** - Specialized agents spawned for parallel content generation
+- **MCP Client** - External AI assistant or developer tool driving Megaforce programmatically (e.g., Cursor, Claude Code)
 
 ### Multi-Stage Approval Process
 
@@ -235,7 +250,6 @@ Potential areas for additional specification:
 - SEO optimization features
 - Accessibility and internationalization
 - Mobile application scenarios
-- API and developer platform
 
 ## Contributing
 

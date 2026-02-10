@@ -3,6 +3,9 @@ node_modules
 .pnp
 .pnp.js
 
+# Arcade specific folders
+arcade-content-corpus-main
+
 # Build outputs
 dist
 build

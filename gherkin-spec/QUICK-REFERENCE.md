@@ -45,6 +45,7 @@ Start Session
 | Error Handling       | `08-error-handling.feature`           | Recovery, validation, errors                |
 | Templates            | `09-template-management.feature`      | Create, use, share templates                |
 | Integrations         | `10-integrations.feature`             | Connect external platforms                  |
+| MCP API              | `11-mcp-api.feature`                  | Programmatic access via MCP tools           |
 
 ## Common User Journeys
 
@@ -90,7 +91,31 @@ Start Session
 
 ---
 
-### Journey 4: Resume Previous Work
+### Journey 4: AI-Driven Content via MCP (One-Shot)
+
+1. AI client connects to Megaforce MCP server
+2. Calls `create_content` with corpus, rules, persona, and `auto_approve: true`
+3. Pipeline runs end-to-end automatically
+4. Content returned in requested format
+
+**Files**: 11
+
+---
+
+### Journey 5: AI-Driven Content via MCP (Step-by-Step)
+
+1. AI client calls `create_session`
+2. Calls `set_output_type`, `answer_questions`, `select_persona`
+3. Calls `generate_plan`, reviews result, calls `approve_plan`
+4. Calls `start_research`, reviews outline, calls `approve_outline`
+5. Calls `generate_content`, reviews result, calls `approve_content`
+6. Calls `export_content` with desired format
+
+**Files**: 11
+
+---
+
+### Journey 6: Resume Previous Work
 
 1. View saved sessions
 2. Select incomplete session

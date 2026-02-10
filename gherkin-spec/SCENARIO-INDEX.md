@@ -184,6 +184,61 @@ Quick index of all scenarios across feature files for easy reference.
 - Data sync configuration
 - Integration usage limits
 
+### 11-mcp-api.feature
+
+- AI client discovers Megaforce MCP tools
+- AI client authenticates with API key
+- AI client connects with invalid credentials
+- API key with restricted permissions
+- Create a new session via MCP
+- List sessions via MCP
+- Get session details via MCP
+- Delete session via MCP
+- Resume session via MCP
+- Set output type via MCP
+- Answer clarifying questions via MCP
+- Select persona via MCP
+- Provide corpus documents via MCP
+- Provide content rules and constraints via MCP
+- Generate plan via MCP
+- Approve plan via MCP
+- Edit plan before approving via MCP
+- Reject plan and request regeneration via MCP
+- Start research and outline generation via MCP
+- Approve outline via MCP
+- Edit outline before approving via MCP
+- Generate content via MCP
+- Approve content via MCP
+- Request content revisions via MCP
+- Export content via MCP
+- Generate content in one shot via MCP
+- One-shot generation with manual approval gates
+- One-shot generation with partial parameters
+- Configure auto-approve after critic passes
+- Configure selective auto-approve
+- Override auto-approve for a specific stage
+- List personas via MCP
+- Create persona via MCP
+- Update persona via MCP
+- Delete persona via MCP
+- List templates via MCP
+- Start session from template via MCP
+- Poll session progress via MCP
+- Receive streaming progress via MCP notifications
+- Subscribe to session notifications
+- Respond to clarification request during generation
+- Decline clarification request
+- Access session data as MCP resource
+- Access persona as MCP resource
+- Access template as MCP resource
+- Tool call with invalid session ID
+- Tool call at wrong stage
+- Rate limit exceeded on MCP tools
+- Generation fails mid-pipeline
+- Concurrent tool calls on same session
+- Check API usage via MCP
+- Quota exceeded during one-shot generation
+
 ---
 
 ## By User Goal
@@ -194,6 +249,9 @@ Quick index of all scenarios across feature files for easy reference.
 - Use template to start new session _(09)_
 - Resume incomplete session _(07)_
 - Duplicate existing session _(07)_
+- Create session via MCP _(11)_
+- One-shot content generation via MCP _(11)_
+- Start session from template via MCP _(11)_
 
 ### Configuring Content
 
@@ -201,6 +259,9 @@ Quick index of all scenarios across feature files for easy reference.
 - User chooses corpus vs research _(02)_
 - System asks about tone and style _(02)_
 - Select/create personas _(03)_
+- Set output type via MCP _(11)_
+- Provide corpus and rules via MCP _(11)_
+- Select persona via MCP _(11)_
 
 ### Working with Plans
 
@@ -208,6 +269,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Critic reviews and refines plan _(04)_
 - User approves/edits plan _(04)_
 - View plan revision history _(04)_
+- Generate/approve/edit plan via MCP _(11)_
 
 ### Research and Knowledge
 
@@ -229,6 +291,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Publish to WordPress _(10)_
 - Publish to social media _(10)_
 - Save as template _(06, 09)_
+- Export content via MCP _(11)_
 
 ### Session Management
 
@@ -257,6 +320,17 @@ Quick index of all scenarios across feature files for easy reference.
 - Cloud storage integration _(10)_
 - Research databases _(10)_
 - Notifications _(10)_
+
+### MCP / Developer Platform
+
+- MCP server discovery and authentication _(11)_
+- Granular tools for full content workflow _(11)_
+- One-shot content generation _(11)_
+- Approval gate configuration _(11)_
+- Persona and template CRUD via MCP _(11)_
+- Streaming progress notifications _(11)_
+- MCP resource exposure _(11)_
+- API usage and quota management _(11)_
 
 ---
 
@@ -299,6 +373,18 @@ Quick index of all scenarios across feature files for easy reference.
 
 - Generate sections
 - Request clarifications
+
+### MCP Client Actions
+
+- Discover and authenticate
+- Create/list/resume/delete sessions
+- Drive content creation flow step-by-step
+- Generate content in one shot
+- Configure approval gates
+- Manage personas and templates
+- Subscribe to progress notifications
+- Respond to clarification requests
+- Read MCP resources
 - Complete assigned work
 
 ---
@@ -329,6 +415,9 @@ Quick index of all scenarios across feature files for easy reference.
 - Session organization _(07)_
 - Template usage _(09)_
 - Basic integrations (CMS, social) _(10)_
+- MCP granular tools for content flow _(11)_
+- MCP one-shot content generation _(11)_
+- MCP authentication and API keys _(11)_
 
 ### P2 - Enhanced Features (Nice to Have)
 
@@ -340,6 +429,9 @@ Quick index of all scenarios across feature files for easy reference.
 - Template marketplace _(09)_
 - Advanced integrations _(10)_
 - Analytics _(10)_
+- MCP persona/template management _(11)_
+- MCP streaming progress notifications _(11)_
+- MCP configurable approval gates _(11)_
 
 ### P3 - Advanced Features (Future)
 
@@ -347,6 +439,8 @@ Quick index of all scenarios across feature files for easy reference.
 - Webhook integrations _(10)_
 - Research database integration _(10)_
 - Advanced collaboration _(07)_
+- MCP resource exposure _(11)_
+- MCP restricted permission scopes _(11)_
 
 ---
 
@@ -386,6 +480,9 @@ Quick index of all scenarios across feature files for easy reference.
 - Version control and comparison
 - Template with variables/conditionals
 - Multi-platform integrations
+- MCP one-shot pipeline with auto-approve
+- MCP streaming notifications
+- MCP concurrent operation handling
 
 ---
 
@@ -400,6 +497,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Research databases _(10)_
 - Analytics platforms _(10)_
 - Webhook endpoints _(10)_
+- MCP clients (Cursor, Claude Code, etc.) _(11)_
 
 ### Internal Systems
 
@@ -409,6 +507,7 @@ Quick index of all scenarios across feature files for easy reference.
 - Template library _(09)_
 - Knowledge base _(05)_
 - Critic system _(04, 05, 06)_
+- MCP server and tool registry _(11)_
 
 ---
 
@@ -450,28 +549,31 @@ Quick index of all scenarios across feature files for easy reference.
 
 To find scenarios about a specific topic:
 
-- **Approval**: Search files 04, 05, 06
-- **Clarification**: Search files 02, 06
+- **API/MCP**: Search file 11
+- **Approval**: Search files 04, 05, 06, 11
+- **Clarification**: Search files 02, 06, 11
 - **Collaboration**: Search file 07
-- **Corpus**: Search files 02, 05, 10
+- **Corpus**: Search files 02, 05, 10, 11
 - **Critic**: Search files 04, 05, 06
-- **Error**: Search file 08
-- **Export**: Search files 06, 07, 09
-- **Integration**: Search file 10
-- **Persona**: Search files 03, 04
-- **Plan**: Search file 04
-- **Outline**: Search file 05
+- **Error**: Search files 08, 11
+- **Export**: Search files 06, 07, 09, 11
+- **Integration**: Search files 10, 11
+- **Persona**: Search files 03, 04, 11
+- **Plan**: Search files 04, 11
+- **Outline**: Search files 05, 11
+- **Progress/Streaming**: Search file 11
 - **Research**: Search files 02, 05, 10
-- **Session**: Search file 07
+- **Session**: Search files 07, 11
 - **Sub-agent**: Search file 06
-- **Template**: Search files 01, 09
+- **Template**: Search files 01, 09, 11
 - **Upload**: Search files 02, 08
 
 ---
 
-**Total Scenarios**: 150+
+**Total Scenarios**: 200+
 
 **Format**: Each entry shows scenario name and file number
 
 - _(01)_ = File 01-output-type-selection.feature
 - _(10)_ = File 10-integrations.feature
+- _(11)_ = File 11-mcp-api.feature
